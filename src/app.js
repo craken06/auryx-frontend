@@ -45,7 +45,7 @@ const App = {
       consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
       cost: { kwh: 300, pricePerKwh: 140 },
       savings: { currentKwh: 350, solarKwh: 220, energyPrice: 140 },
-      orientation: { lat: -34.6, hemisphere: "sur", previewAngle: 35 },
+      orientation: { lat: -34.6, mode: "optimal", previewAngle: 35 },
     },
     contactDraft: {},
     contactErrors: {},
@@ -153,7 +153,7 @@ const App = {
     this.state.theme = theme;
     document.documentElement.setAttribute("data-theme", theme);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#f3f5f9" : "#0d1424");
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f3f5f9" : "#05080f");
     storageSet("auryx-theme", theme);
     this.render();
   },
@@ -264,8 +264,8 @@ const App = {
   calcOrientationRecompute() {
     const t = orientationTotals(this.state.calc.orientation);
     this.setText("orient-azimuth", t.azimuth);
-    this.setText("orient-angle", `≈ ${t.angle}°`);
-    this.setText("orient-use-btn", `Usar ángulo recomendado (${t.angle}°)`);
+    this.setText("orient-angle", `≈ ${t.angle}°`);
+    this.calcOrientationDraw(t.angle);
   },
   calcOrientationAngleEdit(value) {
     let n = Math.round(Number(value));
@@ -277,7 +277,11 @@ const App = {
     const slider = document.getElementById("orient-angle-slider");
     if (numInput && document.activeElement !== numInput && Number(numInput.value) !== n) numInput.value = n;
     if (slider && Number(slider.value) !== n) slider.value = n;
-
+    this.setText("orient-angle", `≈ ${n}°`);
+    this.calcOrientationDraw(n);
+  },
+  /* Redibuja las dos vistas del panel con el ángulo dado (sin re-render). */
+  calcOrientationDraw(n) {
     const iso = document.getElementById("panel-3d-iso");
     if (iso) iso.style.transform = `rotateX(${-n}deg)`;
 
@@ -400,9 +404,20 @@ const ACTIONS = {
     App.state.calc.consumption.splice(Number(d.i), 1);
     App.render({ focusSelector: '[data-fid="consumption-add"]' });
   },
-  "orient-use-recommended": () => {
+  "orient-mode": (d) => {
     const o = App.state.calc.orientation;
-    App.calcOrientationAngleEdit(Math.round(Math.abs(o.lat)));
+    if (d.mode === "manual") o.previewAngle = orientationTotals(o).angle;
+    o.mode = d.mode;
+    App.render({ focusSelector: `[data-action="orient-mode"][data-mode="${d.mode}"]` });
+  },
+  "orient-geolocate": () => {
+    const status = document.getElementById("orient-geo-status");
+    if (!navigator.geolocation) { if (status) status.textContent = " Tu navegador no permite obtener la ubicación."; return; }
+    if (status) status.textContent = " Buscando tu ubicación…";
+    navigator.geolocation.getCurrentPosition((pos) => {
+      App.state.calc.orientation.lat = Math.round(pos.coords.latitude * 100) / 100;
+      App.render({ focusSelector: "#orient-geo-btn" });
+    }, () => { if (status) status.textContent = " No pudimos obtener tu ubicación: ingresá la latitud a mano."; });
   },
 
   "demo-step": (d) => {
@@ -436,8 +451,8 @@ const INPUT_BINDINGS = {
   "cost": (el) => { App.state.calc.cost[el.dataset.field] = Number(el.value) || 0; App.calcCostRecompute(); },
   "savings": (el) => { App.state.calc.savings[el.dataset.field] = Number(el.value) || 0; App.calcSavingsRecompute(); },
   "orient": (el) => {
-    const f = el.dataset.field;
-    App.state.calc.orientation[f] = f === "lat" ? (Number(el.value) || 0) : el.value;
+    const lat = Number(el.value.replace(",", "."));
+    App.state.calc.orientation.lat = Number.isFinite(lat) ? Math.max(-90, Math.min(90, lat)) : 0;
     App.calcOrientationRecompute();
   },
   "orient-angle": (el) => App.calcOrientationAngleEdit(el.value),
@@ -532,10 +547,6 @@ function applyRouteFromHash() {
   } else if (view === "calculators") {
     s.view = "calculators";
     s.calcSection = param || null;
-    if (param) afterRender = () => {
-      const el = document.getElementById(`calc-${param}`);
-      if (el) el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
-    };
   } else if (["cart", "info", "contact"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};

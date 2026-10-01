@@ -1,7 +1,14 @@
-/* AURYX: página de calculadoras (subnav + las 4 secciones). Depende de: views/calculators/*.js, views/home.js (CALCULATOR_LINKS). */
+/* AURYX: página de calculadoras (subnav + una sección visible a la vez). Depende de: views/calculators/*.js, views/home.js (CALCULATOR_LINKS). */
+
+const CALCULATOR_RENDERERS = {
+  consumo: renderConsumptionCalculator,
+  costo: renderCostCalculator,
+  ahorro: renderSavingsCalculator,
+  orientacion: renderOrientationCalculator,
+};
 
 function renderCalculators(state) {
-  const active = state.calcSection;
+  const active = CALCULATOR_RENDERERS[state.calcSection] ? state.calcSection : CALCULATOR_LINKS[0].id;
   return `
   <div class="wrap" style="padding-top:56px">
     <div class="page-head" style="margin-bottom:28px">
@@ -15,9 +22,6 @@ function renderCalculators(state) {
     </div>
   </nav>
   <div class="wrap" style="padding-bottom:48px">
-    ${renderConsumptionCalculator(state)}
-    ${renderCostCalculator(state)}
-    ${renderSavingsCalculator(state)}
-    ${renderOrientationCalculator(state)}
+    ${CALCULATOR_RENDERERS[active](state)}
   </div>`;
 }
