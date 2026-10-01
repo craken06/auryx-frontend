@@ -857,3 +857,66 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
   .btn:active:not(:disabled) { transform: none; }
   .product-card:hover, .cat-tile:hover { transform: none; }
 }
+
+/* =========================================================================
+   IVA, aviso técnico, proceso, WhatsApp, estado de carga, legales
+   ========================================================================= */
+.iva { display: block; font-size: 0.75rem; font-weight: 500; font-stretch: 100%; letter-spacing: 0; color: var(--text-dim); text-align: right; margin-top: 2px; }
+
+.tech-note {
+  display: flex; gap: 12px; align-items: flex-start; margin-top: 32px; padding: 14px 16px;
+  border-radius: var(--r-surface); border: 1px solid var(--line); background: var(--surface);
+  color: var(--text-mid); font-size: 0.875rem; line-height: 1.55;
+}
+.tech-note .ph { font-size: 20px; flex: none; margin-top: 1px; color: var(--accent-ink); }
+.tech-note strong { color: var(--text); }
+.tech-note-spaced { margin-top: 40px; }
+.verdict + .tech-note, .tech-note:first-child { margin-top: 0; }
+
+.process { padding-block: 72px; border-top: 1px solid var(--line); }
+.process-head { margin-bottom: 36px; }
+.process-steps { list-style: none; display: grid; gap: 12px; padding: 0; margin: 0; counter-reset: none; }
+@media (min-width: 768px) { .process-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .process-steps { grid-template-columns: repeat(4, 1fr); } }
+.process-steps li {
+  display: grid; gap: 14px; align-content: start; padding: 22px; border-radius: var(--r-surface);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.process-num {
+  width: 32px; height: 32px; display: grid; place-items: center; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-ink); font-family: var(--font-mono); font-weight: 700; font-size: 0.875rem;
+}
+.process-steps h3 { display: flex; align-items: center; gap: 8px; font-size: 1.0625rem; font-weight: 650; margin-bottom: 6px; }
+.process-steps h3 .ph { font-size: 20px; color: var(--accent-ink); }
+.process-steps p { color: var(--text-mid); font-size: 0.9375rem; }
+.process-compact { padding-block: 0; border-top: 0; margin-top: 48px; }
+.process-title { font-size: 1.25rem; font-weight: 700; font-stretch: 85%; margin-bottom: 16px; }
+
+.wa-fab {
+  position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 51;
+  width: 52px; height: 52px; display: grid; place-items: center; border-radius: 999px;
+  background: #25d366; color: #05210f; box-shadow: var(--shadow);
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.wa-fab:hover { transform: translateY(-2px); }
+.wa-fab .ph-fill { font-size: 28px; }
+.back-to-top { bottom: calc(84px + env(safe-area-inset-bottom)); }
+@media (max-width: 520px) { .toast-region { bottom: calc(84px + env(safe-area-inset-bottom)); } }
+
+.boot-msg { display: flex; align-items: center; gap: 10px; color: var(--text-mid); font-size: 0.9375rem; }
+.spinner {
+  width: 18px; height: 18px; border-radius: 999px; flex: none;
+  border: 2px solid var(--line-strong); border-top-color: var(--accent);
+}
+@media (prefers-reduced-motion: no-preference) { .spinner { animation: spin 0.8s linear infinite; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.footer-base { display: grid; gap: 8px; }
+.footer-legal { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.footer-legal a { color: var(--text-mid); text-decoration: underline; text-underline-offset: 3px; }
+.footer-legal a:hover { color: var(--text); }
+.footer-base strong { color: var(--text-mid); font-weight: 600; }
+
+.legal a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+.legal a.link-arrow { text-decoration: none; }
+.legal h2:first-child { margin-top: 0; }

@@ -23,5 +23,6 @@ function renderCalculators(state) {
   </nav>
   <div class="wrap" style="padding-bottom:48px">
     ${CALCULATOR_RENDERERS[active](state)}
+    ${techNoteHTML("tech-note-spaced")}
   </div>`;
 }

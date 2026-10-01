@@ -43,6 +43,7 @@
   <main id="main" tabindex="-1">
     <div id="app-root">
       <div class="wrap boot" aria-busy="true" aria-label="Cargando">
+        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span id="boot-text">Cargando el catálogo…</span></p>
         <div class="skeleton" style="height:48px;max-width:420px"></div>
         <div class="skeleton" style="height:20px;max-width:560px"></div>
         <div class="skeleton" style="height:320px"></div>
@@ -56,6 +57,10 @@
   <button id="back-to-top" class="back-to-top" type="button" data-action="scroll-top" aria-label="Volver arriba">
     <i class="ph ph-arrow-up" aria-hidden="true"></i>
   </button>
+
+  <a id="wa-fab" class="wa-fab" href="#" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp (se abre en una pestaña nueva)">
+    <i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i>
+  </a>
 
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL/USD_ARS_RATE -->
   <script src="src/config.js"></script>
@@ -80,6 +85,7 @@
   <script src="src/views/calculators/index.js"></script>
   <script src="src/views/cart.js"></script>
   <script src="src/views/infoContact.js"></script>
+  <script src="src/views/legal.js"></script>
 
   <!-- Cliente de la API -->
   <script src="src/lib/api.js"></script>

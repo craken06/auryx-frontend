@@ -25,6 +25,34 @@ const prefersReducedMotion = () => window.matchMedia && window.matchMedia("(pref
 function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* modo privado: se ignora */ } }
 
+/* Carrito persistente: se guardan solo id + cantidad (los precios se toman siempre del catálogo
+   actual). Las líneas cuyo producto todavía no está en el catálogo cargado (por ejemplo, la API
+   no respondió y se usa el catálogo de demo) se conservan aparte para no perderlas. */
+const CART_KEY = "auryx-cart";
+let unresolvedCart = [];
+
+function persistCart(cart) {
+  const resolved = cart.map((it) => ({ id: it.product.id, qty: it.qty, systemId: it.systemId || null }));
+  storageSet(CART_KEY, JSON.stringify([...resolved, ...unresolvedCart]));
+}
+
+function restoreCart() {
+  let saved = [];
+  try { saved = JSON.parse(storageGet(CART_KEY) || "[]"); } catch (e) { saved = []; }
+  if (!Array.isArray(saved)) return [];
+  const cart = [];
+  unresolvedCart = [];
+  saved.forEach((it) => {
+    const qty = Math.max(1, Math.round(Number(it && it.qty)) || 1);
+    const product = it && PRODUCTS.find((p) => p.id === it.id);
+    if (!product) { if (it && it.id) unresolvedCart.push({ id: it.id, qty, systemId: it.systemId || null }); return; }
+    const line = { product, qty };
+    if (it.systemId) line.systemId = it.systemId;
+    cart.push(line);
+  });
+  return cart;
+}
+
 const App = {
   state: {
     view: "home",
@@ -52,6 +80,7 @@ const App = {
     contactStatus: null,
   },
 
+  cartReady: false, // hasta restaurar el carrito guardado no se escribe nada (evita pisarlo con uno vacío)
   lastRouteKey: null,
   homeRevealed: false,
   toastTimer: null,
@@ -79,6 +108,8 @@ const App = {
       case "cart": body = renderCart(s); break;
       case "info": body = renderInfo(); break;
       case "contact": body = renderContact(s); break;
+      case "terms": body = renderTerms(); break;
+      case "privacy": body = renderPrivacy(); break;
       default: body = renderHome(s);
     }
     document.getElementById("app-root").innerHTML = body;
@@ -87,6 +118,7 @@ const App = {
     if (!footer.dataset.ready) { footer.innerHTML = renderFooter(); footer.dataset.ready = "1"; }
 
     this.setupReveal();
+    if (this.cartReady) persistCart(s.cart);
 
     // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
     const target = focusSelector
@@ -218,13 +250,7 @@ const App = {
   },
   requestQuote() {
     const s = this.state;
-    const t = cartTotals(s.cart);
-    const lines = s.cart.map((it) => `- ${it.qty} x ${it.product.brand} ${it.product.name}`);
-    const total = s.currency === "USD" ? fmtUSD(t.priceUSD) : fmtARS(t.priceARS);
-    s.contactDraft = {
-      ...s.contactDraft,
-      message: `Hola, quiero pedir una cotización por:\n${lines.join("\n")}\n\nTotal estimado en la web: ${total}`,
-    };
+    s.contactDraft = { ...s.contactDraft, message: quoteMessage(s) };
     s.contactStatus = null;
     navigateHash("contact");
   },
@@ -332,13 +358,14 @@ const App = {
       return;
     }
 
+    const body = `${d.message}\n\n${d.name}\n${d.email}${d.phone ? `\n${d.phone}` : ""}`;
     if (typeof CONTACT_EMAIL === "string" && CONTACT_EMAIL) {
-      const body = `${d.message}\n\n${d.name}\n${d.email}${d.phone ? `\n${d.phone}` : ""}`;
       window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Consulta web: ${d.name}`)}&body=${encodeURIComponent(body)}`;
       s.contactStatus = { tone: "ok", text: "Abrimos tu programa de correo con el mensaje listo. Solo falta que lo envíes." };
     } else {
-      console.warn("CONTACT_EMAIL no está configurado en src/config.js: el formulario no puede enviar.");
-      s.contactStatus = { tone: "warn", text: "El envío de mensajes todavía no está habilitado en esta versión del sitio." };
+      // Sin backend ni email configurado, el canal es WhatsApp con el mensaje armado.
+      window.open(whatsappLink(body), "_blank", "noopener");
+      s.contactStatus = { tone: "ok", text: "Abrimos WhatsApp con tu mensaje listo. Solo falta que lo envíes." };
     }
     this.render({ focusSelector: ".form-status" });
   },
@@ -547,7 +574,7 @@ function applyRouteFromHash() {
   } else if (view === "calculators") {
     s.view = "calculators";
     s.calcSection = param || null;
-  } else if (["cart", "info", "contact"].includes(view)) {
+  } else if (["cart", "info", "contact", "terms", "privacy"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};
   } else {
@@ -605,6 +632,15 @@ function setupBackToTop() {
    ========================================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
   setupBackToTop();
+  const waFab = document.getElementById("wa-fab");
+  if (waFab) waFab.href = whatsappLink("Hola, quiero hacer una consulta.");
+
+  // Si el catálogo tarda, se avisa en vez de dejar un esqueleto mudo.
+  const slowTimer = setTimeout(() => {
+    const t = document.getElementById("boot-text");
+    if (t) t.textContent = "Está tardando más de lo normal. Seguimos intentando…";
+  }, 2500);
+
   try {
     const apiProducts = await loadProductsFromAPI();
     if (apiProducts && apiProducts.length > 0) {
@@ -612,8 +648,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       console.warn("Usando catálogo de demo: no se pudo conectar con la API en", API_BASE_URL);
     }
+    App.state.cart = restoreCart();
+    App.cartReady = true;
+    clearTimeout(slowTimer);
     applyRouteFromHash();
   } catch (err) {
+    clearTimeout(slowTimer);
     console.error("Error inicializando la app:", err);
     document.getElementById("app-root").innerHTML = `
       <div class="wrap page">

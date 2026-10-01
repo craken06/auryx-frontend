@@ -233,6 +233,7 @@ function renderConfigurator(state) {
     body = `<div style="display:grid;gap:12px">
       ${verdictHTML(panelEval, "Paneles e inversor")}
       ${verdictHTML(batteryEval, "Batería")}
+      ${techNoteHTML()}
       <div class="panel panel-pad">
         <ul class="summary-lines" style="border-top:0;padding-top:0">
           ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
@@ -259,8 +260,8 @@ function renderConfigurator(state) {
         <ul class="summary-lines">
           ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span></li>`).join("")}
         </ul>
-        <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur)}</div>
-      ` : `<p class="summary-empty">Todavía no elegiste componentes. A medida que avances, el resumen se completa acá.</p>`}
+        <div class="summary-total"><span class="muted">Total <span class="xsmall dim">(IVA incl.)</span></span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur)}</div>
+      ` :`<p class="summary-empty">Todavía no elegiste componentes. A medida que avances, el resumen se completa acá.</p>`}
       ${isLast ? `<button type="button" class="btn btn-primary btn-lg btn-block" style="margin-top:20px" data-action="cfg-add-system">${icon("shopping-cart-simple")} Agregar al carrito</button>` : ""}
     </aside>`;
 

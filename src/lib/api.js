@@ -44,6 +44,32 @@ function adaptApiProduct(apiProduct) {
 }
 
 /**
+ * Pide la cotización USD→ARS vigente a la API y actualiza USD_ARS_RATE.
+ * Si falla, queda el valor de respaldo de config.js y no se interrumpe nada.
+ * EXCHANGE_INFO guarda el origen para mostrarlo en el pie de página.
+ */
+let EXCHANGE_INFO = null;
+async function loadExchangeRate() {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${API_BASE_URL}/exchange-rate`, {
+      signal: controller.signal,
+      headers: { "ngrok-skip-browser-warning": "true" },
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`La API respondió ${res.status}`);
+    const data = await res.json();
+    const rate = Number(data.usdArs);
+    if (!Number.isFinite(rate) || rate <= 0) throw new Error("cotización inválida");
+    USD_ARS_RATE = rate;
+    EXCHANGE_INFO = { rate, updatedAt: data.updatedAt || null, source: data.source };
+  } catch (err) {
+    console.warn("No se pudo cargar la cotización del dólar, se usa el valor de respaldo:", err.message);
+  }
+}
+
+/**
  * Pide los productos reales a la API. Si falla (API caída, CORS, etc.)
  * devuelve null para que quien llame decida el fallback.
  */
@@ -51,10 +77,14 @@ async function loadProductsFromAPI() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s máximo de espera
-    const res = await fetch(`${API_BASE_URL}/products`, {
-      signal: controller.signal,
-      headers: { "ngrok-skip-browser-warning": "true" },
-    });
+    // la cotización se pide en paralelo y tiene que estar lista antes de convertir precios
+    const [res] = await Promise.all([
+      fetch(`${API_BASE_URL}/products`, {
+        signal: controller.signal,
+        headers: { "ngrok-skip-browser-warning": "true" },
+      }),
+      loadExchangeRate(),
+    ]);
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`La API respondió ${res.status}`);
     const data = await res.json();

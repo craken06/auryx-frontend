@@ -114,7 +114,7 @@ function renderStore(state) {
   <div class="wrap page">
     <div class="page-head">
       <h1 class="page-title">${title}</h1>
-      <p class="page-lead">Componentes con especificaciones de fabricante. Entrá a cada uno para ver la ficha técnica completa.</p>
+      <p class="page-lead">Componentes con especificaciones de fabricante. Entrá a cada uno para ver la ficha técnica completa. Todos los precios incluyen IVA.</p>
     </div>
     <nav class="cat-tabs" aria-label="Categorías">${tabs}</nav>
     <div class="store-layout">

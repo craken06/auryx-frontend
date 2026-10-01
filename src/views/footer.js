@@ -1,5 +1,12 @@
 /* AURYX: pie de página. Depende de: data/products.js, utils/format.js. */
 
+/* Cotización usada para convertir USD↔ARS (solo si vino de la API). */
+function exchangeNoteText() {
+  if (typeof EXCHANGE_INFO === "undefined" || !EXCHANGE_INFO) return "";
+  const date = EXCHANGE_INFO.updatedAt ? new Date(EXCHANGE_INFO.updatedAt).toLocaleDateString("es-AR") : "";
+  return ` Cotización de referencia: 1 USD = ${fmtARS(EXCHANGE_INFO.rate)}${date ? ` (${date})` : ""}.`;
+}
+
 function renderFooter() {
   const cats = ["panel", "inversor", "bateria", "regulador"]
     .filter((k) => CATEGORY_META[k])
@@ -18,8 +25,13 @@ function renderFooter() {
       </nav>
       <nav class="footer-col" aria-labelledby="ft-auryx"><h2 id="ft-auryx">Auryx</h2>
         <a href="#info">Información</a><a href="#contact">Contacto</a>
+        <a href="${whatsappLink()}" target="_blank" rel="noopener">WhatsApp ${WHATSAPP_DISPLAY}</a>
       </nav>
     </div>
-    <p class="footer-base">Precios de referencia sujetos a confirmación en la cotización.</p>
+    <div class="footer-base">
+      <p>Precios de referencia en ARS y USD, con IVA incluido, sujetos a confirmación de stock y condiciones en la cotización.${exchangeNoteText()}</p>
+      <p><strong>Aviso técnico:</strong> las verificaciones y calculadoras son orientativas y no reemplazan el proyecto de un profesional matriculado.</p>
+      <p class="footer-legal"><a href="#terms">Términos y condiciones</a><a href="#privacy">Política de privacidad</a></p>
+    </div>
   </div>`;
 }

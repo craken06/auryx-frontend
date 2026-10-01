@@ -21,7 +21,8 @@ function renderInfo() {
         <p>Que la tensión del string no supere el máximo del inversor o regulador, que la corriente entre en cada MPPT, que la potencia FV esté dentro de lo admitido y que la batería trabaje en el rango de tensión del equipo. Si algo queda justo, te avisamos en lugar de bloquearlo.</p>
         <p>Es una verificación simplificada: todavía <strong>no aplica corrección por temperatura</strong>. Para instalaciones definitivas, el dimensionamiento final lo revisamos con vos.</p>
         <h2>Precios y compra</h2>
-        <p>Los precios son de referencia en pesos y dólares. El carrito termina en una solicitud de cotización: te contactamos para confirmar precio, stock, envío e instalación.</p>
+        <p>Los precios son de referencia, en pesos y dólares, e <strong>incluyen IVA</strong>. El carrito termina en una solicitud de cotización: te contactamos para confirmar precio, stock, envío e instalación. Todavía no se paga online.</p>
+        <p>Más detalle en los <a href="#terms">Términos y condiciones</a> y la <a href="#privacy">Política de privacidad</a>.</p>
       </div>
       <div class="fact-list">
         <div class="fact">${icon("solar-panel")}<strong>Residencial y PyME</strong><p>Sistemas on-grid, híbridos con batería y autónomos en corriente continua.</p></div>
@@ -30,6 +31,11 @@ function renderInfo() {
         <a href="#contact" class="btn btn-primary btn-lg" style="margin-top:8px">Contacto</a>
       </div>
     </div>
+    <section class="process process-compact" aria-labelledby="info-process-title">
+      <h2 id="info-process-title" class="process-title">Qué pasa cuando pedís la cotización</h2>
+      ${processStepsHTML()}
+    </section>
+    ${techNoteHTML()}
   </div>`;
 }
 
@@ -47,6 +53,10 @@ function renderContact(state) {
         <h1 class="page-title">Contacto</h1>
         <p class="page-lead">Contanos qué necesitás: una cotización, una consulta técnica o ayuda para elegir componentes.</p>
         <p class="muted small">Si venís del carrito, el detalle del pedido ya está en el mensaje.</p>
+        <div>
+          <a href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" class="btn btn-secondary" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Escribinos por WhatsApp</a>
+          <p class="xsmall dim" style="margin-top:8px">${WHATSAPP_DISPLAY}</p>
+        </div>
       </div>
       <form class="form panel panel-pad" data-form="contact" novalidate>
         <div class="form-row">
@@ -75,7 +85,8 @@ function renderContact(state) {
           ${fieldError("message")}
         </div>
         ${status ? `<p class="form-status tone-${status.tone}" role="status">${status.text}</p>` : ""}
-        <button type="submit" class="btn btn-primary btn-lg">Enviar mensaje</button>
+        <button type="submit" class="btn btn-primary btn-lg">${CONTACT_EMAIL ? "Enviar mensaje" : "Enviar por WhatsApp"}</button>
+        <p class="xsmall dim">Al enviar aceptás la <a href="#privacy">Política de privacidad</a>.</p>
       </form>
     </div>
   </div>`;

@@ -16,9 +16,15 @@ const API_BASE_URL = "https://6757-186-18-242-43.ngrok-free.app";
 
 // Tasa de cambio de referencia, SOLO para mostrar el precio en la moneda
 // que un producto no tiene cargada en la base (ej. se cargó en ARS y el
-// usuario quiere ver USD). Ajustar según cotización real, o reemplazar
-// más adelante por una consulta a una API de cotización en vivo.
-const USD_ARS_RATE = 1350;
+// usuario quiere ver USD). Este valor es el de respaldo: al iniciar, el sitio
+// le pide la cotización vigente a la API (GET /exchange-rate) y, si responde,
+// la reemplaza (ver loadExchangeRate en lib/api.js).
+let USD_ARS_RATE = 1350;
+
+// WhatsApp de contacto (formato internacional, solo dígitos: 54 9 + código de área + número).
+// Es el canal por el que llegan las cotizaciones y las consultas mientras no haya backend de pedidos.
+const WHATSAPP_NUMBER = "5491166858516";
+const WHATSAPP_DISPLAY = "+54 9 11 6685-8516";
 
 // Email que recibe los mensajes del formulario de contacto y las
 // solicitudes de cotización del carrito. Mientras no haya un endpoint de

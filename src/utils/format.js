@@ -35,8 +35,22 @@ function priceText(item, currency) {
   return currency === "USD" ? fmtUSD(item.priceUSD) : fmtARS(item.priceARS);
 }
 
+/* Todos los precios del sitio incluyen IVA. En los totales y en la ficha se aclara al lado del número. */
 function priceTagHTML(item, currency, size) {
-  return `<span class="price${size === "lg" ? " price-lg" : ""}">${priceText(item, currency)}</span>`;
+  if (size === "lg") return `<span class="price price-lg">${priceText(item, currency)}<small class="iva">IVA incluido</small></span>`;
+  return `<span class="price">${priceText(item, currency)}</span>`;
+}
+
+/* Enlace de WhatsApp con el mensaje ya escrito. */
+function whatsappLink(text) {
+  return `https://wa.me/${WHATSAPP_NUMBER}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
+}
+
+/* Aviso técnico general: se muestra donde el usuario ve resultados de compatibilidad o cálculo. */
+const TECH_DISCLAIMER = "La verificación de compatibilidad y las calculadoras son orientativas: usan datos de la hoja del fabricante y no consideran corrección por temperatura, sombras, pérdidas de cableado ni normativa local. No reemplazan un proyecto firmado por un profesional matriculado. El dimensionamiento final lo confirmamos con vos antes de la compra, y la instalación debe hacerla personal matriculado.";
+
+function techNoteHTML(extraClass = "") {
+  return `<p class="tech-note${extraClass ? " " + extraClass : ""}">${icon("info")}<span><strong>Aviso técnico.</strong> ${TECH_DISCLAIMER}</span></p>`;
 }
 
 /* =========================================================================

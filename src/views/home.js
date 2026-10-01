@@ -67,6 +67,27 @@ function renderHomeDemo(demo) {
     </div>`;
 }
 
+/* Qué pasa después de armar el sistema. Lo usan la home, el carrito y la página de información. */
+const PROCESS_STEPS = [
+  { icon: "solar-panel", title: "Armás tu sistema", text: "En el configurador o eligiendo productos sueltos. No hace falta registrarte." },
+  { icon: "chat-circle-text", title: "Pedís la cotización", text: "Con un clic se arma el mensaje con tu pedido y lo enviás por WhatsApp o por el formulario." },
+  { icon: "clipboard-text", title: "Revisamos tu proyecto", text: "Una persona de Auryx revisa la compatibilidad y el dimensionamiento, y te consulta lo que haga falta: consumo, ubicación, techo." },
+  { icon: "receipt", title: "Recibís la cotización final", text: "Con precio, stock, envío e instalación confirmados. Recién ahí decidís si avanzás." },
+];
+
+function processStepsHTML() {
+  return `<ol class="process-steps">
+    ${PROCESS_STEPS.map((s, i) => `
+      <li data-reveal style="--i:${i}">
+        <span class="process-num" aria-hidden="true">${i + 1}</span>
+        <div>
+          <h3>${icon(s.icon)}${s.title}</h3>
+          <p>${s.text}</p>
+        </div>
+      </li>`).join("")}
+  </ol>`;
+}
+
 /* ---------------------------------------------------------------------- */
 /* HOME                                                                    */
 /* ---------------------------------------------------------------------- */
@@ -154,6 +175,7 @@ function renderHome(state) {
           <p>Controlamos la potencia FV máxima, el sobredimensionamiento y que la batería trabaje en el rango de tensión del equipo.</p>
         </div>
       </div>
+      ${techNoteHTML("tech-note-spaced")}
     </div>
   </section>
 
@@ -180,12 +202,23 @@ function renderHome(state) {
     </div>
   </section>
 
+  <section class="process" aria-labelledby="process-title">
+    <div class="wrap">
+      <div class="process-head">
+        <p class="eyebrow">Cómo sigue</p>
+        <h2 id="process-title" class="section-title">Después de pedir la cotización.</h2>
+        <p class="section-lead">No hay pago online ni compromiso: primero armás y consultás, y nosotros confirmamos que todo cierre antes de que compres. Los precios publicados incluyen IVA.</p>
+      </div>
+      ${processStepsHTML()}
+    </div>
+  </section>
+
   <section class="closing" aria-labelledby="closing-title">
     <div class="wrap">
       <div class="closing-inner" data-reveal>
         <div>
           <h2 id="closing-title" class="section-title">Armá tu sistema y pedí la cotización.</h2>
-          <p class="section-lead">Sin registrarte. Te contactamos para confirmar precios, stock e instalación.</p>
+          <p class="section-lead">Sin registrarte. Te contactamos para confirmar precios, stock e instalación. ¿Dudas? <a class="link-arrow" style="display:inline-flex" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener">Escribinos por WhatsApp</a></p>
         </div>
         <a href="#configurator" class="btn btn-primary btn-lg">Diseñar mi sistema ${icon("arrow-right")}</a>
       </div>

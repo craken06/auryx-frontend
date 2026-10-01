@@ -8,6 +8,14 @@ function cartTotals(cart) {
   };
 }
 
+/* Texto del pedido: lo usan el botón de WhatsApp y el formulario de contacto. */
+function quoteMessage(state) {
+  const t = cartTotals(state.cart);
+  const lines = state.cart.map((it) => `- ${it.qty} x ${it.product.brand} ${it.product.name}`);
+  const total = state.currency === "USD" ? fmtUSD(t.priceUSD) : fmtARS(t.priceARS);
+  return `Hola, quiero pedir una cotización por:\n${lines.join("\n")}\n\nTotal estimado en la web: ${total} (IVA incluido)`;
+}
+
 function cartLineHTML({ product, qty, idx }, currency) {
   return `
   <div class="cart-line">
@@ -74,12 +82,17 @@ function renderCart(state) {
       <aside class="cart-aside panel panel-pad" aria-label="Resumen del pedido">
         <dl class="rows">
           <div><dt>Unidades</dt><dd class="mono">${t.units}</dd></div>
-          <div><dt>Moneda</dt><dd class="mono">${state.currency}</dd></div>
         </dl>
         <div class="summary-total" style="margin-bottom:20px"><span class="muted">Total estimado</span>${priceTagHTML(t, state.currency, "lg")}</div>
-        <button type="button" class="btn btn-primary btn-lg btn-block" data-action="cart-quote">Solicitar cotización</button>
-        <p class="xsmall dim" style="margin-top:12px">Todavía no procesamos pagos. Te contactamos para confirmar precio, stock e instalación.</p>
+        <a class="btn btn-primary btn-lg btn-block" href="${whatsappLink(quoteMessage(state))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Pedir cotización por WhatsApp</a>
+        <button type="button" class="btn btn-secondary btn-block" style="margin-top:10px" data-action="cart-quote">Prefiero usar el formulario</button>
+        <p class="xsmall dim" style="margin-top:12px">Precios con IVA incluido. Todavía no procesamos pagos: te contactamos para confirmar precio, stock, envío e instalación.</p>
       </aside>
     </div>
+    <section class="process process-compact" aria-labelledby="cart-process-title">
+      <h2 id="cart-process-title" class="process-title">Qué pasa cuando pedís la cotización</h2>
+      ${processStepsHTML()}
+    </section>
+    ${techNoteHTML()}
   </div>`;
 }
