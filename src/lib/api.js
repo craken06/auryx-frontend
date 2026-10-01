@@ -51,7 +51,10 @@ async function loadProductsFromAPI() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s máximo de espera
-    const res = await fetch(`${API_BASE_URL}/products`, { signal: controller.signal });
+    const res = await fetch(`${API_BASE_URL}/products`, {
+      signal: controller.signal,
+      headers: { "ngrok-skip-browser-warning": "true" },
+    });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`La API respondió ${res.status}`);
     const data = await res.json();
