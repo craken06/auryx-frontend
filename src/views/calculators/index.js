@@ -1,26 +1,23 @@
-/* AURYX — Contenedor de las 4 calculadoras (tabs). Depende de: views/calculators/*.js. */
+/* AURYX: página de calculadoras (subnav + las 4 secciones). Depende de: views/calculators/*.js, views/home.js (CALCULATOR_LINKS). */
 
 function renderCalculators(state) {
-  const sections = [
-    { id: "consumo", label: "1. Consumo" },
-    { id: "costo", label: "2. Costo" },
-    { id: "ahorro", label: "3. Ahorro" },
-    { id: "orientacion", label: "4. Orientación" },
-  ];
+  const active = state.calcSection;
   return `
-  <div>
-    <div class="max-w-5xl mx-auto px-5 pt-12">
-      <h1 class="sf-display text-3xl font-semibold mb-2">Calculadoras</h1>
-      <p class="text-sm mb-6" style="color:var(--text-mid)">De acceso libre, sin necesidad de crear una cuenta. Pensadas también para estudiantes: cada una incluye una breve explicación técnica de cómo se calcula el resultado.</p>
-      <div class="flex gap-2 flex-wrap mb-4 sticky top-[73px] py-3 z-10" style="background:var(--bg)">
-        ${sections.map((s) => `<a href="#${s.id}" class="sf-btn-outline px-3 py-1.5 text-sm inline-block">${s.label}</a>`).join("")}
-      </div>
+  <div class="wrap" style="padding-top:56px">
+    <div class="page-head" style="margin-bottom:28px">
+      <h1 class="page-title">Calculadoras</h1>
+      <p class="page-lead">De uso libre y sin registro. Cada una explica cómo llega al resultado, así también sirven para aprender.</p>
     </div>
-    <div class="max-w-5xl mx-auto px-5">
-      ${renderConsumptionCalculator(state)}
-      ${renderCostCalculator(state)}
-      ${renderSavingsCalculator(state)}
-      ${renderOrientationCalculator(state)}
+  </div>
+  <nav class="subnav" aria-label="Calculadoras">
+    <div class="wrap subnav-row">
+      ${CALCULATOR_LINKS.map((c) => `<a href="#calculators/${c.id}"${active === c.id ? ' aria-current="true"' : ""}>${icon(c.icon)}${c.name}</a>`).join("")}
     </div>
+  </nav>
+  <div class="wrap" style="padding-bottom:48px">
+    ${renderConsumptionCalculator(state)}
+    ${renderCostCalculator(state)}
+    ${renderSavingsCalculator(state)}
+    ${renderOrientationCalculator(state)}
   </div>`;
 }

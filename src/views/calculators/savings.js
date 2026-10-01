@@ -1,23 +1,26 @@
-/* AURYX — Calculadora de ahorro. Depende de: utils/calculatorHelpers.js. */
+/* AURYX: calculadora de ahorro. Depende de: utils/format.js, utils/calculatorHelpers.js. */
 
-function renderSavingsCalculator(state) {
-  const { currentKwh, solarKwh, energyPrice } = state.calc.savings;
+function savingsTotals({ currentKwh, solarKwh, energyPrice }) {
   const saved = Math.max(0, solarKwh) * energyPrice;
   const pct = currentKwh > 0 ? Math.min(100, (solarKwh / currentKwh) * 100) : 0;
-  const body = `
-    ${explainerHTML(`El ahorro estimado es la <strong class="sf-mono">producción solar mensual (kWh) × precio del kWh</strong>: la energía que el sistema genera es energía que ya no se le compra a la red. El porcentaje de ahorro compara la producción solar contra el consumo total del mes.`)}
-    ${fieldHTML({ id: "sav-current", label: "Consumo mensual actual", unit: "kWh", type: "number", value: currentKwh, oninput: "App.calcSavingsEdit('currentKwh', this.value)" })}
-    ${fieldHTML({ id: "sav-solar", label: "Producción solar mensual estimada", unit: "kWh", type: "number", value: solarKwh, oninput: "App.calcSavingsEdit('solarKwh', this.value)" })}
-    ${fieldHTML({ id: "sav-price", label: "Precio del kilovatio-hora", unit: "$/kWh", type: "number", value: energyPrice, oninput: "App.calcSavingsEdit('energyPrice', this.value)" })}
-    <p class="text-xs" style="color:var(--text-dim)">Tip: si ya diseñaste un sistema en el configurador, una estimación rápida de producción mensual es Potencia total (kW) × ~4.5 horas solares pico/día × 30.</p>
-    <div id="savings-result" class="mt-4 p-4 sf-card text-sm space-y-2" style="border-color:var(--line-yellow)">
-      ${resultRowHTML("sav-monthly", "Ahorro mensual", `$ ${saved.toLocaleString("es-AR")}`)}
-      ${resultRowHTML("sav-yearly", "Ahorro anual", `$ ${(saved * 12).toLocaleString("es-AR")}`)}
-      ${resultRowHTML("sav-pct", "Porcentaje del consumo cubierto", `${pct.toFixed(0)} %`)}
-    </div>`;
-  return calcSectionHTML("ahorro", "3. Ahorro energético", "Cuánto dinero deja de pagarse al cubrir consumo con energía solar", body);
+  return { monthly: fmtMoney(saved), yearly: fmtMoney(saved * 12), pct: `${fmtNum(pct)} %` };
 }
 
-/* Geometría del dibujo lateral (perfil). Se calcula con trigonometría real
-   para que el ángulo dibujado sea siempre exacto, y se reutiliza tanto para
-   el render inicial como para la actualización en vivo del slider. */
+function renderSavingsCalculator(state) {
+  const s = state.calc.savings;
+  const t = savingsTotals(s);
+  const inputs = `
+    ${explainerHTML(`El ahorro es la <strong class="mono">producción solar mensual (kWh) × precio del kWh</strong>: cada kWh que genera el sistema es uno que no le comprás a la red. El porcentaje compara esa producción con tu consumo del mes.`)}
+    ${fieldHTML({ id: "sav-current", label: "Consumo mensual actual", unit: "kWh", value: s.currentKwh, bind: "savings", field: "currentKwh" })}
+    ${fieldHTML({ id: "sav-solar", label: "Producción solar mensual estimada", unit: "kWh", value: s.solarKwh, bind: "savings", field: "solarKwh", hint: "Estimación rápida: potencia del sistema (kW) × 4,5 horas solares pico × 30 días." })}
+    ${fieldHTML({ id: "sav-price", label: "Precio del kWh", unit: "$/kWh", value: s.energyPrice, bind: "savings", field: "energyPrice" })}`;
+  const result = resultCardHTML({
+    id: "savings-result",
+    main: { id: "sav-monthly", label: "Ahorro mensual", value: t.monthly },
+    rest: [
+      { id: "sav-yearly", label: "Ahorro anual", value: t.yearly },
+      { id: "sav-pct", label: "Consumo cubierto", value: t.pct },
+    ],
+  });
+  return calcSectionHTML("ahorro", "Ahorro energético", "Cuánto dejás de pagar al cubrir consumo con energía solar.", inputs, result);
+}

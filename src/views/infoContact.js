@@ -1,34 +1,82 @@
-/* AURYX — Páginas de Información y Contacto. Depende de: utils/format.js, utils/calculatorHelpers.js. */
+/* AURYX: páginas de Información y Contacto. Depende de: utils/format.js, utils/calculatorHelpers.js, config.js (CONTACT_EMAIL). */
 
-/* ---------------------------------------------------------------------- */
-/* INFO / CONTACTO                                                          */
-/* ---------------------------------------------------------------------- */
+const INFO_IMAGE = "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1600&q=70&auto=format&fit=crop";
+
 function renderInfo() {
   return `
-  <div class="max-w-3xl mx-auto px-5 py-16">
-    <h1 class="sf-display text-3xl font-semibold mb-6">Información</h1>
-    <div class="space-y-5 text-sm" style="color:var(--text-mid)">
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-      <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.</p>
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">Cómo trabajamos</h1>
+      <p class="page-lead">Auryx vende y dimensiona sistemas fotovoltaicos para casas y PyMEs en Argentina.</p>
+    </div>
+    <div class="info-hero">
+      <img src="${INFO_IMAGE}" alt="Hileras de paneles solares sobre césped bajo un cielo con nubes" width="1600" height="1067" loading="lazy" decoding="async" />
+    </div>
+    <div class="info-cols">
+      <div class="prose">
+        <p>La idea es simple: que puedas armar tu sistema solar como armarías una PC. Elegís cada componente y la plataforma te muestra, en el momento, si funciona con lo que ya elegiste.</p>
+        <h2>Datos de fabricante</h2>
+        <p>Cada producto tiene las especificaciones de su hoja de datos: tensión de circuito abierto, corriente de cortocircuito, potencia máxima, rangos de tensión de batería. Con esos valores calcula el motor de compatibilidad.</p>
+        <h2>Qué verifica el configurador</h2>
+        <p>Que la tensión del string no supere el máximo del inversor o regulador, que la corriente entre en cada MPPT, que la potencia FV esté dentro de lo admitido y que la batería trabaje en el rango de tensión del equipo. Si algo queda justo, te avisamos en lugar de bloquearlo.</p>
+        <p>Es una verificación simplificada: todavía <strong>no aplica corrección por temperatura</strong>. Para instalaciones definitivas, el dimensionamiento final lo revisamos con vos.</p>
+        <h2>Precios y compra</h2>
+        <p>Los precios son de referencia en pesos y dólares. El carrito termina en una solicitud de cotización: te contactamos para confirmar precio, stock, envío e instalación.</p>
+      </div>
+      <div class="fact-list">
+        <div class="fact">${icon("solar-panel")}<strong>Residencial y PyME</strong><p>Sistemas on-grid, híbridos con batería y autónomos en corriente continua.</p></div>
+        <div class="fact">${icon("shield-check")}<strong>Compatibilidad verificada</strong><p>Tensión, corriente y potencia contra los límites reales de cada equipo.</p></div>
+        <div class="fact">${icon("graduation-cap")}<strong>Pensado para aprender</strong><p>Las calculadoras explican cada fórmula, también para estudiantes.</p></div>
+        <a href="#contact" class="btn btn-primary btn-lg" style="margin-top:8px">Contacto</a>
+      </div>
     </div>
   </div>`;
 }
 
-function renderContact() {
+function renderContact(state) {
+  const draft = state.contactDraft || {};
+  const errors = state.contactErrors || {};
+  const status = state.contactStatus;
+  const fieldError = (k) => errors[k] ? `<p id="contact-${k}-error" class="field-error">${errors[k]}</p>` : "";
+  const invalid = (k) => errors[k] ? `aria-invalid="true" aria-describedby="contact-${k}-error"` : "";
+
   return `
-  <div class="max-w-2xl mx-auto px-5 py-16">
-    <h1 class="sf-display text-3xl font-semibold mb-6">Contacto</h1>
-    <div class="sf-card p-6 space-y-1">
-      ${fieldHTML({ id: "contact-name", label: "Nombre", value: "", oninput: "", placeholder: "Tu nombre" })}
-      ${fieldHTML({ id: "contact-email", label: "Email", value: "", oninput: "", placeholder: "tu@email.com" })}
-      <label class="block mb-4">
-        <span class="text-sm font-medium block mb-1.5">Mensaje</span>
-        <textarea class="sf-input w-full" rows="4" placeholder="Contanos qué necesitás"></textarea>
-      </label>
-      <button class="sf-btn-primary px-5 py-2.5 w-full">Enviar</button>
+  <div class="wrap page">
+    <div class="contact-grid">
+      <div class="page-head" style="margin-bottom:0;align-content:start">
+        <h1 class="page-title">Contacto</h1>
+        <p class="page-lead">Contanos qué necesitás: una cotización, una consulta técnica o ayuda para elegir componentes.</p>
+        <p class="muted small">Si venís del carrito, el detalle del pedido ya está en el mensaje.</p>
+      </div>
+      <form class="form panel panel-pad" data-form="contact" novalidate>
+        <div class="form-row">
+          <div class="field">
+            <label class="field-label" for="contact-name">Nombre</label>
+            <input id="contact-name" class="input" name="name" type="text" autocomplete="name" placeholder="Tu nombre…"
+              value="${esc(draft.name || "")}" data-bind="contact" data-field="name" ${invalid("name")} />
+            ${fieldError("name")}
+          </div>
+          <div class="field">
+            <label class="field-label" for="contact-email">Email</label>
+            <input id="contact-email" class="input" name="email" type="email" autocomplete="email" spellcheck="false"
+              placeholder="nombre@ejemplo.com" value="${esc(draft.email || "")}" data-bind="contact" data-field="email" ${invalid("email")} />
+            ${fieldError("email")}
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="contact-phone">Teléfono <span class="unit">(opcional)</span></label>
+          <input id="contact-phone" class="input" name="tel" type="tel" autocomplete="tel" inputmode="tel" placeholder="11 5555 5555"
+            value="${esc(draft.phone || "")}" data-bind="contact" data-field="phone" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="contact-message">Mensaje</label>
+          <textarea id="contact-message" class="textarea" name="message" rows="6" placeholder="Contanos qué necesitás…"
+            data-bind="contact" data-field="message" ${invalid("message")}>${esc(draft.message || "")}</textarea>
+          ${fieldError("message")}
+        </div>
+        ${status ? `<p class="form-status tone-${status.tone}" role="status">${status.text}</p>` : ""}
+        <button type="submit" class="btn btn-primary btn-lg">Enviar mensaje</button>
+      </form>
     </div>
-    <div class="mt-6 flex items-center gap-2 text-sm" style="color:var(--text-mid)">${iconTag("map-pin", 15)} Buenos Aires, Argentina</div>
   </div>`;
 }

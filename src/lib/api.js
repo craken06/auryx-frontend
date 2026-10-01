@@ -1,7 +1,7 @@
-/* AURYX — Cliente de la API real (compragamer-api). Depende de: config.js (API_BASE_URL, USD_ARS_RATE). */
+/* AURYX: Cliente de la API real (compragamer-api). Depende de: config.js (API_BASE_URL, USD_ARS_RATE). */
 
 /* =========================================================================
-   AURYX — Conexión con el backend real (compragamer-api / NestJS + Prisma)
+   AURYX: Conexión con el backend real (compragamer-api / NestJS + Prisma)
    Trae los productos desde la API y los adapta al formato que ya espera
    el resto del frontend (mismo shape que antes usaba el array estático
    PRODUCTS en data.js).

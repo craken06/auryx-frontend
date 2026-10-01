@@ -1,110 +1,136 @@
-/* AURYX — Tienda: listado, filtros y orden. Depende de: data/products.js, utils/format.js. */
-
-/* ---------------------------------------------------------------------- */
-/* TIENDA                                                                   */
-/* ---------------------------------------------------------------------- */
-function productSpecsHTML(p) {
-  const entries = Object.entries(p.specs).filter(([, v]) => typeof v !== "object").slice(0, 5);
-  return `<div class="sf-mono text-xs space-y-1" style="color:var(--text-dim)">
-    ${entries.map(([k, v]) => `<div class="flex justify-between gap-3"><span>${SPEC_LABELS[k] || k}</span><span>${v}</span></div>`).join("")}
-  </div>`;
-}
+/* AURYX: tienda (listado, filtros y orden). Depende de: data/products.js, utils/format.js. */
 
 const AVAILABILITY_SORT_RANK = { disponible: 0, "a pedido": 1, "sin stock": 2 };
+const SYSTEM_TYPE_LABELS = { ongrid: "On-grid", offgrid: "Off-grid", hybrid: "Híbrido" };
+const SORT_OPTIONS = [
+  { value: "none", label: "Relevancia" },
+  { value: "price-asc", label: "Precio: menor a mayor" },
+  { value: "price-desc", label: "Precio: mayor a menor" },
+  { value: "stock", label: "Disponibilidad" },
+];
 
-function renderStore(state) {
+/* En desktop los filtros son una columna fija (siempre abiertos); en móvil
+   son un desplegable que respeta lo que eligió el usuario. */
+function filtersStartOpen(state, activeCount) {
+  const desktop = window.matchMedia && window.matchMedia("(min-width: 1024px)").matches;
+  return desktop || state.filtersOpen || activeCount > 0;
+}
+
+function productTech(p) {
+  return p.specs?.tech || p.specs?.tecnologia || p.specs?.technology;
+}
+
+/* Filtra y ordena según el estado de la tienda (que a su vez sale de la URL). */
+function storeResults(state) {
   const cat = state.storeCategory || "all";
   const byCategory = cat === "all" ? PRODUCTS : PRODUCTS.filter((p) => p.category === cat);
-
-  // Opciones de filtro: se calculan dinámicamente a partir de lo que hay
-  // realmente disponible en la categoría actual (así nunca se muestra un
-  // filtro vacío o que no aplica).
-  const brandOptions = [...new Set(byCategory.map((p) => p.brand))].sort();
-  const techOptions = [...new Set(byCategory.map((p) => p.specs?.tech || p.specs?.tecnologia || p.specs?.technology).filter(Boolean))].sort();
-  const systemTypeOptions = [...new Set(byCategory.flatMap((p) => p.systemTypes || []))];
-
   const filters = state.storeFilters || {};
-  let filtered = byCategory;
-  if (filters.brand) filtered = filtered.filter((p) => p.brand === filters.brand);
-  if (filters.tech) filtered = filtered.filter((p) => (p.specs?.tech || p.specs?.tecnologia || p.specs?.technology) === filters.tech);
-  if (filters.systemType) filtered = filtered.filter((p) => (p.systemTypes || []).includes(filters.systemType));
+  let list = byCategory;
+  if (filters.brand) list = list.filter((p) => p.brand === filters.brand);
+  if (filters.tech) list = list.filter((p) => productTech(p) === filters.tech);
+  if (filters.systemType) list = list.filter((p) => (p.systemTypes || []).includes(filters.systemType));
 
   const sort = state.storeSort || "none";
-  filtered = [...filtered].sort((a, b) => {
+  list = [...list].sort((a, b) => {
     if (sort === "price-asc") return a.priceARS - b.priceARS;
     if (sort === "price-desc") return b.priceARS - a.priceARS;
     if (sort === "stock") return (AVAILABILITY_SORT_RANK[a.availability] ?? 9) - (AVAILABILITY_SORT_RANK[b.availability] ?? 9);
     return 0;
   });
+  return { byCategory, list };
+}
 
-  const filterButtons = [`<a href="#store" class="px-3 py-1.5 text-sm border inline-block ${cat === "all" ? "sf-btn-primary border-transparent" : "sf-btn-outline"}">Todos</a>`]
-    .concat(Object.entries(CATEGORY_META).map(([key, meta]) => `
-      <a href="#store/${key}" class="px-3 py-1.5 text-sm border inline-flex items-center gap-1.5 ${cat === key ? "sf-btn-primary border-transparent" : "sf-btn-outline"}">
-        ${iconTag(meta.icon, 14)} ${meta.label}
-      </a>`)).join("");
-
-  const chipsHTML = (label, key, options, formatLabel) => {
-    if (options.length === 0) return "";
-    return `
-      <div class="mb-2">
-        <span class="text-xs uppercase tracking-wide mr-2" style="color:var(--text-dim)">${label}:</span>
-        ${options.map((opt) => `
-          <button onclick="App.setStoreFilter('${key}', '${opt}')" class="sf-filter-chip ${filters[key] === opt ? "active" : ""}">${formatLabel ? formatLabel(opt) : opt}</button>
-        `).join("")}
-      </div>`;
-  };
-
-  const hasActiveFilters = Object.values(filters).some(Boolean);
-
-  const filterBar = `
-    <div class="sf-filter-bar mb-6">
-      ${chipsHTML("Marca", "brand", brandOptions)}
-      ${chipsHTML("Tecnología", "tech", techOptions)}
-      ${chipsHTML("Tipo de sistema", "systemType", systemTypeOptions, (v) => (v === "ongrid" ? "On-grid" : v === "offgrid" ? "Off-grid" : v === "hybrid" ? "Híbrido" : v))}
-      ${hasActiveFilters ? `<button onclick="App.clearStoreFilters()" class="text-xs underline" style="color:var(--text-dim)">Limpiar filtros</button>` : ""}
-    </div>`;
-
-  const sortBar = `
-    <div class="flex items-center gap-2 mb-6">
-      <span class="text-sm" style="color:var(--text-dim)">Ordenar por:</span>
-      <select onchange="App.setStoreSort(this.value)" class="sf-input" style="width:auto">
-        <option value="none" ${sort === "none" ? "selected" : ""}>Relevancia</option>
-        <option value="price-asc" ${sort === "price-asc" ? "selected" : ""}>Precio: menor a mayor</option>
-        <option value="price-desc" ${sort === "price-desc" ? "selected" : ""}>Precio: mayor a menor</option>
-        <option value="stock" ${sort === "stock" ? "selected" : ""}>Disponibilidad de stock</option>
-      </select>
-      <span class="text-xs ml-auto" style="color:var(--text-dim)">${filtered.length} producto${filtered.length === 1 ? "" : "s"}</span>
-    </div>`;
-
-  const cards = filtered.map((p) => {
-    const avail = AVAILABILITY_META[p.availability];
-    return `
-    <a href="#product/${p.id}" class="sf-card p-5 flex flex-col cursor-pointer">
-      ${imagePlaceholderHTML("h-36")}
-      <div class="flex items-start justify-between mb-2">
-        <p class="text-xs uppercase tracking-wide" style="color:var(--text-dim)">${p.brand}</p>
-        <span class="text-xs px-2 py-1 rounded-sm ${avail.cls}">${avail.label}</span>
-      </div>
-      <h3 class="font-semibold mb-2 sf-display leading-snug">${p.name}</h3>
-      <p class="text-sm mb-4" style="color:var(--text-mid)">${p.description}</p>
-      <div class="mt-auto pt-4 border-t flex items-center justify-between" style="border-color:var(--line)">
-        ${priceTagHTML(p, state.currency)}
-        <button onclick="event.stopPropagation(); App.addToCart('${p.id}', 1)" class="sf-btn-outline px-3 py-1.5 text-sm flex items-center gap-1.5">
-          ${iconTag("plus", 14)} Añadir
+function productCardHTML(p, currency) {
+  const spec = keySpecLine(p);
+  return `
+  <article class="product-card">
+    ${productThumbHTML(p, "", true)}
+    <div class="card-body">
+      <p class="brand">${esc(p.brand)}</p>
+      <h3><a href="#product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></h3>
+      ${spec ? `<p class="key-spec mono">${esc(spec)}</p>` : ""}
+      <div class="card-foot">
+        ${priceTagHTML(p, currency)}
+        <button type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="${esc(p.id)}" data-fid="add-${esc(p.id)}"
+          aria-label="Agregar ${esc(p.name)} al carrito" ${p.availability === "sin stock" ? "disabled" : ""}>
+          ${icon("plus")} Agregar
         </button>
       </div>
-    </a>`;
-  }).join("");
+    </div>
+  </article>`;
+}
 
-  const emptyState = `<p class="text-sm py-12 text-center" style="color:var(--text-dim)">No hay productos que coincidan con los filtros elegidos.</p>`;
+function renderStore(state) {
+  const cat = state.storeCategory || "all";
+  const { byCategory, list } = storeResults(state);
+  const filters = state.storeFilters || {};
+
+  // Las opciones salen de lo que realmente hay en la categoría (nunca un filtro vacío)
+  const groups = [
+    { key: "brand", label: "Marca", options: [...new Set(byCategory.map((p) => p.brand))].sort() },
+    { key: "tech", label: "Tecnología", options: [...new Set(byCategory.map(productTech).filter(Boolean))].sort() },
+    { key: "systemType", label: "Tipo de sistema", options: [...new Set(byCategory.flatMap((p) => p.systemTypes || []))], fmt: (v) => SYSTEM_TYPE_LABELS[v] || v },
+  ].filter((g) => g.options.length > 0);
+
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
+  const tabs = [`<a href="#store" class="cat-tab"${cat === "all" ? ' aria-current="page"' : ""}>Todos</a>`]
+    .concat(Object.entries(CATEGORY_META).map(([key, meta]) =>
+      `<a href="#store/${key}" class="cat-tab"${cat === key ? ' aria-current="page"' : ""}>${icon(meta.icon)}${meta.label}</a>`))
+    .join("");
+
+  const filterGroups = groups.map((g) => `
+    <fieldset class="filter-group">
+      <legend>${g.label}</legend>
+      <div class="chip-list">
+        ${g.options.map((opt) => `
+          <button type="button" class="chip" data-action="filter" data-key="${g.key}" data-value="${esc(opt)}"
+            data-fid="f-${g.key}-${esc(opt)}" aria-pressed="${filters[g.key] === opt}">${esc(g.fmt ? g.fmt(opt) : opt)}</button>`).join("")}
+      </div>
+    </fieldset>`).join("");
+
+  const filtersAside = groups.length ? `
+    <aside class="store-filters" aria-label="Filtros">
+      <details class="filters-disclosure" ${filtersStartOpen(state, activeCount) ? "open" : ""} data-bind="filters-open">
+        <summary>${icon("faders")} Filtros${activeCount ? ` (${activeCount})` : ""} ${icon("caret-down")}</summary>
+        ${filterGroups}
+        ${activeCount ? `<button type="button" class="btn btn-ghost btn-sm" style="margin-top:20px" data-action="filters-clear">${icon("arrow-counter-clockwise")} Limpiar filtros</button>` : ""}
+      </details>
+    </aside>` : "<div></div>";
+
+  const sort = state.storeSort || "none";
+  const results = list.length
+    ? `<div class="product-grid">${list.map((p) => productCardHTML(p, state.currency)).join("")}</div>`
+    : `<div class="empty">
+        ${icon("magnifying-glass")}
+        <h2>No hay productos con esos filtros</h2>
+        <p>Probá quitar alguno de los filtros o mirá otra categoría.</p>
+        ${activeCount ? `<button type="button" class="btn btn-secondary" data-action="filters-clear">Limpiar filtros</button>` : `<a href="#store" class="btn btn-secondary">Ver todos los productos</a>`}
+      </div>`;
+
+  const title = cat === "all" ? "Productos" : (CATEGORY_META[cat]?.label || "Productos");
 
   return `
-  <div class="max-w-6xl mx-auto px-5 py-12">
-    <h1 class="sf-display text-3xl font-semibold mb-2">Productos</h1>
-    <p class="text-sm mb-8" style="color:var(--text-mid)">Componentes individuales con especificaciones técnicas de fabricante. Hacé clic en un producto para ver el detalle completo.</p>
-    <div class="flex gap-2 flex-wrap mb-6">${filterButtons}</div>
-    ${filterBar}
-    ${sortBar}
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">${filtered.length ? cards : emptyState}</div>
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">${title}</h1>
+      <p class="page-lead">Componentes con especificaciones de fabricante. Entrá a cada uno para ver la ficha técnica completa.</p>
+    </div>
+    <nav class="cat-tabs" aria-label="Categorías">${tabs}</nav>
+    <div class="store-layout">
+      ${filtersAside}
+      <div>
+        <div class="results-bar">
+          <p class="small muted" aria-live="polite"><span class="num">${list.length}</span> ${list.length === 1 ? "producto" : "productos"}</p>
+          <label class="field" style="grid-auto-flow:column;align-items:center;gap:10px">
+            <span class="small muted">Ordenar por</span>
+            <select class="select" data-bind="store-sort" name="sort">
+              ${SORT_OPTIONS.map((o) => `<option value="${o.value}" ${sort === o.value ? "selected" : ""}>${o.label}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        ${results}
+      </div>
+    </div>
   </div>`;
 }

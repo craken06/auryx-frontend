@@ -1,8 +1,5 @@
-/* AURYX — Configurador 'Diseñá tu sistema'. Depende de: data/products.js, lib/compatibilityEngine.js, utils/format.js, utils/calculatorHelpers.js. */
+/* AURYX: configurador "Diseñá tu sistema". Depende de: data/products.js, lib/compatibilityEngine.js, utils/format.js. */
 
-/* ---------------------------------------------------------------------- */
-/* CONFIGURADOR                                                            */
-/* ---------------------------------------------------------------------- */
 function configuratorSteps(cfg) {
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
   if (!systemType) return ["Tipo de sistema", "Paneles", "Inversor", "Accesorios", "Resumen"];
@@ -11,209 +8,280 @@ function configuratorSteps(cfg) {
     : ["Tipo de sistema", "Paneles", "Inversor", "Accesorios", "Resumen"];
 }
 
-function stepHeaderHTML(steps, current) {
-  return `<div class="flex items-center gap-2 mb-10 overflow-x-auto sf-scrollbar pb-2">
-    ${steps.map((s, i) => `
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <div class="sf-step-dot ${i < current ? "done" : i === current ? "current" : ""}">${i < current ? iconTag("check", 12) : i + 1}</div>
-        <span class="text-xs whitespace-nowrap" style="color:${i === current ? "var(--white)" : "var(--text-dim)"}">${s}</span>
-      </div>
-      ${i < steps.length - 1 ? `<div class="w-6 h-px flex-shrink-0" style="background:var(--line)"></div>` : ""}
-    `).join("")}
-  </div>`;
+/* Índice del paso por nombre lógico (evita comparar números mágicos). */
+function cfgStepKey(cfg) {
+  const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
+  const keys = systemType && systemType.needsBattery
+    ? ["type", "panels", "converter", "battery", "extras", "summary"]
+    : ["type", "panels", "converter", "extras", "summary"];
+  return keys[cfg.step];
 }
 
 function cfgTotals(cfg) {
   const panel = PRODUCTS.find((p) => p.id === cfg.panelId);
   const converter = PRODUCTS.find((p) => p.id === cfg.converterId);
   const battery = PRODUCTS.find((p) => p.id === cfg.batteryId);
-  const extraLines = Object.entries(cfg.extras || {}).filter(([, q]) => q > 0).map(([id, q]) => ({ product: PRODUCTS.find((p) => p.id === id), qty: q }));
+  const extraLines = Object.entries(cfg.extras || {})
+    .filter(([, q]) => q > 0)
+    .map(([id, q]) => ({ product: PRODUCTS.find((p) => p.id === id), qty: q }))
+    .filter((l) => l.product);
+  const lines = [];
+  if (panel) lines.push({ product: panel, qty: cfg.panelQty });
+  if (converter) lines.push({ product: converter, qty: 1 });
+  if (battery) lines.push({ product: battery, qty: cfg.batteryQty });
+  extraLines.forEach((l) => lines.push(l));
   const totalPower = panel ? panel.specs.pmax * cfg.panelQty : 0;
-  const totalPriceARS = (panel ? panel.priceARS * cfg.panelQty : 0) + (converter ? converter.priceARS : 0) + (battery ? battery.priceARS * cfg.batteryQty : 0) + extraLines.reduce((s, l) => s + l.product.priceARS * l.qty, 0);
-  const totalPriceUSD = (panel ? panel.priceUSD * cfg.panelQty : 0) + (converter ? converter.priceUSD : 0) + (battery ? battery.priceUSD * cfg.batteryQty : 0) + extraLines.reduce((s, l) => s + l.product.priceUSD * l.qty, 0);
-  return { panel, converter, battery, extraLines, totalPower, totalPriceARS, totalPriceUSD };
+  const totalPriceARS = lines.reduce((s, l) => s + l.product.priceARS * l.qty, 0);
+  const totalPriceUSD = lines.reduce((s, l) => s + l.product.priceUSD * l.qty, 0);
+  return { panel, converter, battery, extraLines, lines, totalPower, totalPriceARS, totalPriceUSD };
+}
+
+/* Puede avanzar desde el paso actual? (misma regla que antes, por nombre de paso) */
+function cfgCanAdvance(cfg) {
+  const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
+  const { panel, converter, battery } = cfgTotals(cfg);
+  const panelEval = panel && converter ? evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage) : null;
+  const batteryEval = battery && converter ? evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage) : null;
+  switch (cfgStepKey(cfg)) {
+    case "type": return !!systemType;
+    case "panels": return !!panel && cfg.panelQty > 0;
+    case "converter": return !!converter && (!panelEval || panelEval.status !== "bad");
+    case "battery": return !!battery && (!batteryEval || batteryEval.status !== "bad");
+    default: return true;
+  }
+}
+
+function stepsNavHTML(steps, current) {
+  return `<ol class="steps" aria-label="Pasos del configurador">
+    ${steps.map((s, i) => {
+      const done = i < current;
+      const inner = `<span class="step-dot">${done ? icon("check") : i + 1}</span>${s}`;
+      if (done) return `<li><button type="button" class="step is-done" data-action="cfg-goto" data-step="${i}" data-fid="step-${i}" aria-label="Volver a ${s}">${inner}</button></li>`;
+      return `<li><span class="step"${i === current ? ' aria-current="step"' : ""}>${inner}</span></li>`;
+    }).join("")}
+  </ol>`;
+}
+
+const STATUS_RANK = { ok: 0, warning: 1, bad: 2 };
+function worstStatus(evals) {
+  return evals.filter(Boolean).reduce((w, ev) => (STATUS_RANK[ev.status] > STATUS_RANK[w] ? ev.status : w), "ok");
+}
+
+function verdictHTML(ev, title) {
+  if (!ev) return "";
+  const tone = STATUS_META[ev.status].tone;
+  return `<div class="verdict tone-${tone}">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong class="small">${title}</strong>${statusBadgeHTML(ev.status)}</div>
+    <ul>${ev.messages.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
+  </div>`;
+}
+
+function optionButtonHTML({ id, action, selected, disabled, name, meta, side, msgs }) {
+  return `
+  <button type="button" class="option" data-action="${action}" data-id="${esc(id)}" data-fid="${action}-${esc(id)}"
+    aria-pressed="${selected}" ${disabled ? "disabled" : ""}>
+    <span class="option-head"><span class="option-name">${name}</span></span>
+    ${meta ? `<span class="option-meta mono">${meta}</span>` : ""}
+    ${side ? `<span class="option-side">${side}</span>` : ""}
+    ${msgs && msgs.length ? `<span class="option-msgs">${msgs.map((m) => `<span>${esc(m)}</span>`).join("")}</span>` : ""}
+  </button>`;
+}
+
+function emptyStepHTML(text) {
+  return `<div class="empty">${icon("package")}<h3>Sin opciones disponibles</h3><p>${text}</p></div>`;
 }
 
 function renderConfigurator(state) {
   const cfg = state.configurator;
+  const cur = state.currency;
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
   const steps = configuratorSteps(cfg);
-  const { panel, converter, battery, extraLines, totalPower, totalPriceARS, totalPriceUSD } = cfgTotals(cfg);
+  const key = cfgStepKey(cfg);
+  const totals = cfgTotals(cfg);
+  const { panel, converter, battery, lines, totalPower } = totals;
 
-  const panelEval = converter ? evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage) : null;
+  const panelEval = panel && converter ? evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage) : null;
   const batteryEval = battery && converter ? evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage) : null;
 
-  let stepBody = "";
+  let title = "", lead = "", body = "";
 
-  if (cfg.step === 0) {
-    stepBody = `<div class="grid md:grid-cols-3 gap-4">
+  if (key === "type") {
+    title = "¿Qué tipo de sistema querés armar?";
+    lead = "Define qué equipo convierte la energía y si vas a necesitar baterías.";
+    body = `<div class="option-list cols-3">
       ${SYSTEM_TYPES.map((s) => `
-        <button onclick="App.cfgSelectSystemType('${s.id}')" class="sf-select-card p-5 text-left ${cfg.systemTypeId === s.id ? "selected" : ""}">
-          ${iconTag(s.icon, 22, "--yellow")}
-          <h3 class="font-semibold sf-display mb-1 mt-3">${s.name}</h3>
-          <p class="text-sm" style="color:var(--text-mid)">${s.desc}</p>
+        <button type="button" class="option" data-action="cfg-type" data-id="${s.id}" data-fid="cfg-type-${s.id}" aria-pressed="${cfg.systemTypeId === s.id}">
+          ${icon(s.icon, "ph-type")}
+          <span class="option-name">${s.name}</span>
+          <span class="small muted">${s.desc}</span>
         </button>`).join("")}
     </div>`;
-  } else if (cfg.step === 1) {
-    const panelButtons = PRODUCTS.filter((p) => p.category === "panel").map((p) => `
-      <button onclick="App.cfgSelectPanel('${p.id}')" class="sf-select-card p-4 flex justify-between items-center ${cfg.panelId === p.id ? "selected" : ""}">
-        <div>
-          <p class="font-semibold sf-display">${p.name}</p>
-          <p class="sf-mono text-xs mt-1" style="color:var(--text-mid)">Voc ${p.specs.voc}V · Isc ${p.specs.isc}A · ${p.specs.efficiency}% eficiencia</p>
-        </div>
-        ${priceTagHTML(p, state.currency)}
-      </button>`).join("");
+  } else if (key === "panels") {
+    title = "Elegí los paneles";
+    lead = "Después definí cuántos y cómo se conectan. La potencia total se actualiza al instante.";
+    const panels = PRODUCTS.filter((p) => p.category === "panel");
+    const list = panels.length ? `<div class="option-list">${panels.map((p) => optionButtonHTML({
+      id: p.id, action: "cfg-panel", selected: cfg.panelId === p.id,
+      name: `${esc(p.brand)} ${esc(p.name)}`,
+      meta: esc([
+        p.specs.pmax != null ? specValueText("pmax", p.specs.pmax) : p.specs.potencia_wp != null ? specValueText("potencia_wp", p.specs.potencia_wp) : null,
+        p.specs.voc != null ? `Voc ${specValueText("voc", p.specs.voc)}` : null,
+        p.specs.isc != null ? `Isc ${specValueText("isc", p.specs.isc)}` : null,
+        p.specs.efficiency != null ? specValueText("efficiency", p.specs.efficiency) : null,
+      ].filter(Boolean).join(" / ")),
+      side: priceTagHTML(p, cur),
+    })).join("")}</div>` : emptyStepHTML("No hay paneles cargados en el catálogo.");
 
-    let qtyBlock = "";
+    let fields = "";
     if (panel) {
-      const wiringField = (systemType.sourceCategory === "inversor" && cfg.panelQty > 1) ? `
-        <div>
-          <label class="text-sm font-medium block mb-1.5">Configuración del arreglo</label>
-          <select onchange="App.cfgSet('wiring', this.value)" class="sf-input w-full">
+      const wiringField = systemType.sourceCategory === "inversor" && cfg.panelQty > 1 ? `
+        <label class="field">
+          <span class="field-label">Conexión del arreglo</span>
+          <select class="select" data-bind="cfg-wiring" name="wiring">
             <option value="series" ${cfg.wiring === "series" ? "selected" : ""}>Todos en serie (1 string)</option>
             <option value="parallel" ${cfg.wiring === "parallel" ? "selected" : ""}>2 strings en paralelo</option>
           </select>
-        </div>` : "";
+        </label>` : "";
       const voltageField = systemType.sourceCategory === "regulador" ? `
-        <div>
-          <label class="text-sm font-medium block mb-1.5">Tensión de sistema (batería)</label>
-          <select onchange="App.cfgSet('systemVoltage', +this.value)" class="sf-input w-full">
-            <option value="12" ${cfg.systemVoltage === 12 ? "selected" : ""}>12V</option>
-            <option value="24" ${cfg.systemVoltage === 24 ? "selected" : ""}>24V</option>
+        <label class="field">
+          <span class="field-label">Tensión del sistema (batería)</span>
+          <select class="select" data-bind="cfg-voltage" name="system-voltage">
+            <option value="12" ${cfg.systemVoltage === 12 ? "selected" : ""}>12 V</option>
+            <option value="24" ${cfg.systemVoltage === 24 ? "selected" : ""}>24 V</option>
           </select>
-        </div>` : "";
-      qtyBlock = `
-      <div class="sf-card p-5 grid sm:grid-cols-2 gap-4 mt-6">
-        <div>
-          <label class="text-sm font-medium block mb-1.5">Cantidad de paneles</label>
-          <div class="flex items-center gap-2">
-            <button onclick="App.cfgPanelQtyStep(-1)" class="sf-btn-outline p-2">${iconTag("minus", 14)}</button>
-            <input id="panel-qty-input" type="number" min="1" value="${cfg.panelQty}" oninput="App.cfgPanelQtyLive(this.value)" class="sf-input w-20 text-center" />
-            <button onclick="App.cfgPanelQtyStep(1)" class="sf-btn-outline p-2">${iconTag("plus", 14)}</button>
+        </label>` : "";
+      fields = `
+      <div class="cfg-fields">
+        <div class="field">
+          <span class="field-label" id="panel-qty-label">Cantidad de paneles</span>
+          <div class="stepper" role="group" aria-labelledby="panel-qty-label">
+            <button type="button" class="icon-btn" data-action="cfg-panel-step" data-delta="-1" data-fid="panel-minus" aria-label="Restar un panel" ${cfg.panelQty <= 1 ? "disabled" : ""}>${icon("minus")}</button>
+            <input id="panel-qty-input" class="input num-input" type="number" inputmode="numeric" min="1" value="${cfg.panelQty}"
+              name="panel-quantity" autocomplete="off" aria-labelledby="panel-qty-label" data-bind="cfg-panel-qty" />
+            <button type="button" class="icon-btn" data-action="cfg-panel-step" data-delta="1" data-fid="panel-plus" aria-label="Sumar un panel">${icon("plus")}</button>
           </div>
         </div>
         ${wiringField}${voltageField}
-        <div class="sm:col-span-2 sf-mono text-xs pt-2 border-t" style="color:var(--text-mid);border-color:var(--line)">
-          Potencia total del arreglo: <strong id="panel-total-power">${totalPower}</strong>W
-        </div>
+        <p class="total">Potencia total del arreglo: <strong class="mono" id="panel-total-power">${fmtNum(totalPower)}</strong>&nbsp;W</p>
       </div>`;
     }
-    stepBody = `<div class="space-y-4">${panelButtons}${qtyBlock}</div>`;
-  } else if (cfg.step === 2) {
+    body = list + fields;
+  } else if (key === "converter") {
+    const isReg = systemType.sourceCategory === "regulador";
+    title = isReg ? "Elegí el regulador de carga" : "Elegí el inversor";
+    lead = "Las opciones que no soportan tu arreglo de paneles aparecen deshabilitadas, con el motivo.";
     const converters = PRODUCTS.filter((p) => p.category === systemType.sourceCategory && (p.systemTypes || []).includes(systemType.id));
-    stepBody = `<div class="space-y-4">
-      ${converters.map((c) => {
-        const ev = evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, c, cfg.systemVoltage);
-        const disabled = ev && ev.status === "bad";
-        return `
-        <button ${disabled ? "disabled" : ""} onclick="App.cfgSelectConverter('${c.id}')" class="sf-select-card p-4 ${cfg.converterId === c.id ? "selected" : ""} ${disabled ? "disabled" : ""}">
-          <div class="flex justify-between items-start gap-3">
-            <div>
-              <p class="font-semibold sf-display">${c.brand} ${c.name}</p>
-              <p class="text-sm mt-1" style="color:var(--text-mid)">${c.description}</p>
-            </div>
-            <div class="flex flex-col items-end gap-2 flex-shrink-0">${priceTagHTML(c, state.currency)}${ev ? statusBadgeHTML(ev.status) : ""}</div>
-          </div>
-          ${ev && cfg.converterId === c.id ? `<ul class="mt-3 pt-3 border-t text-xs space-y-1" style="border-color:var(--line);color:var(--text-mid)">${ev.messages.map((m) => `<li>• ${m}</li>`).join("")}</ul>` : ""}
-        </button>`;
-      }).join("")}
-    </div>`;
-  } else if (cfg.step === 3 && systemType.needsBattery) {
+    body = converters.length ? `<div class="option-list">${converters.map((c) => {
+      const ev = evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, c, cfg.systemVoltage);
+      const bad = ev && ev.status === "bad";
+      return optionButtonHTML({
+        id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad,
+        name: `${esc(c.brand)} ${esc(c.name)}`,
+        meta: c.description ? `<span style="font-family:var(--font-sans)">${esc(c.description)}</span>` : "",
+        side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
+        msgs: ev && (bad || cfg.converterId === c.id) ? ev.messages : null,
+      });
+    }).join("")}</div>` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`);
+  } else if (key === "battery") {
+    title = "Elegí la batería";
+    lead = "Verificamos que la tensión de la batería sea compatible y que la descarga alcance para el equipo.";
     const batteries = PRODUCTS.filter((p) => p.category === "bateria");
-    let batteryQtyBlock = "";
-    if (battery) {
-      batteryQtyBlock = `
-      <div class="sf-card p-5">
-        <label class="text-sm font-medium block mb-1.5">Cantidad de baterías</label>
-        <div class="flex items-center gap-2">
-          <button onclick="App.cfgBatteryQtyStep(-1)" class="sf-btn-outline p-2">${iconTag("minus", 14)}</button>
-          <input id="battery-qty-input" type="number" min="1" value="${cfg.batteryQty}" oninput="App.cfgBatteryQtyLive(this.value)" class="sf-input w-20 text-center" />
-          <button onclick="App.cfgBatteryQtyStep(1)" class="sf-btn-outline p-2">${iconTag("plus", 14)}</button>
+    const list = batteries.length ? `<div class="option-list">${batteries.map((b) => {
+      const ev = evaluateBatteryToConverter(b, cfg.batteryQty, converter, cfg.systemVoltage);
+      const bad = ev && ev.status === "bad";
+      return optionButtonHTML({
+        id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad,
+        name: `${esc(b.brand)} ${esc(b.name)}`,
+        meta: `${specValueText("nominalVoltage", b.specs.nominalVoltage)} / ${fmtNum(b.specs.capacityWh / 1000, 2)} kWh`,
+        side: `${priceTagHTML(b, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
+        msgs: ev && (bad || cfg.batteryId === b.id) ? ev.messages : null,
+      });
+    }).join("")}</div>` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
+    const fields = battery ? `
+      <div class="cfg-fields">
+        <div class="field">
+          <span class="field-label" id="battery-qty-label">Cantidad de baterías</span>
+          <div class="stepper" role="group" aria-labelledby="battery-qty-label">
+            <button type="button" class="icon-btn" data-action="cfg-battery-step" data-delta="-1" data-fid="battery-minus" aria-label="Restar una batería" ${cfg.batteryQty <= 1 ? "disabled" : ""}>${icon("minus")}</button>
+            <input id="battery-qty-input" class="input num-input" type="number" inputmode="numeric" min="1" value="${cfg.batteryQty}"
+              name="battery-quantity" autocomplete="off" aria-labelledby="battery-qty-label" data-bind="cfg-battery-qty" />
+            <button type="button" class="icon-btn" data-action="cfg-battery-step" data-delta="1" data-fid="battery-plus" aria-label="Sumar una batería">${icon("plus")}</button>
+          </div>
         </div>
-        <p class="sf-mono text-xs mt-3" style="color:var(--text-mid)">Capacidad total: <span id="battery-total-kwh">${((battery.specs.capacityWh * cfg.batteryQty) / 1000).toFixed(2)}</span> kWh</p>
+        <p class="total">Capacidad total: <strong class="mono" id="battery-total-kwh">${fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2)}</strong>&nbsp;kWh</p>
+      </div>` : "";
+    body = list + fields;
+  } else if (key === "extras") {
+    title = "Protecciones, cables y accesorios";
+    lead = "Opcional. Estos productos no tienen reglas de compatibilidad automáticas.";
+    const free = PRODUCTS.filter((p) => ["proteccion", "cable", "accesorio", "soporte"].includes(p.category));
+    body = free.length ? `<div class="panel panel-pad" style="padding-block:6px">${free.map((p) => {
+      const q = (cfg.extras && cfg.extras[p.id]) || 0;
+      return `
+      <div class="extra-row">
+        <div style="min-width:0"><p class="name">${esc(p.name)}</p>${priceTagHTML(p, cur)}</div>
+        <div class="stepper" role="group" aria-label="Cantidad de ${esc(p.name)}">
+          <button type="button" class="icon-btn" data-action="cfg-extra-step" data-id="${esc(p.id)}" data-delta="-1" data-fid="x-${esc(p.id)}-m" aria-label="Restar uno" ${q <= 0 ? "disabled" : ""}>${icon("minus")}</button>
+          <span class="stepper-value">${q}</span>
+          <button type="button" class="icon-btn" data-action="cfg-extra-step" data-id="${esc(p.id)}" data-delta="1" data-fid="x-${esc(p.id)}-p" aria-label="Sumar uno">${icon("plus")}</button>
+        </div>
       </div>`;
-    }
-    stepBody = `<div class="space-y-4">
-      ${batteries.map((b) => {
-        const ev = evaluateBatteryToConverter(b, cfg.batteryQty, converter, cfg.systemVoltage);
-        const disabled = ev && ev.status === "bad";
-        return `
-        <button ${disabled ? "disabled" : ""} onclick="App.cfgSelectBattery('${b.id}')" class="sf-select-card p-4 ${cfg.batteryId === b.id ? "selected" : ""} ${disabled ? "disabled" : ""}">
-          <div class="flex justify-between items-start gap-3">
-            <div>
-              <p class="font-semibold sf-display">${b.brand} ${b.name}</p>
-              <p class="sf-mono text-xs mt-1" style="color:var(--text-mid)">${b.specs.nominalVoltage}V · ${(b.specs.capacityWh / 1000).toFixed(2)}kWh</p>
-            </div>
-            <div class="flex flex-col items-end gap-2 flex-shrink-0">${priceTagHTML(b, state.currency)}${ev ? statusBadgeHTML(ev.status) : ""}</div>
-          </div>
-          ${ev && cfg.batteryId === b.id ? `<ul class="mt-3 pt-3 border-t text-xs space-y-1" style="border-color:var(--line);color:var(--text-mid)">${ev.messages.map((m) => `<li>• ${m}</li>`).join("")}</ul>` : ""}
-        </button>`;
-      }).join("")}
-      ${batteryQtyBlock}
-    </div>`;
-  } else if ((systemType.needsBattery && cfg.step === 4) || (!systemType.needsBattery && cfg.step === 3)) {
-    const freeProducts = PRODUCTS.filter((p) => ["proteccion", "cable", "accesorio"].includes(p.category));
-    stepBody = `<div class="space-y-3">
-      <p class="text-sm mb-2" style="color:var(--text-mid)">Protecciones, cables y accesorios (opcional). Estos productos no tienen reglas de compatibilidad automáticas.</p>
-      ${freeProducts.map((p) => `
-        <div class="sf-card p-4 flex items-center justify-between gap-3">
-          <div><p class="font-medium">${p.name}</p>${priceTagHTML(p, state.currency)}</div>
-          <div class="flex items-center gap-2">
-            <button onclick="App.cfgExtraStep('${p.id}', -1)" class="sf-btn-outline p-1.5">${iconTag("minus", 13)}</button>
-            <span class="w-6 text-center sf-mono text-sm">${(cfg.extras && cfg.extras[p.id]) || 0}</span>
-            <button onclick="App.cfgExtraStep('${p.id}', 1)" class="sf-btn-outline p-1.5">${iconTag("plus", 13)}</button>
-          </div>
-        </div>`).join("")}
-    </div>`;
-  } else if (cfg.step === steps.length - 1) {
-    const lineItems = [];
-    if (panel) lineItems.push(`<div class="flex justify-between"><span>${cfg.panelQty}× ${panel.name}</span>${priceTagHTML(panel, state.currency)}</div>`);
-    if (converter) lineItems.push(`<div class="flex justify-between"><span>1× ${converter.name}</span>${priceTagHTML(converter, state.currency)}</div>`);
-    if (battery) lineItems.push(`<div class="flex justify-between"><span>${cfg.batteryQty}× ${battery.name}</span>${priceTagHTML(battery, state.currency)}</div>`);
-    extraLines.forEach((l) => lineItems.push(`<div class="flex justify-between"><span>${l.qty}× ${l.product.name}</span>${priceTagHTML(l.product, state.currency)}</div>`));
-
-    const evalBlocks = [];
-    if (panelEval) evalBlocks.push(`<div class="p-4 flex items-start gap-3 ${panelEval.status === "bad" ? "sf-badge-bad" : panelEval.status === "warning" ? "sf-badge-warn" : "sf-badge-ok"}">${statusBadgeHTML(panelEval.status)}<ul class="text-sm space-y-1">${panelEval.messages.map((m) => `<li>${m}</li>`).join("")}</ul></div>`);
-    if (batteryEval) evalBlocks.push(`<div class="p-4 flex items-start gap-3 ${batteryEval.status === "bad" ? "sf-badge-bad" : batteryEval.status === "warning" ? "sf-badge-warn" : "sf-badge-ok"}">${statusBadgeHTML(batteryEval.status)}<ul class="text-sm space-y-1">${batteryEval.messages.map((m) => `<li>${m}</li>`).join("")}</ul></div>`);
-
-    stepBody = `<div class="space-y-6">
-      <div class="sf-card p-6">
-        <p class="sf-mono text-xs mb-4" style="color:var(--yellow)">RESUMEN DEL SISTEMA</p>
-        <div class="grid sm:grid-cols-3 gap-4 mb-6">
-          <div><p class="text-xs" style="color:var(--text-dim)">Tipo de sistema</p><p class="font-semibold">${systemType.name}</p></div>
-          <div><p class="text-xs" style="color:var(--text-dim)">Potencia FV instalada</p><p class="font-semibold sf-mono">${totalPower} W</p></div>
-          ${systemType.needsBattery ? `<div><p class="text-xs" style="color:var(--text-dim)">Capacidad de almacenamiento</p><p class="font-semibold sf-mono">${battery ? ((battery.specs.capacityWh * cfg.batteryQty) / 1000).toFixed(2) : "0"} kWh</p></div>` : ""}
-        </div>
-        <div class="space-y-2 text-sm border-t pt-4" style="border-color:var(--line)">${lineItems.join("")}</div>
-        <div class="flex justify-between items-center border-t pt-4 mt-4" style="border-color:var(--line)">
-          <span class="font-semibold">Precio total</span>
-          ${priceTagHTML({ priceARS: totalPriceARS, priceUSD: totalPriceUSD }, state.currency, "lg")}
-        </div>
+    }).join("")}</div>` : emptyStepHTML("No hay accesorios cargados en el catálogo.");
+  } else if (key === "summary") {
+    title = "Revisá tu sistema";
+    lead = "Si todo está bien, agregalo al carrito y pedí la cotización.";
+    body = `<div style="display:grid;gap:12px">
+      ${verdictHTML(panelEval, "Paneles e inversor")}
+      ${verdictHTML(batteryEval, "Batería")}
+      <div class="panel panel-pad">
+        <ul class="summary-lines" style="border-top:0;padding-top:0">
+          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
+        </ul>
+        <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur, "lg")}</div>
       </div>
-      ${evalBlocks.length ? `<div class="space-y-2">${evalBlocks.join("")}</div>` : ""}
-      <button onclick="App.cfgAddSystemToCart()" class="sf-btn-primary w-full py-3.5 flex items-center justify-center gap-2 font-semibold">${iconTag("shopping-cart", 18)} Añadir sistema completo al carrito</button>
     </div>`;
   }
 
-  const canGoNext = [
-    !!systemType,
-    !!panel && cfg.panelQty > 0,
-    !!converter && (!panelEval || panelEval.status !== "bad"),
-    systemType && systemType.needsBattery ? !!battery && (!batteryEval || batteryEval.status !== "bad") : true,
-    true,
-  ][cfg.step];
-
+  const canNext = cfgCanAdvance(cfg);
   const isLast = cfg.step === steps.length - 1;
 
+  const summary = `
+    <aside class="cfg-summary panel panel-pad" aria-label="Resumen del sistema">
+      <h2 class="summary-title">Tu sistema</h2>
+      ${systemType ? `
+        <dl class="summary-stats">
+          <div><dt>Tipo</dt><dd style="font-family:var(--font-sans)">${systemType.name}</dd></div>
+          <div><dt>Potencia FV</dt><dd>${fmtNum(totalPower)}&nbsp;W</dd></div>
+          ${systemType.needsBattery ? `<div><dt>Almacenamiento</dt><dd>${battery ? fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2) : "0"}&nbsp;kWh</dd></div>` : ""}
+          ${panelEval ? `<div><dt>Compatibilidad</dt><dd>${statusBadgeHTML(worstStatus([panelEval, batteryEval]))}</dd></div>` : ""}
+        </dl>` : ""}
+      ${lines.length ? `
+        <ul class="summary-lines">
+          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span></li>`).join("")}
+        </ul>
+        <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur)}</div>
+      ` : `<p class="summary-empty">Todavía no elegiste componentes. A medida que avances, el resumen se completa acá.</p>`}
+      ${isLast ? `<button type="button" class="btn btn-primary btn-lg btn-block" style="margin-top:20px" data-action="cfg-add-system">${icon("shopping-cart-simple")} Agregar al carrito</button>` : ""}
+    </aside>`;
+
   return `
-  <div class="max-w-4xl mx-auto px-5 py-12">
-    <h1 class="sf-display text-3xl font-semibold mb-2">Diseñá tu sistema</h1>
-    <p class="text-sm mb-8" style="color:var(--text-mid)">Elegí cada componente. Verificamos automáticamente la compatibilidad eléctrica entre ellos.</p>
-    ${stepHeaderHTML(steps, cfg.step)}
-    ${stepBody}
-    <div class="flex justify-between mt-10">
-      <button onclick="App.cfgBack()" ${cfg.step === 0 ? "disabled" : ""} class="sf-btn-outline px-4 py-2 flex items-center gap-1.5">${iconTag("chevron-left", 16)} Atrás</button>
-      ${!isLast ? `<button onclick="App.cfgNext()" ${!canGoNext ? "disabled" : ""} class="sf-btn-primary px-5 py-2 flex items-center gap-1.5">Siguiente ${iconTag("chevron-right", 16)}</button>` : "<span></span>"}
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">Diseñá tu sistema</h1>
+      <p class="page-lead">Elegí cada componente. Verificamos la compatibilidad eléctrica entre ellos en cada paso.</p>
+    </div>
+    ${stepsNavHTML(steps, cfg.step)}
+    <div class="cfg-layout">
+      <section aria-labelledby="cfg-step-title">
+        <h2 id="cfg-step-title" class="step-title" tabindex="-1">${title}</h2>
+        <p class="step-lead">${lead}</p>
+        ${body}
+        <div class="cfg-nav">
+          <button type="button" class="btn btn-secondary" data-action="cfg-back" data-fid="cfg-back" ${cfg.step === 0 ? "disabled" : ""}>${icon("caret-left")} Atrás</button>
+          ${!isLast ? `<button type="button" class="btn btn-primary" data-action="cfg-next" data-fid="cfg-next" ${canNext ? "" : "disabled"}>Siguiente: ${steps[cfg.step + 1]} ${icon("caret-right")}</button>` : ""}
+        </div>
+      </section>
+      ${summary}
     </div>
   </div>`;
 }

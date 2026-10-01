@@ -1,35 +1,66 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-AR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AURYX — Sistemas fotovoltaicos</title>
-<meta name="description" content="Tienda, configurador de sistemas fotovoltaicos con motor de compatibilidad y calculadoras técnicas." />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>AURYX | Sistemas fotovoltaicos</title>
+<meta name="description" content="Armá tu sistema solar componente por componente. Verificamos la compatibilidad eléctrica entre paneles, inversores y baterías antes de que compres." />
+<meta name="theme-color" content="#0d1424" />
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro.
+     Prioridad: elección guardada > preferencia del sistema > oscuro (marca). -->
+<script>
+  (function () {
+    var theme = null;
+    try { theme = localStorage.getItem("auryx-theme"); } catch (e) {}
+    if (theme !== "light" && theme !== "dark") {
+      theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.classList.add("js");
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f3f5f9" : "#0d1424");
+  })();
+</script>
 
-<!-- Tailwind (utilidades de layout/espaciado/tipografía) vía CDN, sin build step -->
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://images.unsplash.com" />
 
-<!-- Iconos -->
-<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Tipografía autoalojada vía Fontsource (font-display: swap) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5/wdth.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5/index.css" />
+
+<!-- Íconos: Phosphor (regular + fill), versión fijada -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
 
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <div id="nav-root"></div>
-  <div id="app-root"></div>
-  <div id="footer-root"></div>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
 
-  <button id="back-to-top" class="sf-back-to-top" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Volver arriba">
-    <i data-lucide="arrow-up" style="width:18px;height:18px"></i>
+  <header id="nav-root" class="site-header"></header>
+  <main id="main" tabindex="-1">
+    <div id="app-root">
+      <div class="wrap boot" aria-busy="true" aria-label="Cargando">
+        <div class="skeleton" style="height:48px;max-width:420px"></div>
+        <div class="skeleton" style="height:20px;max-width:560px"></div>
+        <div class="skeleton" style="height:320px"></div>
+      </div>
+    </div>
+  </main>
+  <footer id="footer-root" class="site-footer"></footer>
+
+  <div id="toast-root" class="toast-region" role="status" aria-live="polite"></div>
+
+  <button id="back-to-top" class="back-to-top" type="button" data-action="scroll-top" aria-label="Volver arriba">
+    <i class="ph ph-arrow-up" aria-hidden="true"></i>
   </button>
 
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL/USD_ARS_RATE -->
   <script src="src/config.js"></script>
 
-  <!-- Datos y lógica de negocio (sin dependencias entre sí más que el orden mostrado) -->
+  <!-- Datos y lógica de negocio -->
   <script src="src/data/products.js"></script>
   <script src="src/lib/compatibilityEngine.js"></script>
   <script src="src/utils/format.js"></script>
@@ -53,7 +84,7 @@
   <!-- Cliente de la API -->
   <script src="src/lib/api.js"></script>
 
-  <!-- App: estado, router y arranque (va último: depende de todo lo anterior) -->
+  <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
   <script src="src/app.js"></script>
 </body>
 </html>

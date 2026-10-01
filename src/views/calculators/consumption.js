@@ -1,30 +1,55 @@
-/* AURYX — Calculadora de consumo. Depende de: utils/format.js, utils/calculatorHelpers.js. */
+/* AURYX: calculadora de consumo. Depende de: utils/format.js, utils/calculatorHelpers.js. */
+
+function consumptionTotals(items) {
+  const dailyWh = items.reduce((s, it) => s + it.power * it.qty * it.hours, 0);
+  return {
+    daily: `${fmtNum(dailyWh / 1000, 2)} kWh`,
+    monthly: `${fmtNum((dailyWh * 30) / 1000, 1)} kWh`,
+    yearly: `${fmtNum((dailyWh * 365) / 1000)} kWh`,
+  };
+}
 
 function consumptionRowHTML(it, i) {
-  return `<div class="grid grid-cols-12 gap-2 items-center" data-row="${i}">
-    <input value="${it.name}" oninput="App.calcConsumptionEdit(${i},'name',this.value)" class="sf-input col-span-4 text-sm" placeholder="Nombre del equipo" />
-    <input type="number" value="${it.power}" oninput="App.calcConsumptionEdit(${i},'power',this.value)" class="sf-input col-span-2 text-sm" />
-    <input type="number" value="${it.qty}" oninput="App.calcConsumptionEdit(${i},'qty',this.value)" class="sf-input col-span-2 text-sm" />
-    <input type="number" value="${it.hours}" oninput="App.calcConsumptionEdit(${i},'hours',this.value)" class="sf-input col-span-3 text-sm" />
-    <button onclick="App.calcConsumptionRemove(${i})" class="col-span-1" style="color:var(--bad)">${iconTag("trash-2", 14)}</button>
+  const cell = (field, label, value, extra = "") => `
+    <div>
+      <span class="mini-label" aria-hidden="true">${label}</span>
+      <input class="input num-input" type="number" inputmode="decimal" min="0" value="${esc(value)}"
+        name="equipo-${i}-${field}" autocomplete="off" aria-label="${label}, equipo ${i + 1}"
+        data-bind="consumption" data-i="${i}" data-field="${field}" ${extra} />
+    </div>`;
+  return `<div class="appliance-row">
+    <div class="name-cell">
+      <span class="mini-label" aria-hidden="true">Equipo</span>
+      <input class="input" type="text" value="${esc(it.name)}" placeholder="Ej.: heladera…" name="equipo-${i}-nombre"
+        autocomplete="off" aria-label="Nombre del equipo ${i + 1}" data-bind="consumption" data-i="${i}" data-field="name" />
+    </div>
+    ${cell("power", "Potencia (W)", it.power)}
+    ${cell("qty", "Cantidad", it.qty, 'inputmode="numeric"')}
+    ${cell("hours", "Horas por día", it.hours, 'max="24"')}
+    <div class="del-cell">
+      <button type="button" class="icon-btn icon-btn-danger" data-action="calc-consumption-remove" data-i="${i}"
+        aria-label="Quitar ${esc(it.name || `equipo ${i + 1}`)}">${icon("trash")}</button>
+    </div>
   </div>`;
 }
 
 function renderConsumptionCalculator(state) {
   const items = state.calc.consumption;
-  const dailyWh = items.reduce((s, it) => s + it.power * it.qty * it.hours, 0);
-  const body = `
-    ${explainerHTML(`La energía consumida se calcula como <strong class="sf-mono">Potencia (W) × Cantidad × Horas de uso</strong>, sumando esto para cada equipo. El resultado en Wh se divide por 1000 para expresarlo en kWh (kilovatio-hora), la unidad que usan las empresas de electricidad para facturar.`)}
-    <div class="grid grid-cols-12 gap-2 text-xs sf-mono mb-2 px-1" style="color:var(--text-dim)">
-      <span class="col-span-4">Equipo</span><span class="col-span-2">Potencia (W)</span><span class="col-span-2">Cantidad</span><span class="col-span-3">Uso (hs/día)</span>
+  const t = consumptionTotals(items);
+  const inputs = `
+    ${explainerHTML(`La energía de cada equipo es <strong class="mono">potencia (W) × cantidad × horas de uso</strong>. Se suman todos y el total en Wh se divide por 1000 para pasarlo a kWh, la unidad con la que factura la distribuidora.`)}
+    <div class="appliance-head" aria-hidden="true"><span>Equipo</span><span>Potencia (W)</span><span>Cantidad</span><span>Horas por día</span><span></span></div>
+    <div class="appliance-list">
+      ${items.length ? items.map(consumptionRowHTML).join("") : `<p class="small dim">No hay equipos cargados. Agregá el primero para empezar.</p>`}
     </div>
-    <div id="consumption-rows" class="space-y-3">${items.map(consumptionRowHTML).join("")}</div>
-    <button onclick="App.calcConsumptionAdd()" class="sf-btn-outline text-sm px-3 py-1.5 mt-3 flex items-center gap-1.5">${iconTag("plus", 14)} Agregar equipo</button>
-    <div id="consumption-result" class="mt-4 p-4 sf-card text-sm space-y-2" style="border-color:var(--line-yellow)">
-      ${resultRowHTML("consumption-daily", "Consumo diario", `${(dailyWh / 1000).toFixed(2)} kWh`)}
-      ${resultRowHTML("consumption-monthly", "Consumo mensual", `${((dailyWh * 30) / 1000).toFixed(1)} kWh`)}
-      ${resultRowHTML("consumption-yearly", "Consumo anual", `${((dailyWh * 365) / 1000).toFixed(0)} kWh`)}
-    </div>`;
-  return calcSectionHTML("consumo", "1. Consumo energético", "Cuánta energía consumen tus equipos por día, mes y año", body);
+    <div><button type="button" class="btn btn-secondary btn-sm" data-action="calc-consumption-add" data-fid="consumption-add">${icon("plus")} Agregar equipo</button></div>`;
+  const result = resultCardHTML({
+    id: "consumption-result",
+    main: { id: "consumption-monthly", label: "Consumo mensual", value: t.monthly },
+    rest: [
+      { id: "consumption-daily", label: "Por día", value: t.daily },
+      { id: "consumption-yearly", label: "Por año", value: t.yearly },
+    ],
+  });
+  return calcSectionHTML("consumo", "Consumo energético", "Cuánta energía usan tus equipos por día, mes y año.", inputs, result);
 }
-

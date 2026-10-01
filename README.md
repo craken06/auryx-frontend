@@ -1,10 +1,9 @@
-# AURYX — Frontend
+# AURYX: Frontend
 
 Plataforma de sistemas fotovoltaicos: tienda, configurador "Diseñá tu sistema"
 con motor de compatibilidad, y 4 calculadoras técnicas. Sin frameworks ni
-build step: HTML + CSS + JavaScript plano, más Tailwind (CDN) para utilidades
-de layout y Lucide (CDN) para íconos.
-
+build step: HTML + CSS + JavaScript plano. Tipografía (Archivo + JetBrains
+Mono, vía Fontsource) e íconos (Phosphor) se cargan desde jsDelivr.
 ## Cómo correrlo
 
 Al usar `<script>` clásicos (no ES modules), podés simplemente **abrir
@@ -27,27 +26,42 @@ Y abrís `http://localhost:8000`.
 
 ```
 auryx/
-├── index.html          → shell de la página, carga todos los scripts en orden
-├── css/
-│   └── styles.css       → design tokens (negro/amarillo/blanco) y componentes
-├── js/
-│   ├── data.js           → catálogo de productos, categorías, tipos de sistema
-│   ├── engine.js          → motor de compatibilidad + helpers de formato/HTML
-│   ├── views.js            → funciones de renderizado de cada vista (HTML en strings)
-│   └── app.js               → estado global `App` + orquestación de eventos y render
-└── README.md
+├── index.html                 → shell, tema inicial (claro/oscuro) y orden de carga de scripts
+├── css/styles.css             → sistema de diseño: tokens de color (navy + amarillo), radios, componentes
+└── src/
+    ├── config.js              → API_BASE_URL, USD_ARS_RATE, CONTACT_EMAIL
+    ├── data/products.js       → catálogo de demo, categorías, tipos de sistema, etiquetas de specs
+    ├── lib/
+    │   ├── compatibilityEngine.js → reglas panel↔inversor/regulador y batería↔inversor
+    │   └── api.js                 → carga y adapta productos de la API real
+    ├── utils/
+    │   ├── format.js              → esc(), Intl, precios, íconos, badges, miniaturas
+    │   └── calculatorHelpers.js   → campos, tarjetas de resultado, geometría del ángulo
+    ├── views/                     → una función render por vista (devuelve HTML)
+    └── app.js                     → estado, router por hash, delegación de eventos, arranque
 ```
+
+### Convenciones
+
+- **Eventos**: nada de `onclick` inline. Los botones declaran `data-action="..."`
+  y los campos `data-bind="..."`; `app.js` los resuelve con un listener por tipo.
+- **Escape**: todo texto que viene de la API pasa por `esc()` antes de ir al HTML.
+- **URL = estado**: filtros y orden de la tienda (`#store/panel?marca=X&orden=price-asc`),
+  la calculadora activa (`#calculators/ahorro`) y el tipo preseleccionado del
+  configurador (`#configurator?tipo=hybrid`) se pueden compartir como link.
+- **Tema**: oscuro (marca) por defecto; respeta `prefers-color-scheme` y el
+  botón del header guarda la elección en `localStorage`.
 
 ## Cómo está armado (para cuando conectemos el backend)
 
-- **`PRODUCTS`** (en `data.js`) es el catálogo completo, hoy hardcodeado.
+- **`PRODUCTS`** (en `data/products.js`) es el catálogo completo, hoy hardcodeado.
   Cuando exista el backend, esto se reemplaza por un `fetch('/api/products')`
   y se guarda el resultado en `App.state` de la misma forma.
-- **`evaluatePanelToConverter` / `evaluateBatteryToConverter`** (en `engine.js`)
+- **`evaluatePanelToConverter` / `evaluateBatteryToConverter`** (en `lib/compatibilityEngine.js`)
   son el motor de compatibilidad. Hoy corren en el cliente contra `PRODUCTS`;
   en la arquitectura backend definida antes, esta misma lógica se traslada
   al servicio de compatibilidad (Node/NestJS) y el cliente pasa a consumir
-  un endpoint en lugar de calcular localmente — la forma de la función
+  un endpoint en lugar de calcular localmente; la forma de la función
   (input → `{status, messages}`) puede mantenerse igual.
 - **`App.state.cart`** hoy vive solo en memoria del navegador. Es el punto
   de enganche natural para persistir el carrito en el backend (o en
@@ -55,7 +69,7 @@ auryx/
 - No hay build step ni bundler a propósito: mantiene el proyecto legible y
   fácil de tocar mientras se termina de definir el backend. Si más adelante
   se migra a Next.js (como se definió en el documento de arquitectura), la
-  estructura de `data.js` (specs, categorías) y `engine.js` (reglas) se
+  estructura de `data/products.js` (specs, categorías) y `lib/compatibilityEngine.js` (reglas) se
   traslada casi sin cambios al backend/paquete `compatibility-engine`.
 
 ## Estado de esta versión (frontend, sin backend)

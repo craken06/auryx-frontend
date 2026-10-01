@@ -19,3 +19,10 @@ const API_BASE_URL = "https://6757-186-18-242-43.ngrok-free.app";
 // usuario quiere ver USD). Ajustar según cotización real, o reemplazar
 // más adelante por una consulta a una API de cotización en vivo.
 const USD_ARS_RATE = 1350;
+
+// Email que recibe los mensajes del formulario de contacto y las
+// solicitudes de cotización del carrito. Mientras no haya un endpoint de
+// backend para esto, el formulario abre el cliente de correo del usuario
+// (mailto:) con el mensaje armado. Si queda vacío, el formulario avisa
+// que el envío todavía no está configurado.
+const CONTACT_EMAIL = "";

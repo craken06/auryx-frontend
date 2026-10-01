@@ -1,7 +1,7 @@
-/* AURYX — Motor de compatibilidad (lógica de negocio pura, sin HTML/UI). Sin dependencias. */
+/* AURYX: Motor de compatibilidad (lógica de negocio pura, sin HTML/UI). Sin dependencias. */
 
 /* =========================================================================
-   AURYX — Motor de compatibilidad (v1 simplificada, sin corrección térmica)
+   AURYX: Motor de compatibilidad (v1 simplificada, sin corrección térmica)
    Reglas: potencia, tensión y corriente entre panel(es) y regulador/inversor,
    y entre batería e inversor/regulador.
    ========================================================================= */
@@ -64,7 +64,7 @@ function evaluateBatteryToConverter(battery, qty, converter, systemVoltage) {
     const v = battery.specs.nominalVoltage;
     if (v < converter.specs.batteryVoltageMin || v > converter.specs.batteryVoltageMax) {
       status = "bad";
-      messages.push(`La tensión nominal de la batería (${v}V) está fuera del rango admitido por el inversor (${converter.specs.batteryVoltageMin}–${converter.specs.batteryVoltageMax}V).`);
+      messages.push(`La tensión nominal de la batería (${v}V) está fuera del rango admitido por el inversor (${converter.specs.batteryVoltageMin}-${converter.specs.batteryVoltageMax}V).`);
     }
   }
 
@@ -80,7 +80,7 @@ function evaluateBatteryToConverter(battery, qty, converter, systemVoltage) {
 }
 
 const STATUS_META = {
-  ok: { icon: "check", label: "Compatible", cls: "sf-badge-ok" },
-  warning: { icon: "alert-triangle", label: "Compatible, revisar", cls: "sf-badge-warn" },
-  bad: { icon: "x", label: "No compatible", cls: "sf-badge-bad" },
+  ok: { icon: "check-circle", label: "Compatible", tone: "ok" },
+  warning: { icon: "warning", label: "Compatible, revisar", tone: "warn" },
+  bad: { icon: "x-circle", label: "No compatible", tone: "bad" },
 };

@@ -1,15 +1,17 @@
-/* AURYX — Catálogo de demo (fallback) + metadatos de categorías/tipos de sistema. Sin dependencias. */
+/* AURYX: Catálogo de demo (fallback) + metadatos de categorías/tipos de sistema. Sin dependencias. */
 
 /* =========================================================================
-   AURYX — Datos de catálogo
+   AURYX: Datos de catálogo
    Especificaciones técnicas tomadas de hojas de datos de fabricante.
    Precios son estimaciones de mercado (ARS/USD) a ajustar antes de producción.
    ========================================================================= */
 
 /* Datos de demo: se usan como fallback si la API no responde
    (o mientras se está desarrollando sin el backend levantado).
-   Una vez que la API responde, App reemplaza PRODUCTS con los datos reales. */
-let PRODUCTS = [
+   Una vez que la API responde, App reemplaza PRODUCTS con los datos reales.
+   DEMO_PRODUCTS se conserva aparte: la demo interactiva del inicio lo usa
+   como ejemplo fijo aunque el catálogo real venga de la API. */
+const DEMO_PRODUCTS = [
   {
     id: "panel-jk-575", category: "panel",
     brand: "Jinko Solar", name: "Tiger Neo N-Type 575W (144 celdas)",
@@ -90,26 +92,27 @@ let PRODUCTS = [
     specs: { material: "Aluminio anodizado", paneles: 4, cargaViento: "hasta 150 km/h" },
   },
 ];
+let PRODUCTS = DEMO_PRODUCTS.slice();
 
 const CATEGORY_META = {
-  panel: { label: "Paneles solares", icon: "sun" },
-  inversor: { label: "Inversores", icon: "zap" },
+  panel: { label: "Paneles solares", icon: "solar-panel" },
+  inversor: { label: "Inversores", icon: "lightning" },
   regulador: { label: "Reguladores MPPT", icon: "cpu" },
-  bateria: { label: "Baterías", icon: "battery" },
+  bateria: { label: "Baterías", icon: "battery-high" },
   proteccion: { label: "Protecciones", icon: "shield-check" },
-  cable: { label: "Cables y conectores", icon: "cable" },
+  cable: { label: "Cables y conectores", icon: "plugs-connected" },
   accesorio: { label: "Accesorios", icon: "wrench" },
-  soporte: { label: "Soportes y fijación", icon: "layout-grid" },
+  soporte: { label: "Soportes y fijación", icon: "squares-four" },
 };
 
 const SYSTEM_TYPES = [
   {
-    id: "ongrid", name: "On-grid", icon: "zap",
+    id: "ongrid", name: "On-grid", icon: "lightning",
     desc: "Conectado a la red eléctrica. Reduce la factura de luz inyectando o compensando tu propio consumo. Sin batería.",
     needsBattery: false, sourceCategory: "inversor",
   },
   {
-    id: "hybrid", name: "Híbrido (con batería)", icon: "battery",
+    id: "hybrid", name: "Híbrido (con batería)", icon: "battery-high",
     desc: "Conectado a la red y con respaldo de batería para usar de noche o durante un corte de suministro.",
     needsBattery: true, sourceCategory: "inversor",
   },
@@ -121,14 +124,14 @@ const SYSTEM_TYPES = [
 ];
 
 const AVAILABILITY_META = {
-  "disponible": { label: "Disponible", cls: "sf-badge-ok" },
-  "a pedido": { label: "A pedido", cls: "sf-badge-warn" },
-  "sin stock": { label: "Sin stock", cls: "sf-badge-bad" },
+  "disponible": { label: "Disponible", tone: "ok" },
+  "a pedido": { label: "A pedido", tone: "warn" },
+  "sin stock": { label: "Sin stock", tone: "bad" },
 };
 
 const SPEC_LABELS = {
-  pmax: "Potencia máxima (W)", voc: "Tensión circuito abierto — Voc (V)", isc: "Corriente cortocircuito — Isc (A)",
-  vmp: "Tensión pot. máxima — Vmp (V)", imp: "Corriente pot. máxima — Imp (A)", efficiency: "Eficiencia (%)",
+  pmax: "Potencia máxima (W)", voc: "Voc, tensión de circuito abierto (V)", isc: "Isc, corriente de cortocircuito (A)",
+  vmp: "Vmp, tensión a potencia máxima (V)", imp: "Imp, corriente a potencia máxima (A)", efficiency: "Eficiencia (%)",
   tech: "Tecnología de celda", dims: "Dimensiones", weight: "Peso",
   type: "Tipo", ratedPowerAC: "Potencia nominal CA (W)", maxPvPower: "Potencia FV máx. (W)",
   maxPvVoltage: "Tensión FV máx. (V)", mpptRangeMin: "MPPT mín. (V)", mpptRangeMax: "MPPT máx. (V)",
@@ -142,4 +145,20 @@ const SPEC_LABELS = {
   peakDischargeCurrent: "Corriente pico de descarga (A)", poles: "Polos", current: "Corriente", voltage: "Tensión",
   tipo: "Tipo", corrienteDescarga: "Corriente de descarga", seccion: "Sección", resistenciaUV: "Resistencia UV",
   corriente: "Corriente admitida", ip: "Grado IP", material: "Material", paneles: "Paneles compatibles", cargaViento: "Carga de viento",
+  // claves en español que devuelve la API (compragamer-api)
+  potencia_wp: "Potencia pico (W)", coef_temp_voc: "Coef. de temperatura de Voc (%/°C)", normas: "Normas",
+  ip_modulo: "Grado IP del módulo", clase_fuego: "Clase de fuego", rango_temp_c: "Rango de temperatura (°C)",
+  tiene_cables: "Incluye cables", niebla_salina: "Resistencia a niebla salina", carga_nieve_pa: "Carga de nieve (Pa)",
+  carga_viento_pa: "Carga de viento (Pa)", grosor_vidrio_mm: "Espesor del vidrio (mm)", bastidor_material: "Material del marco",
+  grado_ip_caja_conexiones: "Grado IP de la caja de conexiones",
+  potencia_nominal_w: "Potencia nominal (W)", vmpp_max: "Tensión MPPT máx. (V)", vmpp_min: "Tensión MPPT mín. (V)",
+  corriente_max_entrada: "Corriente máx. de entrada (A)", es_microinversor: "Microinversor", altitud_max_m: "Altitud máx. (m)",
+  humedad_max_pct: "Humedad máx. (%)", material_carcasa: "Material de la carcasa", rele_programable: "Relé programable",
+  grado_contaminacion: "Grado de contaminación", nivel_fallo_aislamiento: "Detección de falla de aislamiento",
+  proteccion_arco_electrico: "Protección contra arco eléctrico", proteccion_sobretemperatura: "Protección por sobretemperatura",
+  proteccion_polaridad_inversa: "Protección de polaridad inversa", nivel_activacion_fuga_tierra_ma: "Activación por fuga a tierra (mA)",
+  proteccion_sobretension_transitoria: "Protección contra sobretensiones",
+  capacidad_kwh: "Capacidad (kWh)", vida_util_ciclos: "Vida útil (ciclos)", tension_absorcion_v: "Tensión de absorción (V)",
+  tension_flotacion_v: "Tensión de flotación (V)", temp_almacenamiento_c: "Temperatura de almacenamiento (°C)",
+  carga_max_kg: "Carga máx. (kg)", compatible_con: "Compatible con",
 };

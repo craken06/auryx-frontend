@@ -1,26 +1,51 @@
-/* AURYX — Helpers de UI reutilizados por las calculadoras (campos, secciones, geometría del dibujo de ángulo). Depende de: utils/format.js (iconTag). */
+/* AURYX: helpers de UI de las calculadoras (campos, secciones, resultados, geometría del dibujo de ángulo). Depende de: utils/format.js. */
 
 function explainerHTML(text) {
-  return `<div class="sf-explainer p-4 text-sm mb-6">${iconTag("graduation-cap", 18, "--yellow")}<p>${text}</p></div>`;
+  return `<div class="explainer">${icon("graduation-cap")}<p>${text}</p></div>`;
 }
-function fieldHTML({ id, label, unit, type = "text", value, oninput, placeholder = "" }) {
-  return `<label class="block mb-4">
-    <span class="text-sm font-medium block mb-1.5">${label} ${unit ? `<span class="sf-mono" style="color:var(--text-dim)">(${unit})</span>` : ""}</span>
-    <input id="${id}" type="${type}" value="${value}" placeholder="${placeholder}" oninput="${oninput}" class="sf-input w-full" />
-  </label>`;
+
+/* Campo con label arriba, unidad en la etiqueta y hint opcional debajo.
+   bind = nombre lógico para el delegador de eventos; field = clave del estado. */
+function fieldHTML({ id, label, unit, type = "number", value, bind, field, hint, placeholder = "", inputmode, name, autocomplete = "off" }) {
+  const im = inputmode || (type === "number" ? "decimal" : "");
+  return `<div class="field">
+    <label class="field-label" for="${id}">${label}${unit ? ` <span class="unit">(${unit})</span>` : ""}</label>
+    <input id="${id}" class="input${type === "number" ? " num-input" : ""}" type="${type}" value="${esc(value)}"
+      name="${name || id}" autocomplete="${autocomplete}" ${im ? `inputmode="${im}"` : ""}
+      ${placeholder ? `placeholder="${esc(placeholder)}"` : ""}
+      ${bind ? `data-bind="${bind}"` : ""} ${field ? `data-field="${field}"` : ""}
+      ${hint ? `aria-describedby="${id}-hint"` : ""} />
+    ${hint ? `<p id="${id}-hint" class="field-hint">${hint}</p>` : ""}
+  </div>`;
 }
-function resultRowHTML(id, label, value) {
-  return `<div class="flex justify-between"><span style="color:var(--text-mid)">${label}</span><strong id="${id}" class="sf-mono" style="color:var(--yellow)">${value}</strong></div>`;
+
+/* Tarjeta de resultado: un valor principal grande + filas secundarias. */
+function resultCardHTML({ id, title = "Resultado", main, rest = [] }) {
+  return `<div class="result-card" id="${id}" aria-live="polite">
+    <h3>${title}</h3>
+    <dl>
+      <div class="result-main"><dt>${main.label}</dt><dd id="${main.id}">${main.value}</dd></div>
+      ${rest.length ? `<div class="result-rest">${rest.map((r) => `<div><dt>${r.label}</dt><dd id="${r.id}">${r.value}</dd></div>`).join("")}</div>` : ""}
+    </dl>
+  </div>`;
 }
-function calcSectionHTML(id, title, subtitle, body) {
-  return `<section id="${id}" class="py-16 border-b" style="border-color:var(--line)">
-    <h2 class="sf-display text-2xl font-semibold mb-1">${title}</h2>
-    <p class="text-sm mb-6" style="color:var(--text-dim)">${subtitle}</p>
-    ${body}
+
+function calcSectionHTML(id, title, subtitle, inputs, result, footnote = "") {
+  return `<section id="calc-${id}" class="calc" aria-labelledby="calc-${id}-title">
+    <div class="calc-head">
+      <h2 id="calc-${id}-title">${title}</h2>
+      <p class="muted">${subtitle}</p>
+    </div>
+    <div class="calc-grid">
+      <div class="calc-inputs">${inputs}</div>
+      <div class="calc-result">${result}${footnote ? `<p class="xsmall dim" style="margin-top:12px">${footnote}</p>` : ""}</div>
+    </div>
   </section>`;
 }
 
-
+/* Geometría del dibujo lateral (perfil). Trigonometría real para que el
+   ángulo dibujado sea exacto; se reutiliza en el render inicial y en la
+   actualización en vivo del slider. */
 function lateralPanelGeometry(angleDeg) {
   const rad = (angleDeg * Math.PI) / 180;
   const hinge = { x: 165, y: 140 };
@@ -45,20 +70,19 @@ function lateralPanelGeometry(angleDeg) {
 }
 
 function lateralTicksHTML(ticks) {
-  return ticks.map((t) => `<line x1="${t.x1}" y1="${t.y1}" x2="${t.x2}" y2="${t.y2}" stroke="var(--bg)" stroke-width="2.5" />`).join("");
+  return ticks.map((t) => `<line x1="${t.x1}" y1="${t.y1}" x2="${t.x2}" y2="${t.y2}" stroke="var(--bg-raised)" stroke-width="2.5" />`).join("");
 }
 
 function lateralSvgHTML(angleDeg) {
   const g = lateralPanelGeometry(angleDeg);
   return `
-  <svg id="lateral-svg" viewBox="0 0 240 170" width="100%" height="100%">
-    <line x1="15" y1="${g.hinge.y}" x2="225" y2="${g.hinge.y}" stroke="var(--line)" stroke-width="2" />
+  <svg id="lateral-svg" viewBox="0 0 240 170" width="100%" height="100%" role="img" aria-label="Vista lateral del panel inclinado ${angleDeg} grados">
+    <line x1="15" y1="${g.hinge.y}" x2="225" y2="${g.hinge.y}" stroke="var(--line-strong)" stroke-width="2" />
     <line id="lateral-strut" x1="${g.strutGround.x}" y1="${g.strutGround.y}" x2="${g.strutAttach.x}" y2="${g.strutAttach.y}" stroke="var(--text-dim)" stroke-width="3" stroke-linecap="round" />
-    <line id="lateral-panel" x1="${g.hinge.x}" y1="${g.hinge.y}" x2="${g.far.x}" y2="${g.far.y}" stroke="var(--yellow)" stroke-width="13" stroke-linecap="round" />
+    <line id="lateral-panel" x1="${g.hinge.x}" y1="${g.hinge.y}" x2="${g.far.x}" y2="${g.far.y}" stroke="var(--accent)" stroke-width="13" stroke-linecap="round" />
     <g id="lateral-ticks">${lateralTicksHTML(g.ticks)}</g>
-    <circle cx="${g.hinge.x}" cy="${g.hinge.y}" r="4" fill="var(--yellow-deep)" />
+    <circle cx="${g.hinge.x}" cy="${g.hinge.y}" r="4" fill="var(--accent-ink)" />
     <path id="lateral-arc" d="M ${g.arcStart.x} ${g.arcStart.y} A 34 34 0 0 1 ${g.arcEnd.x} ${g.arcEnd.y}" fill="none" stroke="var(--text-mid)" stroke-width="1.5" stroke-dasharray="3 3" />
-    <text id="lateral-label" x="${g.label.x}" y="${g.label.y}" fill="var(--white)" font-size="12" font-family="'IBM Plex Mono', monospace" text-anchor="middle">${angleDeg}°</text>
+    <text id="lateral-label" x="${g.label.x}" y="${g.label.y}" fill="var(--text)" font-size="12" font-family="'JetBrains Mono Variable', monospace" text-anchor="middle">${angleDeg}°</text>
   </svg>`;
 }
-

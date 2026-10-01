@@ -1,9 +1,16 @@
 /* =========================================================================
-   AURYX — App: estado global + orquestación de renderizado.
-   Sin framework: cada acción del usuario llama a un método de `App`, que
-   actualiza el estado y decide si conviene un re-render completo (clics,
-   cambios de paso) o una actualización puntual del DOM (inputs de texto,
-   para no perder el foco mientras se tipea).
+   AURYX: App. Estado global, router por hash, delegación de eventos y
+   orquestación del render.
+
+   Sin framework: cada acción del usuario actualiza `App.state` y decide si
+   hace falta un re-render completo (clics, cambios de paso) o una
+   actualización puntual del DOM (inputs de texto/número, para no perder el
+   foco ni el cursor mientras se tipea).
+
+   Los eventos se declaran en el HTML con atributos:
+     data-action="..."  → clic (botones)
+     data-bind="..."    → input / change (campos)
+   y se resuelven acá con un único listener por tipo de evento.
    ========================================================================= */
 
 function defaultConfigurator() {
@@ -13,98 +20,186 @@ function defaultConfigurator() {
   };
 }
 
+const prefersReducedMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* modo privado: se ignora */ } }
+
 const App = {
   state: {
     view: "home",
-    currency: "ARS",
+    theme: document.documentElement.getAttribute("data-theme") || "dark",
+    currency: storageGet("auryx-currency") === "USD" ? "USD" : "ARS",
     cart: [],
     mobileNavOpen: false,
     storeCategory: "all",
     storeSort: "none",
     storeFilters: {},
+    filtersOpen: false,
     selectedProductId: null,
     productDetailQty: 1,
     configurator: defaultConfigurator(),
+    homeDemo: { panelId: "panel-jk-575", qty: 6 },
+    calcSection: null,
     calc: {
       consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
       cost: { kwh: 300, pricePerKwh: 140 },
       savings: { currentKwh: 350, solarKwh: 220, energyPrice: 140 },
       orientation: { lat: -34.6, hemisphere: "sur", previewAngle: 35 },
     },
+    contactDraft: {},
+    contactErrors: {},
+    contactStatus: null,
   },
+
+  lastRouteKey: null,
+  homeRevealed: false,
+  toastTimer: null,
+  toastAction: null,
 
   get cartCount() { return this.state.cart.reduce((s, it) => s + Number(it.qty), 0); },
 
-  /* ---------------- navegación / render principal ---------------- */
-  setView(view) {
-    navigateHash(view === "home" ? "" : view);
-  },
-  toggleMobileNav(force) {
-    this.state.mobileNavOpen = force !== undefined ? force : !this.state.mobileNavOpen;
-    this.render();
-  },
-  toggleCurrency() {
-    this.state.currency = this.state.currency === "ARS" ? "USD" : "ARS";
-    this.render();
-  },
-
-  render() {
+  /* ---------------------------------------------------------------- render */
+  render({ focusSelector } = {}) {
     const s = this.state;
-    document.getElementById("nav-root").innerHTML = renderNav({ view: s.view, currency: s.currency, cartCount: this.cartCount, cart: s.cart, mobileNavOpen: s.mobileNavOpen });
+    const active = document.activeElement;
+    const fid = active && active !== document.body ? (active.dataset.fid || (active.id ? `#${active.id}` : null)) : null;
+
+    document.getElementById("nav-root").innerHTML = renderNav({
+      view: s.view, currency: s.currency, cart: s.cart, cartCount: this.cartCount, mobileNavOpen: s.mobileNavOpen, theme: s.theme,
+    });
+
     let body = "";
     switch (s.view) {
-      case "home": body = renderHome(); break;
+      case "home": body = renderHome(s); break;
       case "store": body = renderStore(s); break;
       case "product-detail": body = renderProductDetail(s); break;
       case "configurator": body = renderConfigurator(s); break;
       case "calculators": body = renderCalculators(s); break;
       case "cart": body = renderCart(s); break;
       case "info": body = renderInfo(); break;
-      case "contact": body = renderContact(); break;
-      default: body = renderHome();
+      case "contact": body = renderContact(s); break;
+      default: body = renderHome(s);
     }
     document.getElementById("app-root").innerHTML = body;
-    document.getElementById("footer-root").innerHTML = renderFooter();
-    if (window.lucide) lucide.createIcons();
+
+    const footer = document.getElementById("footer-root");
+    if (!footer.dataset.ready) { footer.innerHTML = renderFooter(); footer.dataset.ready = "1"; }
+
+    this.setupReveal();
+
+    // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
+    const target = focusSelector
+      ? document.querySelector(focusSelector)
+      : fid ? (fid.startsWith("#") ? document.getElementById(fid.slice(1)) : document.querySelector(`[data-fid="${CSS.escape(fid)}"]`)) : null;
+    if (target && !target.disabled) target.focus({ preventScroll: true });
   },
 
-  /* ---------------- tienda / producto ---------------- */
-  setStoreCategory(cat) { navigateHash(cat === "all" ? "store" : `store/${cat}`); },
-  openProduct(id) { navigateHash(`product/${id}`); },
+  /* Reveal de secciones en la home: anima la primera vez que se ve la
+     página; en re-renders de la misma visita (cambio de moneda, etc.)
+     se muestran directo para que no parpadeen. */
+  setupReveal() {
+    const els = document.querySelectorAll("#app-root [data-reveal]");
+    if (!els.length) return;
+    if (this.homeRevealed || prefersReducedMotion() || !("IntersectionObserver" in window)) {
+      els.forEach((el) => el.classList.add("is-in"));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add("is-in");
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+    els.forEach((el) => io.observe(el));
+    this.homeRevealed = true;
+  },
 
-  setStoreSort(value) {
-    this.state.storeSort = value;
+  /* ---------------------------------------------------------------- toast */
+  toast(message, action) {
+    const root = document.getElementById("toast-root");
+    clearTimeout(this.toastTimer);
+    this.toastAction = action || null;
+    root.innerHTML = `
+      <div class="toast">
+        ${icon("check-circle", "", "fill")}
+        <span class="msg">${message}</span>
+        ${action ? (action.href
+          ? `<a class="btn btn-secondary btn-sm" href="${action.href}" data-action="toast-dismiss">${action.label}</a>`
+          : `<button type="button" class="btn btn-secondary btn-sm" data-action="toast-action">${action.label}</button>`) : ""}
+        <button type="button" class="icon-btn" style="border:0;color:inherit" data-action="toast-dismiss" aria-label="Cerrar aviso">${icon("x")}</button>
+      </div>`;
+    this.toastTimer = setTimeout(() => this.dismissToast(), action ? 7000 : 4000);
+  },
+  dismissToast() {
+    clearTimeout(this.toastTimer);
+    this.toastAction = null;
+    document.getElementById("toast-root").innerHTML = "";
+  },
+
+  /* ---------------------------------------------------------------- header */
+  toggleMobileNav(force) {
+    this.state.mobileNavOpen = force !== undefined ? force : !this.state.mobileNavOpen;
     this.render();
+  },
+  toggleCurrency() {
+    this.state.currency = this.state.currency === "ARS" ? "USD" : "ARS";
+    storageSet("auryx-currency", this.state.currency);
+    this.render();
+  },
+  toggleTheme() {
+    const theme = this.state.theme === "dark" ? "light" : "dark";
+    this.state.theme = theme;
+    document.documentElement.setAttribute("data-theme", theme);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f3f5f9" : "#0d1424");
+    storageSet("auryx-theme", theme);
+    this.render();
+  },
+
+  /* ---------------------------------------------------------------- tienda */
+  /* Los filtros y el orden viven en la URL: se pueden compartir y el botón
+     "Atrás" del navegador los respeta. */
+  storeHash(patch) {
+    const s = this.state;
+    const filters = { ...s.storeFilters, ...(patch.filters || {}) };
+    const sort = patch.sort !== undefined ? patch.sort : s.storeSort;
+    const params = new URLSearchParams();
+    if (filters.brand) params.set("marca", filters.brand);
+    if (filters.tech) params.set("tecnologia", filters.tech);
+    if (filters.systemType) params.set("sistema", filters.systemType);
+    if (sort && sort !== "none") params.set("orden", sort);
+    const base = s.storeCategory === "all" ? "store" : `store/${s.storeCategory}`;
+    const q = params.toString();
+    return q ? `${base}?${q}` : base;
   },
   setStoreFilter(key, value) {
-    const current = this.state.storeFilters || {};
-    // click de nuevo sobre el mismo valor = lo saca (toggle)
-    current[key] = current[key] === value ? null : value;
-    this.state.storeFilters = current;
-    this.render();
+    const current = this.state.storeFilters[key];
+    navigateHash(this.storeHash({ filters: { [key]: current === value ? null : value } }));
   },
   clearStoreFilters() {
-    this.state.storeFilters = {};
-    this.render();
+    navigateHash(this.storeHash({ filters: { brand: null, tech: null, systemType: null } }));
   },
-  detailQtyStep(delta) {
-    this.state.productDetailQty = Math.max(1, (Number(this.state.productDetailQty) || 1) + delta);
-    this.render();
-  },
-  detailQtySet(val) { this.state.productDetailQty = Math.max(1, Number(val) || 1); },
+  setStoreSort(value) { navigateHash(this.storeHash({ sort: value })); },
 
-  /* ---------------- carrito ---------------- */
+  /* ---------------------------------------------------------------- carrito */
   addToCart(productId, qty) {
     const product = PRODUCTS.find((p) => p.id === productId);
     if (!product) return;
-    this.state.cart.push({ product, qty: Math.max(1, Number(qty) || 1) });
+    const n = Math.max(1, Math.round(Number(qty)) || 1);
+    const existing = this.state.cart.find((it) => !it.systemId && it.product.id === productId);
+    if (existing) existing.qty += n;
+    else this.state.cart.push({ product, qty: n });
     this.render();
+    this.toast(`Agregaste ${esc(product.name)} al carrito.`, { label: "Ver carrito", href: "#cart" });
   },
   addSystemToCart(items) {
     const systemId = `sys-${Date.now()}`;
     items.forEach((it) => this.state.cart.push({ product: it.product, qty: it.qty, systemId }));
     this.state.configurator = defaultConfigurator();
-    this.setView("cart");
+    navigateHash("cart");
+    this.toast("Agregaste el sistema completo al carrito.");
   },
   cartQtyStep(idx, delta) {
     const item = this.state.cart[idx];
@@ -112,271 +207,393 @@ const App = {
     item.qty = Math.max(1, Number(item.qty) + delta);
     this.render();
   },
-  cartRemove(idx) { this.state.cart.splice(idx, 1); this.render(); },
+  cartRemove(idx) {
+    const [removed] = this.state.cart.splice(idx, 1);
+    if (!removed) return;
+    this.render({ focusSelector: "#main" });
+    this.toast(`Quitaste ${esc(removed.product.name)}.`, {
+      label: "Deshacer",
+      run: () => { this.state.cart.splice(Math.min(idx, this.state.cart.length), 0, removed); this.render(); },
+    });
+  },
+  requestQuote() {
+    const s = this.state;
+    const t = cartTotals(s.cart);
+    const lines = s.cart.map((it) => `- ${it.qty} x ${it.product.brand} ${it.product.name}`);
+    const total = s.currency === "USD" ? fmtUSD(t.priceUSD) : fmtARS(t.priceARS);
+    s.contactDraft = {
+      ...s.contactDraft,
+      message: `Hola, quiero pedir una cotización por:\n${lines.join("\n")}\n\nTotal estimado en la web: ${total}`,
+    };
+    s.contactStatus = null;
+    navigateHash("contact");
+  },
 
-  /* ---------------- configurador ---------------- */
-  cfgSet(field, value) { this.state.configurator[field] = value; this.render(); },
+  /* ---------------------------------------------------------------- configurador */
+  cfgRender() { this.render({ focusSelector: "#cfg-step-title" }); },
   cfgSelectSystemType(id) {
     this.state.configurator = defaultConfigurator();
     this.state.configurator.systemTypeId = id;
     this.render();
   },
-  cfgSelectPanel(id) { this.state.configurator.panelId = id; this.render(); },
-  cfgSelectConverter(id) { this.state.configurator.converterId = id; this.render(); },
-  cfgSelectBattery(id) { this.state.configurator.batteryId = id; this.render(); },
-  cfgPanelQtyStep(delta) {
-    const cfg = this.state.configurator;
-    cfg.panelQty = Math.max(1, cfg.panelQty + delta);
-    this.render();
-  },
-  cfgPanelQtyLive(val) {
-    const cfg = this.state.configurator;
-    cfg.panelQty = Math.max(1, Number(val) || 1);
-    const panel = PRODUCTS.find((p) => p.id === cfg.panelId);
-    const totalPowerEl = document.getElementById("panel-total-power");
-    if (totalPowerEl && panel) totalPowerEl.textContent = panel.specs.pmax * cfg.panelQty;
-  },
-  cfgBatteryQtyStep(delta) {
-    const cfg = this.state.configurator;
-    cfg.batteryQty = Math.max(1, cfg.batteryQty + delta);
-    this.render();
-  },
-  cfgBatteryQtyLive(val) {
-    const cfg = this.state.configurator;
-    cfg.batteryQty = Math.max(1, Number(val) || 1);
-    const battery = PRODUCTS.find((p) => p.id === cfg.batteryId);
-    const el = document.getElementById("battery-total-kwh");
-    if (el && battery) el.textContent = ((battery.specs.capacityWh * cfg.batteryQty) / 1000).toFixed(2);
-  },
-  cfgExtraStep(productId, delta) {
-    const cfg = this.state.configurator;
-    const current = cfg.extras[productId] || 0;
-    cfg.extras[productId] = Math.max(0, current + delta);
-    this.render();
-  },
-  cfgNext() {
-    const cfg = this.state.configurator;
-    const steps = configuratorSteps(cfg);
-    cfg.step = Math.min(cfg.step + 1, steps.length - 1);
-    this.render();
-  },
-  cfgBack() {
-    const cfg = this.state.configurator;
-    cfg.step = Math.max(cfg.step - 1, 0);
-    this.render();
-  },
   cfgAddSystemToCart() {
     const cfg = this.state.configurator;
-    const { panel, converter, battery, extraLines } = cfgTotals(cfg);
-    const items = [];
-    if (panel) items.push({ product: panel, qty: cfg.panelQty });
-    if (converter) items.push({ product: converter, qty: 1 });
-    if (battery) items.push({ product: battery, qty: cfg.batteryQty });
-    extraLines.forEach((l) => items.push({ product: l.product, qty: l.qty }));
-    this.addSystemToCart(items);
+    const { lines } = cfgTotals(cfg);
+    this.addSystemToCart(lines.map((l) => ({ product: l.product, qty: l.qty })));
   },
 
-  /* ---------------- calculadoras ---------------- */
+  /* ---------------------------------------------------------------- calculadoras (actualización puntual) */
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+
   calcConsumptionRecompute() {
-    const items = this.state.calc.consumption;
-    const dailyWh = items.reduce((s, it) => s + it.power * it.qty * it.hours, 0);
-    const daily = document.getElementById("consumption-daily");
-    const monthly = document.getElementById("consumption-monthly");
-    const yearly = document.getElementById("consumption-yearly");
-    if (daily) daily.textContent = `${(dailyWh / 1000).toFixed(2)} kWh`;
-    if (monthly) monthly.textContent = `${((dailyWh * 30) / 1000).toFixed(1)} kWh`;
-    if (yearly) yearly.textContent = `${((dailyWh * 365) / 1000).toFixed(0)} kWh`;
+    const t = consumptionTotals(this.state.calc.consumption);
+    this.setText("consumption-daily", t.daily);
+    this.setText("consumption-monthly", t.monthly);
+    this.setText("consumption-yearly", t.yearly);
   },
-  calcConsumptionEdit(i, field, value) {
-    const it = this.state.calc.consumption[i];
-    if (!it) return;
-    it[field] = field === "name" ? value : (Number(value) || 0);
-    this.calcConsumptionRecompute();
-  },
-  calcConsumptionAdd() {
-    this.state.calc.consumption.push({ name: "", power: 0, qty: 1, hours: 1 });
-    this.render();
-  },
-  calcConsumptionRemove(i) {
-    this.state.calc.consumption.splice(i, 1);
-    this.render();
-  },
-
-  calcCostEdit(field, value) {
-    this.state.calc.cost[field] = Number(value) || 0;
+  calcCostRecompute() {
     const { kwh, pricePerKwh } = this.state.calc.cost;
-    const el = document.getElementById("cost-total");
-    if (el) el.textContent = `$ ${(kwh * pricePerKwh).toLocaleString("es-AR")}`;
+    this.setText("cost-total", fmtMoney(kwh * pricePerKwh));
   },
-
-  calcSavingsEdit(field, value) {
-    this.state.calc.savings[field] = Number(value) || 0;
-    const { currentKwh, solarKwh, energyPrice } = this.state.calc.savings;
-    const saved = Math.max(0, solarKwh) * energyPrice;
-    const pct = currentKwh > 0 ? Math.min(100, (solarKwh / currentKwh) * 100) : 0;
-    const m = document.getElementById("sav-monthly");
-    const y = document.getElementById("sav-yearly");
-    const p = document.getElementById("sav-pct");
-    if (m) m.textContent = `$ ${saved.toLocaleString("es-AR")}`;
-    if (y) y.textContent = `$ ${(saved * 12).toLocaleString("es-AR")}`;
-    if (p) p.textContent = `${pct.toFixed(0)} %`;
+  calcSavingsRecompute() {
+    const t = savingsTotals(this.state.calc.savings);
+    this.setText("sav-monthly", t.monthly);
+    this.setText("sav-yearly", t.yearly);
+    this.setText("sav-pct", t.pct);
   },
-
-  calcOrientationEdit(field, value) {
-    this.state.calc.orientation[field] = field === "lat" ? (Number(value) || 0) : value;
-    const { lat, hemisphere } = this.state.calc.orientation;
-    const recommendedAngle = Math.round(Math.abs(lat));
-    const azimuth = hemisphere === "sur" ? "Norte (0°)" : "Sur (180°)";
-    const a = document.getElementById("orient-azimuth");
-    const g = document.getElementById("orient-angle");
-    if (a) a.textContent = azimuth;
-    if (g) g.textContent = `≈ ${recommendedAngle}°`;
-    // el botón "usar recomendado" muestra el valor actualizado sin re-render completo
-    const useBtn = document.querySelector('[onclick="App.calcOrientationUseRecommended()"]');
-    if (useBtn) useBtn.textContent = `Usar ángulo recomendado (${recommendedAngle}°)`;
+  calcOrientationRecompute() {
+    const t = orientationTotals(this.state.calc.orientation);
+    this.setText("orient-azimuth", t.azimuth);
+    this.setText("orient-angle", `≈ ${t.angle}°`);
+    this.setText("orient-use-btn", `Usar ángulo recomendado (${t.angle}°)`);
   },
-
   calcOrientationAngleEdit(value) {
     let n = Math.round(Number(value));
     if (Number.isNaN(n)) n = 0;
     n = Math.max(0, Math.min(90, n));
     this.state.calc.orientation.previewAngle = n;
 
-    // sincronizar número <-> slider entre sí
     const numInput = document.getElementById("orient-angle-number");
     const slider = document.getElementById("orient-angle-slider");
-    if (numInput && Number(numInput.value) !== n) numInput.value = n;
+    if (numInput && document.activeElement !== numInput && Number(numInput.value) !== n) numInput.value = n;
     if (slider && Number(slider.value) !== n) slider.value = n;
 
-    // vista isométrica: se ajusta con signo negativo para que se incline hacia arriba
-    const isoPanel = document.getElementById("panel-3d-iso");
-    if (isoPanel) isoPanel.style.transform = `rotateX(${-n}deg)`;
+    const iso = document.getElementById("panel-3d-iso");
+    if (iso) iso.style.transform = `rotateX(${-n}deg)`;
 
-    // vista lateral: recalculamos la geometría real (misma función que usa el render inicial)
     const g = lateralPanelGeometry(n);
     const panelLine = document.getElementById("lateral-panel");
     if (panelLine) { panelLine.setAttribute("x2", g.far.x); panelLine.setAttribute("y2", g.far.y); }
     const strut = document.getElementById("lateral-strut");
     if (strut) { strut.setAttribute("x2", g.strutAttach.x); strut.setAttribute("y2", g.strutAttach.y); }
-    const ticksGroup = document.getElementById("lateral-ticks");
-    if (ticksGroup) ticksGroup.innerHTML = lateralTicksHTML(g.ticks);
+    const ticks = document.getElementById("lateral-ticks");
+    if (ticks) ticks.innerHTML = lateralTicksHTML(g.ticks);
     const arc = document.getElementById("lateral-arc");
     if (arc) arc.setAttribute("d", `M ${g.arcStart.x} ${g.arcStart.y} A 34 34 0 0 1 ${g.arcEnd.x} ${g.arcEnd.y}`);
     const label = document.getElementById("lateral-label");
     if (label) { label.setAttribute("x", g.label.x); label.setAttribute("y", g.label.y); label.textContent = `${n}°`; }
+    const svg = document.getElementById("lateral-svg");
+    if (svg) svg.setAttribute("aria-label", `Vista lateral del panel inclinado ${n} grados`);
   },
 
-  calcOrientationUseRecommended() {
-    const { lat } = this.state.calc.orientation;
-    this.state.calc.orientation.previewAngle = Math.round(Math.abs(lat));
-    this.render();
+  /* ---------------------------------------------------------------- demo de la home */
+  renderHomeDemo() {
+    const root = document.getElementById("home-demo");
+    if (!root) return;
+    const active = document.activeElement;
+    const fid = active && active.dataset ? active.dataset.fid : null;
+    root.innerHTML = renderHomeDemo(this.state.homeDemo);
+    if (fid) {
+      const el = root.querySelector(`[data-fid="${CSS.escape(fid)}"]`);
+      // si el botón quedó deshabilitado (llegó al límite), el foco pasa al opuesto
+      if (el && !el.disabled) el.focus({ preventScroll: true });
+      else root.querySelector(".stepper .icon-btn:not(:disabled)")?.focus({ preventScroll: true });
+    }
+  },
+
+  /* ---------------------------------------------------------------- contacto */
+  submitContact() {
+    const s = this.state;
+    const d = s.contactDraft;
+    const errors = {};
+    if (!(d.name || "").trim()) errors.name = "Escribí tu nombre.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((d.email || "").trim())) errors.email = "Revisá el email: tiene que tener la forma nombre@dominio.com.";
+    if (!(d.message || "").trim()) errors.message = "Contanos en qué te podemos ayudar.";
+    s.contactErrors = errors;
+
+    const firstError = ["name", "email", "message"].find((k) => errors[k]);
+    if (firstError) {
+      s.contactStatus = null;
+      this.render({ focusSelector: `#contact-${firstError}` });
+      return;
+    }
+
+    if (typeof CONTACT_EMAIL === "string" && CONTACT_EMAIL) {
+      const body = `${d.message}\n\n${d.name}\n${d.email}${d.phone ? `\n${d.phone}` : ""}`;
+      window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Consulta web: ${d.name}`)}&body=${encodeURIComponent(body)}`;
+      s.contactStatus = { tone: "ok", text: "Abrimos tu programa de correo con el mensaje listo. Solo falta que lo envíes." };
+    } else {
+      console.warn("CONTACT_EMAIL no está configurado en src/config.js: el formulario no puede enviar.");
+      s.contactStatus = { tone: "warn", text: "El envío de mensajes todavía no está habilitado en esta versión del sitio." };
+    }
+    this.render({ focusSelector: ".form-status" });
   },
 };
 
 /* =========================================================================
-   INICIALIZACIÓN
-   Intenta cargar productos reales desde la API. Si el backend no responde
-   (apagado, CORS, red), sigue mostrando los datos de demo de data.js para
-   que la página nunca quede en blanco.
+   DELEGACIÓN DE EVENTOS
    ========================================================================= */
+const ACTIONS = {
+  "nav-toggle": () => App.toggleMobileNav(),
+  "currency-toggle": () => App.toggleCurrency(),
+  "theme-toggle": () => App.toggleTheme(),
+  "scroll-top": () => {
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    document.querySelector(".wordmark")?.focus({ preventScroll: true });
+  },
+  "reload": () => location.reload(),
+  "toast-dismiss": () => App.dismissToast(),
+  "toast-action": () => { const a = App.toastAction; App.dismissToast(); if (a && a.run) a.run(); },
+
+  "filter": (d) => App.setStoreFilter(d.key, d.value),
+  "filters-clear": () => App.clearStoreFilters(),
+
+  "cart-add": (d) => {
+    const qtyInput = d.qtyFrom ? document.getElementById(d.qtyFrom) : null;
+    App.addToCart(d.id, qtyInput ? qtyInput.value : 1);
+  },
+  "cart-step": (d) => App.cartQtyStep(Number(d.idx), Number(d.delta)),
+  "cart-remove": (d) => App.cartRemove(Number(d.idx)),
+  "cart-quote": () => App.requestQuote(),
+  "detail-step": (d) => {
+    App.state.productDetailQty = Math.max(1, (Number(App.state.productDetailQty) || 1) + Number(d.delta));
+    App.render();
+  },
+
+  "cfg-type": (d) => App.cfgSelectSystemType(d.id),
+  "cfg-panel": (d) => { App.state.configurator.panelId = d.id; App.render(); },
+  "cfg-converter": (d) => { App.state.configurator.converterId = d.id; App.render(); },
+  "cfg-battery": (d) => { App.state.configurator.batteryId = d.id; App.render(); },
+  "cfg-panel-step": (d) => { const c = App.state.configurator; c.panelQty = Math.max(1, c.panelQty + Number(d.delta)); App.render(); },
+  "cfg-battery-step": (d) => { const c = App.state.configurator; c.batteryQty = Math.max(1, c.batteryQty + Number(d.delta)); App.render(); },
+  "cfg-extra-step": (d) => {
+    const c = App.state.configurator;
+    c.extras[d.id] = Math.max(0, (c.extras[d.id] || 0) + Number(d.delta));
+    App.render();
+  },
+  "cfg-next": () => {
+    const c = App.state.configurator;
+    if (!cfgCanAdvance(c)) return;
+    c.step = Math.min(c.step + 1, configuratorSteps(c).length - 1);
+    App.cfgRender();
+  },
+  "cfg-back": () => { const c = App.state.configurator; c.step = Math.max(c.step - 1, 0); App.cfgRender(); },
+  "cfg-goto": (d) => { App.state.configurator.step = Number(d.step); App.cfgRender(); },
+  "cfg-add-system": () => App.cfgAddSystemToCart(),
+
+  "calc-consumption-add": () => {
+    App.state.calc.consumption.push({ name: "", power: 0, qty: 1, hours: 1 });
+    const i = App.state.calc.consumption.length - 1;
+    App.render({ focusSelector: `[name="equipo-${i}-nombre"]` });
+  },
+  "calc-consumption-remove": (d) => {
+    App.state.calc.consumption.splice(Number(d.i), 1);
+    App.render({ focusSelector: '[data-fid="consumption-add"]' });
+  },
+  "orient-use-recommended": () => {
+    const o = App.state.calc.orientation;
+    App.calcOrientationAngleEdit(Math.round(Math.abs(o.lat)));
+  },
+
+  "demo-step": (d) => {
+    const demo = App.state.homeDemo;
+    demo.qty = Math.max(1, Math.min(14, demo.qty + Number(d.delta)));
+    App.renderHomeDemo();
+  },
+};
+
+/* Inputs: actualización en vivo sin re-render (no se pierde el cursor). */
+const INPUT_BINDINGS = {
+  "detail-qty": (el) => { App.state.productDetailQty = Math.max(1, Number(el.value) || 1); },
+  "cfg-panel-qty": (el) => {
+    const cfg = App.state.configurator;
+    cfg.panelQty = Math.max(1, Math.round(Number(el.value)) || 1);
+    const panel = PRODUCTS.find((p) => p.id === cfg.panelId);
+    if (panel) App.setText("panel-total-power", fmtNum(panel.specs.pmax * cfg.panelQty));
+  },
+  "cfg-battery-qty": (el) => {
+    const cfg = App.state.configurator;
+    cfg.batteryQty = Math.max(1, Math.round(Number(el.value)) || 1);
+    const battery = PRODUCTS.find((p) => p.id === cfg.batteryId);
+    if (battery) App.setText("battery-total-kwh", fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2));
+  },
+  "consumption": (el) => {
+    const it = App.state.calc.consumption[Number(el.dataset.i)];
+    if (!it) return;
+    it[el.dataset.field] = el.dataset.field === "name" ? el.value : Math.max(0, Number(el.value) || 0);
+    App.calcConsumptionRecompute();
+  },
+  "cost": (el) => { App.state.calc.cost[el.dataset.field] = Number(el.value) || 0; App.calcCostRecompute(); },
+  "savings": (el) => { App.state.calc.savings[el.dataset.field] = Number(el.value) || 0; App.calcSavingsRecompute(); },
+  "orient": (el) => {
+    const f = el.dataset.field;
+    App.state.calc.orientation[f] = f === "lat" ? (Number(el.value) || 0) : el.value;
+    App.calcOrientationRecompute();
+  },
+  "orient-angle": (el) => App.calcOrientationAngleEdit(el.value),
+  "contact": (el) => { App.state.contactDraft[el.dataset.field] = el.value; },
+};
+
+/* Change: cuando el valor queda confirmado (selects, o al salir de un número). */
+const CHANGE_BINDINGS = {
+  "store-sort": (el) => App.setStoreSort(el.value),
+  "cfg-wiring": (el) => { App.state.configurator.wiring = el.value; App.render(); },
+  "cfg-voltage": (el) => { App.state.configurator.systemVoltage = Number(el.value); App.render(); },
+  "cfg-panel-qty": () => App.render(),
+  "cfg-battery-qty": () => App.render(),
+  "detail-qty": () => App.render(),
+  "demo-panel": (el) => { App.state.homeDemo.panelId = el.value; App.renderHomeDemo(); },
+};
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-action]");
+  if (!el || el.disabled) return;
+  const fn = ACTIONS[el.dataset.action];
+  if (!fn) return;
+  if (el.tagName !== "A") e.preventDefault();
+  fn(el.dataset, el);
+});
+
+document.addEventListener("input", (e) => {
+  const fn = INPUT_BINDINGS[e.target.dataset && e.target.dataset.bind];
+  if (fn) fn(e.target);
+});
+
+document.addEventListener("change", (e) => {
+  const fn = CHANGE_BINDINGS[e.target.dataset && e.target.dataset.bind];
+  if (fn) fn(e.target);
+});
+
+// <details> no burbujea "toggle": se escucha en captura
+document.addEventListener("toggle", (e) => {
+  if (e.target.dataset && e.target.dataset.bind === "filters-open") App.state.filtersOpen = e.target.open;
+}, true);
+
+document.addEventListener("submit", (e) => {
+  if (e.target.dataset.form === "contact") { e.preventDefault(); App.submitContact(); }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && App.state.mobileNavOpen) {
+    App.toggleMobileNav(false);
+    document.querySelector('[data-fid="menu"]')?.focus();
+  }
+});
+
 /* =========================================================================
-   ROUTER: traduce cambios de hash (#store, #store/panel, #product/db-1, etc.)
-   en cambios de estado + render. Sin esto, los links del nav (que usan
-   href="#...") cambiaban la URL pero la pantalla se quedaba estática, porque
-   nada escuchaba el evento "hashchange".
+   ROUTER
+   Traduce el hash (#store/panel?marca=X, #product/db-1, #calculators/ahorro,
+   #configurator?tipo=hybrid…) en estado + render.
    ========================================================================= */
 function applyRouteFromHash() {
   const raw = location.hash.replace(/^#/, "");
-  const [view, param] = raw.split("/");
+  const [path, query] = raw.split("?");
+  const [view, rawParam] = path.split("/");
+  const param = rawParam ? decodeURIComponent(rawParam) : "";
+  const params = new URLSearchParams(query || "");
+  const s = App.state;
+  let afterRender = null;
 
-  if (!raw || view === "home") {
-    App.state.view = "home";
+  if (!path || view === "home") {
+    s.view = "home";
   } else if (view === "store") {
-    App.state.view = "store";
-    const newCat = param || "all";
-    if (newCat !== App.state.storeCategory) App.state.storeFilters = {}; // los filtros dependen de la categoría
-    App.state.storeCategory = newCat;
+    s.view = "store";
+    s.storeCategory = param || "all";
+    s.storeFilters = {
+      brand: params.get("marca") || null,
+      tech: params.get("tecnologia") || null,
+      systemType: params.get("sistema") || null,
+    };
+    s.storeSort = params.get("orden") || "none";
   } else if (view === "product") {
     if (!param) return;
-    App.state.view = "product-detail";
-    App.state.selectedProductId = param;
-    App.state.productDetailQty = 1;
-  } else if (["configurator", "calculators", "cart", "info", "contact"].includes(view)) {
-    App.state.view = view;
+    s.view = "product-detail";
+    if (s.selectedProductId !== param) s.productDetailQty = 1;
+    s.selectedProductId = param;
+  } else if (view === "configurator") {
+    s.view = "configurator";
+    const tipo = params.get("tipo");
+    if (tipo && SYSTEM_TYPES.some((t) => t.id === tipo)) {
+      s.configurator = defaultConfigurator();
+      s.configurator.systemTypeId = tipo;
+      s.configurator.step = 1;
+      history.replaceState(null, "", "#configurator"); // el preseleccionado no queda pegado a la URL
+    }
+  } else if (view === "calculators") {
+    s.view = "calculators";
+    s.calcSection = param || null;
+    if (param) afterRender = () => {
+      const el = document.getElementById(`calc-${param}`);
+      if (el) el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+    };
+  } else if (["cart", "info", "contact"].includes(view)) {
+    s.view = view;
+    if (view === "contact") s.contactErrors = {};
   } else {
     return; // hash desconocido: no tocamos el estado actual
   }
 
-  App.state.mobileNavOpen = false;
-  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
-  App.render();
+  s.mobileNavOpen = false;
+
+  // Solo se vuelve arriba (y se mueve el foco) al cambiar de página; cambiar
+  // un filtro o el orden de la tienda mantiene la posición.
+  const routeKey = view === "calculators" ? "calculators" : `${s.view}/${param}`;
+  const pageChanged = routeKey !== App.lastRouteKey;
+  if (pageChanged) {
+    if (s.view !== "home") App.homeRevealed = false;
+    if (!afterRender) window.scrollTo({ top: 0, behavior: "auto" });
+  }
+  const isFirst = App.lastRouteKey === null;
+  App.lastRouteKey = routeKey;
+
+  App.render(pageChanged && !isFirst ? { focusSelector: "#main" } : {});
+  if (afterRender) requestAnimationFrame(afterRender);
 }
 
-/* Único punto de entrada para navegar: siempre pasa por el hash de la URL,
-   así el botón "Atrás" del navegador y los links con href quedan consistentes
-   con los botones que llaman a App.setView()/etc. directamente. */
+/* Único punto de entrada para navegar desde código: siempre pasa por el hash,
+   así "Atrás" del navegador y los links quedan consistentes. */
 function navigateHash(newHash) {
   const current = location.hash.replace(/^#/, "");
-  if (current === newHash) {
-    applyRouteFromHash(); // mismo hash: forzamos igual el render (ej. re-click en la misma categoría)
-  } else {
-    location.hash = newHash;
-  }
+  if (current === newHash) applyRouteFromHash();
+  else location.hash = newHash;
 }
 
 window.addEventListener("hashchange", applyRouteFromHash);
 
 /* =========================================================================
-   MEJORAS: nav que se oculta al bajar y reaparece al subir o acercar el
-   mouse al borde superior; botón flotante de "volver arriba".
+   "Volver arriba": se muestra al pasar los 600px de scroll. Usa un
+   IntersectionObserver sobre un centinela (sin listener de scroll).
    ========================================================================= */
-(function setupScrollBehaviors() {
-  let lastScrollY = window.scrollY;
-  const HIDE_THRESHOLD = 120; // píxeles desde arriba antes de empezar a ocultar
-  const MOUSE_REVEAL_ZONE = 40; // píxeles desde el borde superior que revelan el nav
-
-  function updateOnScroll() {
-    const navRoot = document.getElementById("nav-root");
-    const backToTop = document.getElementById("back-to-top");
-    const currentY = window.scrollY;
-
-    if (navRoot) {
-      if (currentY > lastScrollY && currentY > HIDE_THRESHOLD) {
-        navRoot.classList.add("sf-nav-hidden"); // bajando: se esconde
-      } else if (currentY < lastScrollY) {
-        navRoot.classList.remove("sf-nav-hidden"); // subiendo: reaparece
-      }
-    }
-
-    if (backToTop) {
-      backToTop.classList.toggle("visible", currentY > 400);
-    }
-
-    lastScrollY = currentY;
-  }
-
-  window.addEventListener("scroll", updateOnScroll, { passive: true });
-
-  window.addEventListener("mousemove", (e) => {
-    if (e.clientY <= MOUSE_REVEAL_ZONE) {
-      const navRoot = document.getElementById("nav-root");
-      if (navRoot) navRoot.classList.remove("sf-nav-hidden");
-    }
-  });
-})();
+function setupBackToTop() {
+  const btn = document.getElementById("back-to-top");
+  if (!btn || !("IntersectionObserver" in window)) return;
+  const sentinel = document.createElement("div");
+  sentinel.setAttribute("aria-hidden", "true");
+  sentinel.style.cssText = "position:absolute;top:600px;left:0;width:1px;height:1px;pointer-events:none";
+  document.body.prepend(sentinel);
+  new IntersectionObserver(([entry]) => {
+    btn.classList.toggle("is-visible", !entry.isIntersecting && entry.boundingClientRect.top < 0);
+  }).observe(sentinel);
+}
 
 /* =========================================================================
    INICIALIZACIÓN
    Intenta cargar productos reales desde la API. Si el backend no responde
-   (apagado, CORS, red), sigue mostrando los datos de demo de data.js para
-   que la página nunca quede en blanco.
+   (apagado, CORS, red), sigue con el catálogo de demo para que la página
+   nunca quede en blanco.
    ========================================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  document.getElementById("app-root").innerHTML = `
-    <div class="max-w-6xl mx-auto px-5 py-20 text-center" style="color:var(--text-dim)">
-      Cargando productos...
-    </div>`;
-
+  setupBackToTop();
   try {
     const apiProducts = await loadProductsFromAPI();
     if (apiProducts && apiProducts.length > 0) {
@@ -384,17 +601,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       console.warn("Usando catálogo de demo: no se pudo conectar con la API en", API_BASE_URL);
     }
-
-    if (location.hash) {
-      applyRouteFromHash();
-    } else {
-      App.render();
-    }
+    applyRouteFromHash();
   } catch (err) {
     console.error("Error inicializando la app:", err);
     document.getElementById("app-root").innerHTML = `
-      <div class="max-w-2xl mx-auto px-5 py-20 text-center" style="color:var(--bad)">
-        Ocurrió un error al iniciar la página. Revisá la consola (F12) para más detalle.
+      <div class="wrap page">
+        <div class="empty">
+          ${icon("warning-circle")}
+          <h1 class="page-title" style="font-size:1.75rem">No pudimos cargar la página</h1>
+          <p>Recargá para intentar de nuevo. Si sigue pasando, revisá la consola del navegador (F12).</p>
+          <button type="button" class="btn btn-primary" data-action="reload">Recargar</button>
+        </div>
       </div>`;
   }
 });
