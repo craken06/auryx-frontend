@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AURYX — Sistemas fotovoltaicos</title>
+<meta name="description" content="Tienda, configurador de sistemas fotovoltaicos con motor de compatibilidad y calculadoras técnicas." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<!-- Tailwind (utilidades de layout/espaciado/tipografía) vía CDN, sin build step -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Iconos -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div id="app-root"></div>
+  <div id="footer-root"></div>
+
+  <button id="back-to-top" class="sf-back-to-top" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Volver arriba">
+    <i data-lucide="arrow-up" style="width:18px;height:18px"></i>
+  </button>
+
+  <!-- Configuración de entorno: primero que todo, define API_BASE_URL/USD_ARS_RATE -->
+  <script src="src/config.js"></script>
+
+  <!-- Datos y lógica de negocio (sin dependencias entre sí más que el orden mostrado) -->
+  <script src="src/data/products.js"></script>
+  <script src="src/lib/compatibilityEngine.js"></script>
+  <script src="src/utils/format.js"></script>
+  <script src="src/utils/calculatorHelpers.js"></script>
+
+  <!-- Vistas -->
+  <script src="src/views/nav.js"></script>
+  <script src="src/views/footer.js"></script>
+  <script src="src/views/home.js"></script>
+  <script src="src/views/store.js"></script>
+  <script src="src/views/productDetail.js"></script>
+  <script src="src/views/configurator.js"></script>
+  <script src="src/views/calculators/consumption.js"></script>
+  <script src="src/views/calculators/cost.js"></script>
+  <script src="src/views/calculators/savings.js"></script>
+  <script src="src/views/calculators/orientation.js"></script>
+  <script src="src/views/calculators/index.js"></script>
+  <script src="src/views/cart.js"></script>
+  <script src="src/views/infoContact.js"></script>
+
+  <!-- Cliente de la API -->
+  <script src="src/lib/api.js"></script>
+
+  <!-- App: estado, router y arranque (va último: depende de todo lo anterior) -->
+  <script src="src/app.js"></script>
+</body>
+</html>

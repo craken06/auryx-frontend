@@ -1,0 +1,242 @@
+/* =========================================================================
+   AURYX — Design tokens
+   Fondo negro absoluto, amarillo como único acento de marca, blanco para
+   texto. Verde/ámbar/rojo se reservan exclusivamente para los estados del
+   motor de compatibilidad (información funcional, no decorativa).
+   ========================================================================= */
+
+:root {
+  --bg: #000000;
+  --surface: #121212;
+  --surface-2: #1a1a1a;
+  --line: #2c2c2c;
+  --line-yellow: rgba(245, 197, 24, 0.35);
+  --yellow: #f5c518;
+  --yellow-deep: #d9ac0f;
+  --white: #ffffff;
+  --text-mid: #c9c9c9;
+  --text-dim: #8a8a8a;
+  --ok: #4fae7a;
+  --ok-bg: rgba(79, 174, 122, 0.14);
+  --warn: #e8853d;
+  --warn-bg: rgba(232, 133, 61, 0.14);
+  --bad: #e05b54;
+  --bad-bg: rgba(224, 91, 84, 0.14);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  min-height: 100%;
+}
+
+.sf-display { font-family: 'Space Grotesk', sans-serif; }
+.sf-mono { font-family: 'IBM Plex Mono', monospace; }
+
+.sf-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.sf-card:hover { border-color: var(--line-yellow); }
+
+.sf-cellgrid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.sf-btn-primary {
+  background: var(--yellow);
+  color: #000;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.sf-btn-primary:hover:not(:disabled) { background: var(--yellow-deep); }
+.sf-btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+
+.sf-btn-outline {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--white);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.sf-btn-outline:hover { border-color: var(--yellow); background: rgba(245, 197, 24, .06); }
+.sf-btn-outline:disabled { opacity: .3; cursor: not-allowed; }
+
+.sf-badge-ok { background: var(--ok-bg); color: var(--ok); }
+.sf-badge-warn { background: var(--warn-bg); color: var(--warn); }
+.sf-badge-bad { background: var(--bad-bg); color: var(--bad); }
+
+.sf-nav-link { color: var(--text-mid); transition: color .15s ease; position: relative; background: none; border: none; cursor: pointer; font: inherit; }
+.sf-nav-link:hover { color: var(--white); }
+.sf-nav-link.active { color: var(--yellow); }
+.sf-nav-link.active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -14px;
+  height: 2px; background: var(--yellow);
+}
+
+.sf-step-dot {
+  width: 22px; height: 22px; border: 1.5px solid var(--line); border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--text-dim); flex-shrink: 0;
+}
+.sf-step-dot.done { background: var(--ok); border-color: var(--ok); color: #06150d; }
+.sf-step-dot.current { border-color: var(--yellow); color: var(--yellow); }
+
+.sf-input {
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--white);
+  padding: 8px 10px; font-size: 14px; font-family: inherit;
+}
+.sf-input::placeholder { color: var(--text-dim); }
+.sf-input:focus { outline: 2px solid var(--yellow); outline-offset: 1px; }
+
+.sf-select-card {
+  border: 1.5px solid var(--line); background: var(--surface); cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  display: block; width: 100%; text-align: left; color: var(--white); font: inherit;
+}
+.sf-select-card:hover { border-color: var(--yellow-deep); }
+.sf-select-card.selected { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow); }
+.sf-select-card.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+.sf-img-placeholder {
+  border: 1.5px dashed var(--line);
+  color: var(--text-dim);
+  background: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.03) 8px, rgba(255,255,255,0.03) 16px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+}
+
+.sf-explainer {
+  background: var(--surface-2);
+  border-left: 3px solid var(--yellow);
+  color: var(--text-mid);
+  display: flex; gap: 12px;
+}
+
+.sf-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+.sf-scrollbar::-webkit-scrollbar-thumb { background: var(--line); }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* =========================================================================
+   MEJORAS: dropdowns de navegación (carrito / mega menú de productos)
+   ========================================================================= */
+.sf-dropdown-wrap { position: relative; }
+.sf-dropdown {
+  position: absolute; top: 100%; right: 0; margin-top: 10px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 2px; box-shadow: 0 12px 28px rgba(0,0,0,.5);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .15s ease, transform .15s ease, visibility .15s;
+  z-index: 50;
+}
+.sf-dropdown-wrap:hover .sf-dropdown,
+.sf-dropdown-wrap:focus-within .sf-dropdown {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+/* puente invisible para que el mouse no "pierda" el hover al bajar al dropdown */
+.sf-dropdown-wrap::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px;
+}
+.sf-dropdown.sf-mega { left: 0; right: auto; min-width: 260px; }
+.sf-cart-dropdown { width: 320px; max-width: 85vw; }
+
+/* =========================================================================
+   MEJORAS: botón volver arriba
+   ========================================================================= */
+.sf-back-to-top {
+  position: fixed; right: 20px; bottom: 24px; z-index: 60;
+  width: 42px; height: 42px; border-radius: 999px;
+  background: var(--yellow); color: #000; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transform: translateY(8px);
+  transition: opacity .2s ease, transform .2s ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
+}
+.sf-back-to-top.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.sf-back-to-top:hover { background: var(--yellow-deep); }
+
+/* =========================================================================
+   MEJORAS: representación del ángulo del panel — base común
+   ========================================================================= */
+.sf-3d-scene {
+  height: 220px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: 1px solid var(--line);
+  margin-bottom: 8px; position: relative; overflow: hidden;
+}
+.sf-3d-ground {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: linear-gradient(rgba(245,197,24,.05), transparent);
+  border-top: 1px solid var(--line);
+}
+.sf-3d-panel-face {
+  width: 100%; height: 100%;
+  background: linear-gradient(160deg, #1a2f45, #0d1a28);
+  border: 2px solid var(--yellow-deep);
+  display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 2px; padding: 4px;
+  box-shadow: 0 20px 30px rgba(0,0,0,.5);
+}
+.sf-3d-panel-face > .sf-3d-cell { background: rgba(245,197,24,.12); border: 1px solid rgba(245,197,24,.25); }
+
+/* =========================================================================
+   MEJORAS: representación del ángulo del panel — vista isométrica
+   ========================================================================= */
+.sf-3d-iso-stage {
+  height: 100%; display: flex; align-items: center; justify-content: center;
+  perspective: 700px;
+}
+.sf-3d-iso-world {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(55deg) rotateZ(40deg);
+}
+.sf-3d-iso-ground {
+  width: 170px; height: 170px;
+  background: linear-gradient(135deg, rgba(245, 197, 24, .10), transparent);
+  border: 1px solid var(--line);
+}
+.sf-3d-iso-panel {
+  position: absolute; left: 12px; bottom: 0;
+  width: 140px; height: 90px;
+  transform-style: preserve-3d;
+  transform-origin: bottom center;
+  transition: transform .2s ease;
+}
+
+.sf-slider {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+  background: var(--line); border-radius: 999px; outline: none; cursor: pointer;
+}
+.sf-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+  border-radius: 999px; background: var(--yellow); cursor: pointer;
+  border: 2px solid #000;
+}
+.sf-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 999px; background: var(--yellow);
+  cursor: pointer; border: 2px solid #000;
+}
+
+/* =========================================================================
+   MEJORAS: filtros y orden de la tienda
+   ========================================================================= */
+.sf-filter-bar { background: var(--bg); }
+.sf-filter-group summary { cursor: pointer; user-select: none; }
+.sf-filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); padding: 4px 10px; font-size: 12px; cursor: pointer;
+  background: var(--surface);
+}
+.sf-filter-chip.active { border-color: var(--yellow); color: var(--yellow); background: rgba(245,197,24,.08); }
