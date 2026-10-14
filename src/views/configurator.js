@@ -91,7 +91,35 @@ function emptyStepHTML(text) {
   return `<div class="empty">${icon("package")}<h3>Sin opciones disponibles</h3><p>${text}</p></div>`;
 }
 
+/* Las dos formas de diseñar: el dimensionador (automático o libre, con catálogo de ejemplo)
+   y el armado paso a paso con el catálogo real. Son links: cada una tiene su URL. */
+function cfgToolSwitchHTML(active) {
+  const tools = [
+    { id: "sizer", href: "#configurator", icon: "magic-wand", label: "Dimensionador", hint: "Te sugerimos el sistema a partir de tu consumo" },
+    { id: "steps", href: "#configurator/paso-a-paso", icon: "list-numbers", label: "Paso a paso", hint: "Elegís cada componente del catálogo" },
+  ];
+  return `<nav class="tool-switch" aria-label="Forma de diseñar">
+    ${tools.map((t) => `<a href="${t.href}" class="tool-switch-link"${t.id === active ? ' aria-current="page"' : ""}>
+      ${icon(t.icon)}<span><strong>${t.label}</strong><small>${t.hint}</small></span>
+    </a>`).join("")}
+  </nav>`;
+}
+
+function renderSizerPage(state) {
+  return `
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">Diseñá tu sistema</h1>
+      <p class="page-lead">Contanos tu consumo y qué buscás. Te sugerimos paneles, inversor y batería, con cantidades y un precio de referencia.</p>
+    </div>
+    ${cfgToolSwitchHTML("sizer")}
+    <div class="sizer-shell" id="sizer-root">${renderSizer(state.sizer, state.currency)}</div>
+    <p class="xsmall dim sizer-foot">Catálogo, especificaciones y precios de ejemplo. El proyecto final lo confirmamos con vos antes de la compra.</p>
+  </div>`;
+}
+
 function renderConfigurator(state) {
+  if (state.cfgTool !== "steps") return renderSizerPage(state);
   const cfg = state.configurator;
   const cur = state.currency;
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
@@ -271,6 +299,7 @@ function renderConfigurator(state) {
       <h1 class="page-title">Diseñá tu sistema</h1>
       <p class="page-lead">Elegí cada componente. Verificamos la compatibilidad eléctrica entre ellos en cada paso.</p>
     </div>
+    ${cfgToolSwitchHTML("steps")}
     ${stepsNavHTML(steps, cfg.step)}
     <div class="cfg-layout">
       <section aria-labelledby="cfg-step-title">

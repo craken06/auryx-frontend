@@ -51,7 +51,7 @@ function renderProductDetail(state) {
             ${icon("shopping-cart-simple")} ${soldOut ? "Sin stock" : "Agregar al carrito"}
           </button>
         </div>
-        ${CONFIGURABLE_CATEGORIES.includes(p.category) ? `<p class="small muted">¿No sabés si es compatible con tu equipo? <a href="#configurator" class="link-arrow">Diseñá tu sistema ${icon("arrow-right")}</a></p>` : ""}
+        ${CONFIGURABLE_CATEGORIES.includes(p.category) ? `<p class="small muted">¿No sabés si es compatible con tu equipo? <a href="#configurator/paso-a-paso" class="link-arrow">Diseñá tu sistema ${icon("arrow-right")}</a></p>` : ""}
       </div>
     </div>
 

@@ -391,8 +391,6 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .system-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 8px; font-size: 0.875rem; }
 
 /* dimensionador FV+BESS */
-.sizer { padding-block: 72px; border-top: 1px solid var(--line); scroll-margin-top: var(--header-h); }
-.sizer-head { display: grid; margin-bottom: 32px; max-width: 64ch; }
 .sizer-shell {
   border-radius: var(--r-surface); border: 1px solid var(--line); background: var(--surface);
   background-image: radial-gradient(90% 60% at 0% 0%, var(--accent-soft), transparent 55%);
@@ -400,6 +398,22 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 }
 @media (min-width: 768px) { .sizer-shell { padding: 28px; } }
 .sizer-foot { margin-top: 14px; }
+
+.tool-switch { display: grid; gap: 8px; margin-bottom: 28px; }
+@media (min-width: 640px) { .tool-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 720px; } }
+.tool-switch-link {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+  border-radius: var(--r-control); border: 1px solid var(--line-strong); background: var(--bg-raised);
+  transition: border-color 0.18s var(--ease), background-color 0.18s var(--ease);
+}
+.tool-switch-link .ph { font-size: 22px; color: var(--text-dim); margin-top: 1px; }
+.tool-switch-link span { display: grid; gap: 2px; }
+.tool-switch-link strong { font-weight: 650; }
+.tool-switch-link small { font-size: 0.8125rem; color: var(--text-dim); }
+.tool-switch-link:hover { border-color: var(--text-dim); }
+.tool-switch-link[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); }
+.tool-switch-link[aria-current="page"] .ph { color: var(--accent-ink); }
+@media (prefers-reduced-motion: reduce) { .tool-switch-link { transition: none; } }
 
 .sz-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .sz-tabs, .sz-modes { display: inline-flex; gap: 4px; padding: 4px; border-radius: calc(var(--r-control) + 4px); background: var(--bg-raised); border: 1px solid var(--line); max-width: 100%; }

@@ -69,6 +69,7 @@ const App = {
     configurator: defaultConfigurator(),
     homeDemo: { panelId: "panel-jk-575", qty: 6 },
     sizer: defaultSizer(),
+    cfgTool: "sizer", // "sizer" (dimensionador) o "steps" (paso a paso)
     calcSection: null,
     calc: {
       consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
@@ -614,12 +615,14 @@ function applyRouteFromHash() {
     s.selectedProductId = param;
   } else if (view === "configurator") {
     s.view = "configurator";
+    s.cfgTool = param === "paso-a-paso" ? "steps" : "sizer";
     const tipo = params.get("tipo");
     if (tipo && SYSTEM_TYPES.some((t) => t.id === tipo)) {
+      s.cfgTool = "steps";
       s.configurator = defaultConfigurator();
       s.configurator.systemTypeId = tipo;
       s.configurator.step = 1;
-      history.replaceState(null, "", "#configurator"); // el preseleccionado no queda pegado a la URL
+      history.replaceState(null, "", "#configurator/paso-a-paso"); // el preseleccionado no queda pegado a la URL
     }
   } else if (view === "calculators") {
     s.view = "calculators";

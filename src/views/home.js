@@ -145,17 +145,6 @@ function renderHome(state) {
     </div>
   </section>
 
-  <section class="sizer" id="dimensionador" aria-labelledby="sizer-title">
-    <div class="wrap">
-      <div class="sizer-head">
-        <h2 id="sizer-title" class="section-title">Dimensioná tu sistema en un minuto.</h2>
-        <p class="section-lead">Contanos tu consumo y qué buscás. Te sugerimos paneles, inversor y batería, con cantidades y un precio de referencia.</p>
-      </div>
-      <div class="sizer-shell" id="sizer-root">${renderSizer(state.sizer, state.currency)}</div>
-      <p class="xsmall dim sizer-foot">Catálogo, especificaciones y precios de ejemplo. El proyecto final lo confirmamos con vos antes de la compra.</p>
-    </div>
-  </section>
-
   <section class="compat" aria-labelledby="compat-title">
     <div class="wrap">
       <div class="compat-head">
