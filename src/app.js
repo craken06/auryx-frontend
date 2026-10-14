@@ -68,6 +68,7 @@ const App = {
     productDetailQty: 1,
     configurator: defaultConfigurator(),
     homeDemo: { panelId: "panel-jk-575", qty: 6 },
+    sizer: defaultSizer(),
     calcSection: null,
     calc: {
       consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
@@ -341,6 +342,31 @@ const App = {
     }
   },
 
+  /* ---------------------------------------------------------------- dimensionador de la home */
+  /* Re-render del dimensionador completo (cambio de pestaña, objetivo o equipo)
+     devolviendo el foco al control que lo disparó. */
+  renderSizer() {
+    const root = document.getElementById("sizer-root");
+    if (!root) return;
+    const active = document.activeElement;
+    const fid = active && root.contains(active) ? (active.dataset.fid || active.id) : null;
+    root.innerHTML = renderSizer(this.state.sizer, this.state.currency);
+    if (!fid) return;
+    const el = root.querySelector(`[data-fid="${CSS.escape(fid)}"]`) || document.getElementById(fid);
+    if (el && !el.disabled) el.focus({ preventScroll: true });
+  },
+  /* Solo el resultado: mientras se tipea en un número, el formulario no se toca. */
+  renderSizerOutput() {
+    const out = document.getElementById("sizer-out");
+    if (out) out.innerHTML = sizerOutputHTML(this.state.sizer, this.state.currency);
+  },
+  sizerSet(scope, field, value) {
+    const sz = this.state.sizer;
+    sz[scope][field] = value;
+    if (scope === "custom") sizerNormalizeCustom(sz.custom);
+    if (scope === "free") sizerNormalizeFree(sz.free);
+  },
+
   /* ---------------------------------------------------------------- contacto */
   submitContact() {
     const s = this.state;
@@ -447,6 +473,19 @@ const ACTIONS = {
     }, () => { if (status) status.textContent = " No pudimos obtener tu ubicación: ingresá la latitud a mano."; });
   },
 
+  "sizer-tab": (d) => { App.state.sizer.tab = d.tab; App.renderSizer(); },
+  "sizer-mode": (d) => { App.state.sizer.mode = d.mode; App.renderSizer(); },
+  "sizer-pick": (d) => { App.sizerSet(d.scope, d.field, d.value); App.renderSizer(); },
+  "sizer-to-free": () => {
+    const sz = App.state.sizer;
+    const r = sizerQuickResult(sz.quick);
+    if (r.empty) return;
+    sz.free = { ...r.free };
+    sz.tab = "free";
+    App.renderSizer();
+    document.querySelector('[data-fid="sz-tab-free"]')?.focus({ preventScroll: true });
+  },
+
   "demo-step": (d) => {
     const demo = App.state.homeDemo;
     demo.qty = Math.max(1, Math.min(14, demo.qty + Number(d.delta)));
@@ -484,6 +523,11 @@ const INPUT_BINDINGS = {
   },
   "orient-angle": (el) => App.calcOrientationAngleEdit(el.value),
   "contact": (el) => { App.state.contactDraft[el.dataset.field] = el.value; },
+  "sizer": (el) => {
+    if (el.tagName === "SELECT") return; // los selects se resuelven en "change"
+    App.state.sizer[el.dataset.scope][el.dataset.field] = el.value;
+    App.renderSizerOutput();
+  },
 };
 
 /* Change: cuando el valor queda confirmado (selects, o al salir de un número). */
@@ -495,6 +539,11 @@ const CHANGE_BINDINGS = {
   "cfg-battery-qty": () => App.render(),
   "detail-qty": () => App.render(),
   "demo-panel": (el) => { App.state.homeDemo.panelId = el.value; App.renderHomeDemo(); },
+  "sizer": (el) => {
+    if (el.tagName !== "SELECT") return;
+    App.sizerSet(el.dataset.scope, el.dataset.field, el.value);
+    App.renderSizer();
+  },
 };
 
 document.addEventListener("click", (e) => {
@@ -523,6 +572,7 @@ document.addEventListener("toggle", (e) => {
 
 document.addEventListener("submit", (e) => {
   if (e.target.dataset.form === "contact") { e.preventDefault(); App.submitContact(); }
+  if (e.target.dataset.form === "sizer") e.preventDefault();
 });
 
 document.addEventListener("keydown", (e) => {
