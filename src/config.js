@@ -12,14 +12,14 @@
 // URL base del backend (compragamer-api). Cambiar acá si:
 // - corre en otro puerto en tu máquina
 // - lo desplegás en un servidor/dominio real (ej. "https://api.auryx.com")
-const API_BASE_URL = "https://noncerebral-betsey-somniloquous.ngrok-free.dev";
+const API_BASE_URL = "https://f1b8-186-18-242-43.ngrok-free.app";
 
 // Tasa de cambio de referencia, SOLO para mostrar el precio en la moneda
 // que un producto no tiene cargada en la base (ej. se cargó en ARS y el
 // usuario quiere ver USD). Este valor es el de respaldo: al iniciar, el sitio
 // le pide la cotización vigente a la API (GET /exchange-rate) y, si responde,
 // la reemplaza (ver loadExchangeRate en lib/api.js).
-let USD_ARS_RATE = 1350;
+let USD_ARS_RATE = 1500;
 
 // WhatsApp de contacto (formato internacional, solo dígitos: 54 9 + código de área + número).
 // Es el canal por el que llegan las cotizaciones y las consultas mientras no haya backend de pedidos.
