@@ -67,7 +67,6 @@ const App = {
     selectedProductId: null,
     productDetailQty: 1,
     configurator: defaultConfigurator(),
-    homeDemo: { panelId: "panel-jk-575", qty: 6 },
     sizer: defaultSizer(),
     cfgTool: "sizer", // "sizer" (dimensionador) o "steps" (paso a paso)
     calcSection: null,
@@ -328,22 +327,7 @@ const App = {
     if (svg) svg.setAttribute("aria-label", `Vista lateral del panel inclinado ${n} grados`);
   },
 
-  /* ---------------------------------------------------------------- demo de la home */
-  renderHomeDemo() {
-    const root = document.getElementById("home-demo");
-    if (!root) return;
-    const active = document.activeElement;
-    const fid = active && active.dataset ? active.dataset.fid : null;
-    root.innerHTML = renderHomeDemo(this.state.homeDemo);
-    if (fid) {
-      const el = root.querySelector(`[data-fid="${CSS.escape(fid)}"]`);
-      // si el botón quedó deshabilitado (llegó al límite), el foco pasa al opuesto
-      if (el && !el.disabled) el.focus({ preventScroll: true });
-      else root.querySelector(".stepper .icon-btn:not(:disabled)")?.focus({ preventScroll: true });
-    }
-  },
-
-  /* ---------------------------------------------------------------- dimensionador de la home */
+  /* ---------------------------------------------------------------- dimensionador */
   /* Re-render del dimensionador completo (cambio de pestaña, objetivo o equipo)
      devolviendo el foco al control que lo disparó. */
   renderSizer() {
@@ -486,12 +470,6 @@ const ACTIONS = {
     App.renderSizer();
     document.querySelector('[data-fid="sz-tab-free"]')?.focus({ preventScroll: true });
   },
-
-  "demo-step": (d) => {
-    const demo = App.state.homeDemo;
-    demo.qty = Math.max(1, Math.min(14, demo.qty + Number(d.delta)));
-    App.renderHomeDemo();
-  },
 };
 
 /* Inputs: actualización en vivo sin re-render (no se pierde el cursor). */
@@ -539,7 +517,6 @@ const CHANGE_BINDINGS = {
   "cfg-panel-qty": () => App.render(),
   "cfg-battery-qty": () => App.render(),
   "detail-qty": () => App.render(),
-  "demo-panel": (el) => { App.state.homeDemo.panelId = el.value; App.renderHomeDemo(); },
   "sizer": (el) => {
     if (el.tagName !== "SELECT") return;
     App.sizerSet(el.dataset.scope, el.dataset.field, el.value);
