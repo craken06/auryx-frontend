@@ -415,7 +415,6 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .sz-grid { display: grid; gap: 24px; }
 @media (min-width: 960px) {
   .sz-grid { grid-template-columns: 1.15fr 1fr; gap: 32px; align-items: start; }
-  .sz-out { position: sticky; top: calc(var(--header-h) + 24px); }
 }
 .sz-inputs { display: grid; gap: 20px; align-content: start; min-width: 0; }
 .sz-row { display: grid; gap: 16px; }
@@ -472,6 +471,31 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .sz-checks .is-warn .ph-fill { color: var(--warn); }
 .sz-checks .is-bad { color: var(--text); }
 .sz-checks .is-bad .ph-fill { color: var(--bad); }
+
+.sz-config, .sz-verify { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.sz-config h4, .sz-verify h4 { font-size: 0.875rem; font-weight: 600; color: var(--text-dim); }
+.sz-config-block { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-control); background: var(--surface); border: 1px solid var(--line); }
+.sz-config-block h5 { margin: 0; font-size: 0.9375rem; font-weight: 700; }
+.sz-config-block p { font-size: 0.875rem; color: var(--text-mid); }
+.sz-config-block p strong { color: var(--text); font-weight: 600; }
+.sz-mppts { display: grid; gap: 8px; }
+.sz-mppts li { display: grid; grid-template-columns: 64px 1fr; gap: 4px 10px; align-items: center; }
+.sz-mppt-name { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--text-dim); }
+.sz-mppt-strings { display: grid; gap: 6px; min-width: 0; }
+.sz-mppt-meta { grid-column: 2; font-size: 0.75rem; color: var(--text-dim); }
+.sz-mppt-meta:empty { display: none; }
+/* paneles de un string: celdas unidas por una línea (conexión en serie) */
+/* cada string ocupa una sola fila: si no entra, los paneles se angostan */
+.sz-cells { display: flex; flex-wrap: nowrap; gap: 3px; min-width: 0; }
+.sz-cell { flex: 0 1 14px; min-width: 3px; height: 20px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--accent); }
+.sz-mod { flex: 0 0 22px; width: 22px; height: 16px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--line-strong); }
+.sz-cells-more { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--accent-ink); }
+.sz-bank { display: flex; align-items: center; gap: 10px; }
+.sz-bank .sz-cells { gap: 3px; }
+.sz-bank:not(.is-series) .sz-cells { flex-direction: column; flex-wrap: nowrap; }
+.sz-elec { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
+.sz-elec dt { font-size: 0.75rem; color: var(--text-dim); }
+.sz-elec dd { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.875rem; font-weight: 600; }
 
 .sz-bom { padding-top: 16px; border-top: 1px solid var(--line); }
 .sz-bom h4 { font-size: 0.875rem; font-weight: 600; color: var(--text-dim); margin-bottom: 10px; }

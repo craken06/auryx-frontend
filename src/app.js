@@ -518,7 +518,9 @@ const CHANGE_BINDINGS = {
   "cfg-battery-qty": () => App.render(),
   "detail-qty": () => App.render(),
   "sizer": (el) => {
-    if (el.tagName !== "SELECT") return;
+    // las temperaturas cambian el rango de paneles en serie que muestra el formulario libre
+    const refreshesForm = el.dataset.scope === "free" && (el.dataset.field === "tmin" || el.dataset.field === "tmax");
+    if (el.tagName !== "SELECT" && !refreshesForm) return;
     App.sizerSet(el.dataset.scope, el.dataset.field, el.value);
     App.renderSizer();
   },
