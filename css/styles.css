@@ -398,19 +398,17 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 @media (prefers-reduced-motion: reduce) { .tool-switch-link { transition: none; } }
 
 .sz-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.sz-tabs, .sz-modes { display: inline-flex; gap: 4px; padding: 4px; border-radius: calc(var(--r-control) + 4px); background: var(--bg-raised); border: 1px solid var(--line); max-width: 100%; }
-.sz-tab, .sz-mode {
+.sz-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: calc(var(--r-control) + 4px); background: var(--bg-raised); border: 1px solid var(--line); max-width: 100%; }
+.sz-tab {
   display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px;
   border: 0; border-radius: var(--r-control); background: transparent; color: var(--text-mid);
   font-weight: 600; font-size: 0.9375rem; cursor: pointer; white-space: nowrap;
   transition: background-color 0.18s var(--ease), color 0.18s var(--ease), transform 0.12s var(--ease);
 }
 .sz-tab .ph { font-size: 18px; }
-.sz-tab:hover, .sz-mode:hover { color: var(--text); }
+.sz-tab:hover { color: var(--text); }
 .sz-tab[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-.sz-mode { min-height: 36px; padding: 6px 14px; font-size: 0.875rem; }
-.sz-mode[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
-.sz-tab:active, .sz-mode:active, .sz-seg-btn:active { transform: scale(0.98); }
+.sz-tab:active, .sz-seg-btn:active { transform: scale(0.98); }
 
 .sz-grid { display: grid; gap: 24px; }
 @media (min-width: 960px) {
@@ -520,7 +518,7 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .sz-empty { display: grid; justify-items: center; gap: 10px; padding: 40px 16px; text-align: center; color: var(--text-mid); }
 .sz-empty .ph { font-size: 36px; color: var(--accent-ink); }
 @media (prefers-reduced-motion: reduce) {
-  .sz-tab, .sz-mode, .sz-seg-btn { transition: none; }
+  .sz-tab, .sz-seg-btn { transition: none; }
 }
 
 /* categorías: carrusel con scroll-snap */

@@ -349,7 +349,6 @@ const App = {
     const sz = this.state.sizer;
     sz[scope][field] = value;
     if (scope === "custom") sizerNormalizeCustom(sz.custom);
-    if (scope === "free") sizerNormalizeFree(sz.free);
   },
 
   /* ---------------------------------------------------------------- contacto */
@@ -458,18 +457,8 @@ const ACTIONS = {
     }, () => { if (status) status.textContent = " No pudimos obtener tu ubicación: ingresá la latitud a mano."; });
   },
 
-  "sizer-tab": (d) => { App.state.sizer.tab = d.tab; App.renderSizer(); },
   "sizer-mode": (d) => { App.state.sizer.mode = d.mode; App.renderSizer(); },
   "sizer-pick": (d) => { App.sizerSet(d.scope, d.field, d.value); App.renderSizer(); },
-  "sizer-to-free": () => {
-    const sz = App.state.sizer;
-    const r = sizerQuickResult(sz.quick);
-    if (r.empty) return;
-    sz.free = { ...r.free };
-    sz.tab = "free";
-    App.renderSizer();
-    document.querySelector('[data-fid="sz-tab-free"]')?.focus({ preventScroll: true });
-  },
 };
 
 /* Inputs: actualización en vivo sin re-render (no se pierde el cursor). */
@@ -518,9 +507,9 @@ const CHANGE_BINDINGS = {
   "cfg-battery-qty": () => App.render(),
   "detail-qty": () => App.render(),
   "sizer": (el) => {
-    // las temperaturas cambian el rango de paneles en serie que muestra el formulario libre
-    const refreshesForm = el.dataset.scope === "free" && (el.dataset.field === "tmin" || el.dataset.field === "tmax");
-    if (el.tagName !== "SELECT" && !refreshesForm) return;
+    // en el personalizado, consumo, superficie, etc. cambian el inversor automático y sus baterías:
+    // al confirmar el valor se redibuja el formulario completo
+    if (el.tagName !== "SELECT" && el.dataset.scope !== "custom") return;
     App.sizerSet(el.dataset.scope, el.dataset.field, el.value);
     App.renderSizer();
   },

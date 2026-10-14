@@ -1,4 +1,4 @@
-/* AURYX: dimensionador FV+BESS de "Diseñá tu sistema" (automático rápido, automático personalizado y libre).
+/* AURYX: dimensionador FV+BESS de "Diseñá tu sistema" (automático: rápido o personalizado).
    Calcula y muestra la configuración eléctrica: strings, serie/paralelo por MPPT y armado del banco de
    baterías, y verifica la compatibilidad entre cada par de componentes.
    Catálogo, especificaciones y precios de ejemplo, en USD. Depende de: utils/format.js. */
@@ -67,14 +67,12 @@ const SIZER_CELL_RISE = 25;    // °C que la celda supera al ambiente a pleno so
 
 function defaultSizer() {
   return {
-    tab: "auto",
     mode: "quick",
     quick: { cons: "450", hsp: "4.4", goal: "red", cover: "70", hours: "4", days: "2" },
     custom: {
       cons: "650", hsp: "4.4", goal: "resp", cover: "80", hours: "4", days: "2", phase: "mono", crit: "2.5",
-      area: "40", est: "e1", ori: "1", tmin: "-5", tmax: "40", pan: "p2", inv: "i4", bat: "b2",
+      area: "40", est: "e1", ori: "1", tmin: "-5", tmax: "40", pan: "p2", inv: "auto", bat: "b2",
     },
-    free: { inv: "i4", pan: "p2", ps: "5", s: "2", bat: "b2", nb: "2", est: "e1", tmin: "-5", tmax: "40" },
   };
 }
 
@@ -97,16 +95,9 @@ const sizerBatteriesFor = (inv) => (inv && inv.bat ? SIZER_BATTERIES.filter((b) 
 /* Deja inversor y batería del modo personalizado dentro de las opciones válidas. */
 function sizerNormalizeCustom(cu) {
   const invs = sizerInvertersFor(cu.goal, cu.phase);
-  if (!invs.some((i) => i.id === cu.inv)) cu.inv = invs[0] ? invs[0].id : null;
-  const bats = sizerBatteriesFor(sizerById(SIZER_INVERTERS, cu.inv));
+  if (cu.inv !== "auto" && !invs.some((i) => i.id === cu.inv)) cu.inv = "auto";
+  const bats = sizerBatteriesFor(sizerCustomSizing(cu).inv);
   if (!bats.some((b) => b.id === cu.bat)) cu.bat = bats[0] ? bats[0].id : null;
-}
-
-/* En modo libre, una batería que no coincide con el bus del inversor se descarta. */
-function sizerNormalizeFree(fr) {
-  const inv = sizerById(SIZER_INVERTERS, fr.inv);
-  const bat = sizerById(SIZER_BATTERIES, fr.bat);
-  if (bat && (!inv || bat.bus !== inv.bat)) fr.bat = "";
 }
 
 function sizerGoalFraction(goal, cover, backupFraction) {
@@ -152,53 +143,102 @@ function sizerAllocate(s, pan, inv) {
   return { alloc, overflow: left };
 }
 
-/* Elige strings iguales para llegar a `target` paneles en un inversor: la menor cantidad de strings que
-   entre en la ventana de tensión, sin pasar `maxKw` de potencia FV si se indica. */
-function sizerArrayPlan(target, pan, inv, env, maxKw) {
-  const { minPS, maxPS } = sizerSeriesLimits(pan, inv, env);
-  const safeSlots = inv.mppts.reduce((n, m) => n + Math.min(m.strings, Math.floor(m.isc / pan.isc)), 0);
-  const slots = Math.max(1, safeSlots || inv.mppts.length);
-  let s = 1;
-  let ps = Math.max(minPS, Math.ceil(target / s));
-  while (ps > maxPS && s < slots) { s++; ps = Math.max(minPS, Math.ceil(target / s)); }
-  const limited = ps > maxPS;
-  if (limited) ps = maxPS;
-  while (maxKw && s * ps * pan.w > maxKw * 1000 && ps - 1 >= minPS) ps--;
-  return { ps, s, n: s * ps, limited, ...sizerAllocate(s, pan, inv) };
+/* Largo de string de cada MPPT para repartir `goal` paneles en los strings ya asignados (`alloc`).
+   Cada MPPT es independiente, así que puede tener su propio largo; los strings en paralelo dentro de un
+   mismo MPPT llevan el mismo. Se parte del largo parejo y se suma un panel por MPPT mientras alcance. */
+function sizerStringLengths(goal, alloc, minPS, maxPS) {
+  const s = alloc.reduce((n, k) => n + k, 0);
+  const base = Math.max(minPS, Math.floor(goal / s));
+  const lens = alloc.map((k) => (k ? base : 0));
+  let rem = goal - base * s;
+  alloc.map((k, i) => ({ k, i })).filter((x) => x.k > 0).sort((x, y) => x.k - y.k).forEach(({ k, i }) => {
+    if (rem >= k && lens[i] + 1 <= maxPS) { lens[i]++; rem -= k; }
+  });
+  return lens;
 }
 
+const sizerPlanPanels = (alloc, lens) => alloc.reduce((n, k, i) => n + k * lens[i], 0);
+
+function sizerPlanShape(alloc, lens, extra) {
+  const used = lens.filter((L, i) => alloc[i] > 0);
+  return { ...extra, alloc, lens, s: alloc.reduce((n, k) => n + k, 0), n: sizerPlanPanels(alloc, lens),
+    psMin: Math.min(...used), psMax: Math.max(...used), overflow: 0 };
+}
+
+/* Arma los strings de un inversor para llegar a `target` paneles sin pasar `maxPanels` (potencia FV máxima
+   o lo que entra en el techo). Criterio, en orden: que cada string entre en la ventana de tensión; quedar
+   lo más cerca posible del objetivo; usar todos los MPPT antes de dejar alguno libre; menos strings. */
+function sizerArrayPlan(target, pan, inv, env, maxPanels = Infinity) {
+  const { minPS, maxPS } = sizerSeriesLimits(pan, inv, env);
+  const caps = inv.mppts.map((m) => Math.min(m.strings, Math.floor(m.isc / pan.isc)));
+  const usable = caps.filter((c) => c > 0).length || inv.mppts.length;   // MPPT que aceptan al menos un string
+  const slots = caps.reduce((n, c) => n + c, 0) || inv.mppts.length;
+  const pvCap = Math.floor((inv.pvMax * 1000) / pan.w);
+  const cap = Math.min(pvCap, maxPanels);
+  if (minPS > maxPS) {
+    // con estas temperaturas ninguna cantidad en serie entra en la ventana del inversor
+    const { alloc } = sizerAllocate(1, pan, inv);
+    return sizerPlanShape(alloc, alloc.map((k) => (k ? maxPS : 0)), { limited: true, impossible: true });
+  }
+  const goal = Math.max(minPS, Math.min(target, cap));   // como mínimo, un string que arranque el MPPT
+  let best = null;
+  for (let s = 1; s <= slots; s++) {
+    if (s * minPS > Math.max(goal, minPS)) break;          // más strings ya no entran ni con el largo mínimo
+    const { alloc } = sizerAllocate(s, pan, inv);
+    const lens = sizerStringLengths(goal, alloc, minPS, maxPS);
+    if (lens.some((L, i) => alloc[i] && L > maxPS)) continue;
+    const n = sizerPlanPanels(alloc, lens);
+    const cand = { s, alloc, lens, diff: Math.abs(goal - n), unused: Math.max(0, usable - alloc.filter((k) => k > 0).length) };
+    if (!best || cand.diff < best.diff || (cand.diff === best.diff && (cand.unused < best.unused || (cand.unused === best.unused && s < best.s)))) best = cand;
+  }
+  if (best && best.diff >= minPS) best = null;              // no llega al objetivo: faltan entradas o tensión
+  if (!best) {
+    const { alloc } = sizerAllocate(slots, pan, inv);
+    let lens = alloc.map((k) => (k ? maxPS : 0));
+    // con todas las entradas al máximo de tensión, sin pasar la potencia FV
+    while (sizerPlanPanels(alloc, lens) > cap && lens.some((L) => L > minPS)) {
+      const i = lens.indexOf(Math.max(...lens));
+      lens[i]--;
+    }
+    return sizerPlanShape(alloc, lens, { limited: true, impossible: false });
+  }
+  return sizerPlanShape(best.alloc, best.lens, { limited: false, impossible: false });
+}
+
+/* "de 5" o "de 4 y 5" paneles. */
+const sizerLensText = (plan) => (plan.psMin === plan.psMax ? `de ${plan.psMax}` : `de ${plan.psMin} y ${plan.psMax}`);
+
 function sizerWiringText(plan) {
-  const extra = plan.overflow ? ` ${plan.overflow === 1 ? "Queda 1 string" : `Quedan ${plan.overflow} strings`} sin entrada en el inversor.` : "";
   if (plan.s === 1) return "Un solo string: todos los paneles en serie.";
-  const placed = plan.s - plan.overflow;
   const parallel = plan.alloc.map((k, i) => ({ k, i })).filter((x) => x.k > 1);
-  if (!parallel.length) return `${placed === 1 ? "1 string" : `${placed} strings independientes`}, cada uno en su propio MPPT. Dentro de cada string los paneles van en serie.${extra}`;
-  return `Serie-paralelo: los paneles van en serie dentro de cada string y ${parallel.map((x) => `el MPPT ${x.i + 1} recibe ${x.k} strings en paralelo`).join(" y ")}.${extra}`;
+  const uneven = plan.psMin !== plan.psMax ? " Como cada MPPT es independiente, los strings de distintas entradas pueden tener distinto largo." : "";
+  if (!parallel.length) return `${plan.s} strings independientes, cada uno en su propio MPPT. Dentro de cada string los paneles van en serie.${uneven}`;
+  return `Serie-paralelo: los paneles van en serie dentro de cada string y ${parallel.map((x) => `el MPPT ${x.i + 1} recibe ${x.k} strings iguales en paralelo`).join(" y ")}.${uneven}`;
 }
 
 /* Verificaciones panel ↔ inversor de un arreglo ya armado. */
-function sizerArrayChecks(plan, pan, inv, env) {
-  const v = sizerStringVoltages(pan, plan.ps, env);
+function sizerArrayChecks(plan, pan, inv, env, nInv = 1) {
+  const long = sizerStringVoltages(pan, plan.psMax, env);
+  const short = sizerStringVoltages(pan, plan.psMin, env);
+  const v = { vocCold: long.vocCold, vmpHot: short.vmpHot, vmpCold: long.vmpCold };
+  const which = (ps) => (plan.psMin === plan.psMax ? "del string" : `del string de ${ps}`);
   const kwp = (plan.n * pan.w) / 1000;
   const checks = [];
-  checks.push({ tone: v.vocCold <= inv.vmax ? "ok" : "bad", text: `Voc del string a ${fmtNum(env.tmin)} °C: ${fmtNum(v.vocCold)} V ${v.vocCold <= inv.vmax ? "≤" : ">"} ${inv.vmax} V máximos del inversor.` });
-  checks.push({ tone: v.vmpHot >= inv.vmin ? "ok" : "bad", text: `Vmp del string con la celda a ${fmtNum(env.tcell)} °C: ${fmtNum(v.vmpHot)} V ${v.vmpHot >= inv.vmin ? "≥" : "<"} ${inv.vmin} V mínimos del MPPT.` });
+  checks.push({ tone: v.vocCold <= inv.vmax ? "ok" : "bad", text: `Voc ${which(plan.psMax)} a ${fmtNum(env.tmin)} °C: ${fmtNum(v.vocCold)} V ${v.vocCold <= inv.vmax ? "≤" : ">"} ${inv.vmax} V máximos del inversor.` });
+  checks.push({ tone: v.vmpHot >= inv.vmin ? "ok" : "bad", text: `Vmp ${which(plan.psMin)} con la celda a ${fmtNum(env.tcell)} °C: ${fmtNum(v.vmpHot)} V ${v.vmpHot >= inv.vmin ? "≥" : "<"} ${inv.vmin} V mínimos del MPPT.` });
   if (v.vmpCold > inv.mpptMax) checks.push({ tone: "warn", text: `Vmp en frío de ${fmtNum(v.vmpCold)} V, arriba del rango MPPT (hasta ${inv.mpptMax} V): en invierno puede perder rendimiento.` });
   plan.alloc.forEach((k, i) => {
     if (!k) return;
     const m = inv.mppts[i];
     const isc = k * pan.isc;
     const imp = k * pan.imp;
-    const label = `MPPT ${i + 1} (${sizerPlural(k, "string", "strings")}${k > 1 ? " en paralelo" : ""})`;
+    const label = `MPPT ${i + 1} (${sizerPlural(k, "string", "strings")} de ${plan.lens[i]}${k > 1 ? " en paralelo" : ""})`;
     if (isc > m.isc) checks.push({ tone: "bad", text: `${label}: Isc de ${fmtNum(isc, 1)} A > ${fmtNum(m.isc, 1)} A que admite la entrada.` });
     else if (imp > m.imax) checks.push({ tone: "warn", text: `${label}: Imp de ${fmtNum(imp, 1)} A > ${fmtNum(m.imax, 1)} A de operación. El inversor recorta corriente.` });
     else checks.push({ tone: "ok", text: `${label}: Isc de ${fmtNum(isc, 1)} A ≤ ${fmtNum(m.isc, 1)} A de la entrada.` });
   });
-  if (plan.overflow > 0) {
-    const inputs = inv.mppts.reduce((n, m) => n + m.strings, 0);
-    checks.push({ tone: "bad", text: `${plan.overflow === 1 ? "Sobra 1 string" : `Sobran ${plan.overflow} strings`}: el inversor acepta hasta ${inputs} en ${sizerPlural(inv.mppts.length, "MPPT", "MPPT")}.` });
-  }
-  checks.push({ tone: kwp <= inv.pvMax ? "ok" : "bad", text: `Potencia FV de ${fmtNum(kwp, 2)} kWp ${kwp <= inv.pvMax ? "≤" : ">"} ${fmtNum(inv.pvMax, 1)} kWp que admite el inversor.` });
+  const each = nInv > 1 ? " por inversor" : "";
+  checks.push({ tone: kwp <= inv.pvMax ? "ok" : "bad", text: `Potencia FV${each} de ${fmtNum(kwp, 2)} kWp ${kwp <= inv.pvMax ? "≤" : ">"} ${fmtNum(inv.pvMax, 1)} kWp que admite el inversor.` });
   // la relación DC/AC es una guía: el límite duro es la potencia FV máxima (arriba)
   const ratio = kwp / inv.kw;
   if (ratio > 1.3) checks.push({ tone: "warn", text: `Relación DC/AC de ${fmtNum(ratio, 2)}: en las horas de más sol el inversor recorta potencia.` });
@@ -264,14 +304,14 @@ function sizerBankChecks(bat, n, inv) {
 /* ---------------------------------------------------------------------- */
 /* Resultado común: configuración, verificaciones y lista de materiales. */
 function sizerAssemble({ pan, inv, nInv, plan, env, bat, nbPerInv, est, extraChecks = [], notes = [] }) {
-  const array = sizerArrayChecks(plan, pan, inv, env);
+  const array = sizerArrayChecks(plan, pan, inv, env, nInv);
   const bankChecks = sizerBankChecks(bat, nbPerInv, inv);
   const checks = [...array.checks, ...bankChecks, ...extraChecks];
   const n = plan.n * nInv;
   const nb = bat ? nbPerInv * nInv : 0;
   const kwp = (n * pan.w) / 1000;
   const lines = [
-    sizerLine(n, pan, `${nInv > 1 ? `${nInv} × ` : ""}${sizerPlural(plan.s, "string", "strings")} de ${plan.ps} en serie`),
+    sizerLine(n, pan, `${nInv > 1 ? `${nInv} × ` : ""}${sizerPlural(plan.s, "string", "strings")} ${sizerLensText(plan)} en serie`),
     sizerLine(nInv, inv),
     ...(nb ? [sizerLine(nb, bat, bat.topo === "series" ? `rack de ${nbPerInv} en serie${nInv > 1 ? " por inversor" : ""}` : `${nbPerInv} en paralelo${nInv > 1 ? " por inversor" : ""}`)] : []),
     sizerLine(n, est),
@@ -281,6 +321,13 @@ function sizerAssemble({ pan, inv, nInv, plan, env, bat, nbPerInv, est, extraChe
     ok: !checks.some((c) => c.tone === "bad"), notes,
     config: { pan, inv, nInv, plan, v: array.v, env, bat: nb ? bat : null, bank: nb ? sizerBankPlan(bat, nbPerInv) : null },
   };
+}
+
+/* Si el string más chico que arranca el MPPT ya genera mucho más que el consumo, se aclara. */
+function sizerMinimumNote(r) {
+  if (r.coverage > 150 && r.config.nInv === 1 && r.config.plan.s === 1) {
+    r.notes.unshift({ tone: "info", text: `Es el sistema mínimo para este inversor: un string de ${r.config.plan.psMax} paneles es lo menos que arranca su MPPT, y genera más de lo que consumís.` });
+  }
 }
 
 /* 1A · Rápido: panel Jinko 550 W, techo de chapa e inversor monofásico más chico que alcance. */
@@ -298,7 +345,7 @@ function sizerQuickResult(q) {
   const cands = SIZER_INVERTERS.filter((i) => i.type === SIZER_GOAL_TYPE[q.goal] && i.phase === "mono");
   const inv = cands.find((i) => i.pvMax >= kwpReq) || cands[cands.length - 1];
   const target = Math.max(1, Math.min(Math.ceil((kwpReq * 1000) / pan.w), Math.floor((inv.pvMax * 1000) / pan.w)));
-  const plan = sizerArrayPlan(target, pan, inv, env, inv.pvMax);
+  const plan = sizerArrayPlan(target, pan, inv, env);
 
   const kwh = q.goal === "resp" ? ((cons / 30 / 24) * sizerNum(q.hours) * 1.5) / SIZER_DOD
     : q.goal === "aut" ? ((cons / 30) * sizerNum(q.days)) / SIZER_DOD : 0;
@@ -312,68 +359,105 @@ function sizerQuickResult(q) {
   const r = sizerAssemble({ pan, inv, nInv: 1, plan, env, bat, nbPerInv: nb, est, notes });
   r.gen = r.kwp * hsp * 30 * SIZER_PR;
   r.coverage = (r.gen / cons) * 100;
-  r.free = { inv: inv.id, pan: pan.id, ps: String(plan.ps), s: String(plan.s), bat: nb ? bat.id : "", nb: String(nb || 1), est: est.id, tmin: String(loc.tmin), tmax: String(loc.tmax) };
+  sizerMinimumNote(r);
   return r;
 }
 
-/* 1B · Personalizado: el usuario elige modelos; se calculan inversores, strings y módulos. */
+/* Paneles objetivo del personalizado: lo que pide el consumo, recortado por la superficie. */
+function sizerCustomTargets(cu, pan) {
+  const cons = sizerNum(cu.cons);
+  const frac = sizerGoalFraction(cu.goal, sizerNum(cu.cover), 0.85);
+  const ori = sizerNum(cu.ori) || 1;
+  const hsp = sizerNum(cu.hsp) || 1;
+  const kwpReq = (cons * frac) / (30 * hsp * SIZER_PR * ori);
+  const nReq = Math.max(0, Math.ceil((kwpReq * 1000) / pan.w));
+  const nArea = Math.max(0, Math.floor(sizerNum(cu.area) / pan.area));
+  return { kwpReq, nReq, nArea, nTarget: Math.min(nReq, nArea) };
+}
+
+/* Cuántos inversores de un modelo hacen falta y cómo queda el arreglo de cada uno. Se suma un inversor
+   mientras el arreglo de cada uno no llegue a su parte (por tensión, entradas o potencia FV). */
+function sizerInverterFit(inv, pan, env, nTarget, nArea, crit, backup) {
+  let nInv = Math.max(1, Math.ceil((nTarget * pan.w) / 1000 / inv.pvMax));
+  if (backup) nInv = Math.max(nInv, Math.ceil(crit / inv.kw));
+  // todos los inversores llevan el mismo arreglo: cada uno, su parte sin pasar lo que entra en el techo
+  const planFor = (k) => sizerArrayPlan(Math.ceil(nTarget / k), pan, inv, env, Math.max(1, Math.floor(nArea / k)));
+  let plan = planFor(nInv);
+  while (plan.limited && !plan.impossible && nInv < 500) plan = planFor(++nInv);
+  // un inversor menos si solo se pierden hasta 2 paneles o el 5 % del objetivo (y alcanza para las cargas críticas)
+  const minInv = backup ? Math.max(1, Math.ceil(crit / inv.kw)) : 1;
+  if (nInv - 1 >= minInv) {
+    const fewer = planFor(nInv - 1);
+    const tolerance = Math.max(2, Math.floor(nTarget * 0.05));
+    if (!fewer.impossible && fewer.n * (nInv - 1) >= nTarget - tolerance) return { inv, nInv: nInv - 1, plan: fewer };
+  }
+  return { inv, nInv, plan };
+}
+
+/* Inversor efectivo del personalizado: el elegido o, en automático, el que resuelve con menos equipos
+   (y, a igual cantidad, el más barato). */
+function sizerCustomSizing(cu) {
+  const invs = sizerInvertersFor(cu.goal, cu.phase);
+  const pan = sizerById(SIZER_PANELS, cu.pan);
+  const env = sizerEnv(sizerNum(cu.tmin), sizerNum(cu.tmax));
+  const backup = cu.goal !== "red";
+  const crit = sizerNum(cu.crit);
+  const t = sizerCustomTargets(cu, pan);
+  const pool = cu.inv === "auto" ? invs : invs.filter((i) => i.id === cu.inv);
+  let best = null;
+  // a igual cantidad de inversores, primero el que deja la relación DC/AC entre 0,8 y 1,3 y después el más barato
+  const offRatio = (f) => { const r = (f.plan.n * pan.w) / 1000 / f.inv.kw; return r < 0.8 || r > 1.3 ? 1 : 0; };
+  pool.forEach((inv) => {
+    const fit = sizerInverterFit(inv, pan, env, Math.max(1, t.nTarget), Math.max(1, t.nArea), crit, backup);
+    if (!best || fit.nInv < best.nInv
+      || (fit.nInv === best.nInv && (offRatio(fit) < offRatio(best)
+        || (offRatio(fit) === offRatio(best) && fit.nInv * inv.usd < best.nInv * best.inv.usd)))) best = fit;
+  });
+  return { ...(best || { inv: null }), pan, env, t, crit, backup };
+}
+
+/* 1B · Personalizado: el usuario elige el panel (y, si quiere, inversor y batería); se calculan
+   inversores, strings y módulos. */
 function sizerCustomResult(cu) {
   const cons = sizerNum(cu.cons);
   const hsp = sizerNum(cu.hsp);
-  const inv = sizerById(SIZER_INVERTERS, cu.inv);
-  if (!inv) return { empty: "No hay inversores de ejemplo para esa combinación. Cambiá el objetivo o la conexión." };
   if (cons <= 0) return { empty: "Ingresá tu consumo mensual para calcular las cantidades." };
-  const frac = sizerGoalFraction(cu.goal, sizerNum(cu.cover), 0.85);
-  if (frac <= 0) return { empty: "Indicá qué porcentaje del consumo querés cubrir." };
+  if (sizerGoalFraction(cu.goal, sizerNum(cu.cover), 0.85) <= 0) return { empty: "Indicá qué porcentaje del consumo querés cubrir." };
+  const { inv, nInv, plan, pan, env, t, crit, backup } = sizerCustomSizing(cu);
+  if (!inv) return { empty: "No hay inversores de ejemplo para esa combinación. Cambiá el objetivo o la conexión." };
+  if (t.nArea < 1) return { empty: "Con esa superficie no entra ni un panel. Revisá los m² libres." };
 
-  const pan = sizerById(SIZER_PANELS, cu.pan);
-  const bat = sizerById(SIZER_BATTERIES, cu.bat);
+  // la batería sigue al inversor efectivo (en automático puede cambiar con el consumo o la superficie)
+  const bats = sizerBatteriesFor(inv);
+  const bat = bats.find((b) => b.id === cu.bat) || bats[0] || null;
   const est = sizerById(SIZER_STRUCTURES, cu.est);
-  const env = sizerEnv(sizerNum(cu.tmin), sizerNum(cu.tmax));
-  const crit = sizerNum(cu.crit);
-  const area = sizerNum(cu.area);
   const ori = sizerNum(cu.ori) || 1;
-  const backup = cu.goal !== "red";
-
-  const kwpReq = (cons * frac) / (30 * hsp * SIZER_PR * ori);
-  const nReq = Math.ceil((kwpReq * 1000) / pan.w);
-  const nArea = Math.floor(area / pan.area);
-  let nInv = Math.max(1, Math.ceil(kwpReq / inv.pvMax));
-  if (backup) nInv = Math.max(nInv, Math.ceil(crit / inv.kw));
-  const plan = sizerArrayPlan(Math.max(1, Math.ceil(Math.min(nReq, nArea) / nInv)), pan, inv, env, inv.pvMax);
   const n = plan.n * nInv;
-
   const kwh = cu.goal === "resp" ? (crit * 0.6 * sizerNum(cu.hours)) / SIZER_DOD
     : cu.goal === "aut" ? ((cons / 30) * sizerNum(cu.days)) / SIZER_DOD : 0;
   const nbPerInv = bat && kwh > 0 ? sizerBankAuto(bat, inv, kwh / nInv) : 0;
+  const acKw = nInv * inv.kw;
 
   const extra = [];
-  extra.push({ tone: n <= nArea ? "ok" : "bad", text: `Superficie: ${n} paneles ocupan ${fmtNum(n * pan.area, 1)} m² de ${fmtNum(area)} m² libres.` });
-  if (nReq > nArea) extra.push({ tone: "warn", text: `El techo limita: para el objetivo harían falta ${nReq} paneles.` });
-  if (backup) extra.push({ tone: nInv * inv.kw >= crit ? "ok" : "bad", text: `Potencia AC de ${fmtNum(nInv * inv.kw)} kW para ${fmtNum(crit, 1)} kW de cargas críticas.` });
+  if (plan.impossible) extra.push({ tone: "bad", text: `Con ${fmtNum(env.tmin)} °C y ${fmtNum(env.tmax)} °C no hay una cantidad de paneles en serie que entre en la ventana de tensión del ${inv.brand} ${inv.name}.` });
+  extra.push({ tone: n <= t.nArea ? "ok" : "bad", text: `Superficie: ${n} paneles ocupan ${fmtNum(n * pan.area, 1)} m² de ${fmtNum(sizerNum(cu.area))} m² libres.` });
+  if (t.nReq > t.nArea) extra.push({ tone: "warn", text: `El techo limita: para el objetivo harían falta ${t.nReq} paneles (${fmtNum(t.nReq * pan.area)} m²).` });
+  if (n < t.nTarget && !plan.impossible) extra.push({ tone: "warn", text: nInv > 1
+    ? `Se usan ${n} de los ${t.nTarget} paneles posibles, para que los ${nInv} inversores queden iguales y sin sumar uno más.`
+    : `Se usan ${n} de los ${t.nTarget} paneles posibles: es lo que admite un ${inv.brand} ${inv.name} y evita sumar otro inversor.` });
+  if (backup) extra.push({ tone: acKw >= crit ? "ok" : "bad", text: `Potencia AC de ${fmtNum(acKw)} kW para ${fmtNum(crit, 1)} kW de cargas críticas.` });
   if (inv.type !== "off" && cu.phase !== inv.phase) extra.push({ tone: "bad", text: "La fase del inversor no coincide con la conexión." });
+  if (cu.phase === "mono" && acKw > 10) extra.push({ tone: "warn", text: `${fmtNum(acKw)} kW de inversores en una conexión monofásica: lo habitual es no pasar de 10 kW. Consultá con tu distribuidora o pasá a trifásica.` });
+  if (nInv > 4) extra.push({ tone: "warn", text: `Son ${nInv} inversores de ${fmtNum(inv.kw)} kW. ${cu.inv === "auto" ? "Es el modelo más grande del catálogo de ejemplo para esta conexión" : "Conviene un modelo más grande"}${cu.phase === "mono" ? " o pasar a trifásica" : ""}.` });
 
-  const notes = [{ tone: "info", text: `${cu.goal === "resp" ? "Respaldo calculado con el 60 % de las cargas críticas en promedio. " : ""}${nInv > 1 ? "Cada inversor lleva su propio arreglo y su propio banco de baterías." : ""}` }].filter((x) => x.text);
-  if (plan.limited) notes.unshift({ tone: "warn", text: "Los strings quedaron en el máximo que permite la tensión del inversor; no entra toda la potencia buscada." });
+  const notes = [];
+  if (cu.goal === "resp") notes.push({ tone: "info", text: "Respaldo calculado con el 60 % de las cargas críticas en promedio." });
+  if (nInv > 1) notes.push({ tone: "info", text: `Cada inversor lleva su propio arreglo de strings${nbPerInv ? " y su propio banco de baterías" : ""}. Las verificaciones de tensión, corriente y potencia son por inversor.` });
   const r = sizerAssemble({ pan, inv, nInv, plan, env, bat, nbPerInv, est, extraChecks: extra, notes });
   r.gen = r.kwp * hsp * 30 * SIZER_PR * ori;
   r.coverage = (r.gen / cons) * 100;
+  sizerMinimumNote(r);
   return r;
-}
-
-/* 2 · Libre: el usuario arma strings y banco; se verifica cada par de componentes. */
-function sizerFreeResult(fr) {
-  const inv = sizerById(SIZER_INVERTERS, fr.inv);
-  const pan = sizerById(SIZER_PANELS, fr.pan);
-  const est = sizerById(SIZER_STRUCTURES, fr.est);
-  const ps = Math.max(0, Math.round(sizerNum(fr.ps)));
-  const s = Math.max(0, Math.round(sizerNum(fr.s)));
-  if (ps <= 0 || s <= 0) return { empty: "Indicá cuántos paneles van en serie por string y cuántos strings querés." };
-  const bat = sizerById(SIZER_BATTERIES, fr.bat);
-  const nb = bat ? Math.max(0, Math.round(sizerNum(fr.nb))) : 0;
-  const env = sizerEnv(sizerNum(fr.tmin), sizerNum(fr.tmax));
-  const plan = { ps, s, n: ps * s, limited: false, ...sizerAllocate(s, pan, inv) };
-  return sizerAssemble({ pan, inv, nInv: 1, plan, env, bat, nbPerInv: nb, est });
 }
 
 /* ---------------------------------------------------------------------- */
@@ -448,10 +532,13 @@ function sizerQuickInputsHTML(q) {
 function sizerCustomInputsHTML(cu, currency) {
   const s = "custom";
   const invs = sizerInvertersFor(cu.goal, cu.phase);
-  const inv = sizerById(SIZER_INVERTERS, cu.inv);
+  const inv = sizerCustomSizing(cu).inv;
   const bats = sizerBatteriesFor(inv);
   const backup = cu.goal !== "red";
   const price = (x) => sizerMoney(x.usd, currency);
+  const invOptions = [{ id: "auto", label: "Automático (el que resuelve con menos equipos)" },
+    ...invs.map((x) => ({ id: x.id, label: `${sizerItemName(x)}, ${x.kw} kW ${x.phase === "tri" ? "trifásico" : "monofásico"} (${price(x)})` }))];
+  const invHint = `${cu.inv === "auto" && inv ? `Elegido: ${sizerItemName(inv)}. ` : ""}${invs.length} ${invs.length === 1 ? "modelo compatible" : "modelos compatibles"} con el objetivo y la conexión.`;
   return `
     <p class="muted small">Más datos del sitio. Vos elegís el modelo de cada equipo y calculamos cantidades, strings y banco de baterías.</p>
     ${sizerSegHTML({ label: "¿Qué buscás?", action: "sizer-pick", scope: s, field: "goal", value: cu.goal, options: SIZER_GOALS, wide: true })}
@@ -480,48 +567,9 @@ function sizerCustomInputsHTML(cu, currency) {
       <legend>Los equipos</legend>
       ${sizerSelectHTML({ scope: s, field: "pan", label: "Panel", value: cu.pan, options: sizerOptions(SIZER_PANELS, cu.pan, (x) => `${sizerItemName(x)} (${price(x)})`) })}
       ${invs.length
-        ? sizerSelectHTML({ scope: s, field: "inv", label: "Inversor", value: cu.inv, hint: `${invs.length} ${invs.length === 1 ? "modelo compatible" : "modelos compatibles"} con el objetivo y la conexión.`,
-          options: sizerOptions(invs, cu.inv, (x) => `${sizerItemName(x)}, ${x.kw} kW ${x.phase === "tri" ? "trifásico" : "monofásico"} (${price(x)})`) })
+        ? sizerSelectHTML({ scope: s, field: "inv", label: "Inversor", value: cu.inv, hint: invHint, options: sizerOptions(invOptions, cu.inv, (x) => x.label) })
         : `<p class="field-hint">No hay inversores de ejemplo para esta combinación.</p>`}
       ${bats.length ? sizerSelectHTML({ scope: s, field: "bat", label: "Batería", value: cu.bat, hint: `Solo las de ${inv.bat === "HV" ? "alta tensión" : "48 V"}, como pide el inversor.`, options: sizerOptions(bats, cu.bat, (x) => `${sizerItemName(x)} (${price(x)})`) }) : ""}
-    </fieldset>`;
-}
-
-function sizerFreeInputsHTML(fr, currency) {
-  const s = "free";
-  const inv = sizerById(SIZER_INVERTERS, fr.inv);
-  const pan = sizerById(SIZER_PANELS, fr.pan);
-  const bat = sizerById(SIZER_BATTERIES, fr.bat);
-  const price = (x) => sizerMoney(x.usd, currency);
-  const env = sizerEnv(sizerNum(fr.tmin), sizerNum(fr.tmax));
-  const lim = sizerSeriesLimits(pan, inv, env);
-  const inputs = inv.mppts.reduce((n, m) => n + m.strings, 0);
-  const batOptions = [{ id: "", brand: "", name: "Sin batería", usd: 0 }, ...SIZER_BATTERIES.map((b) => ({ ...b, disabled: !inv || b.bus !== inv.bat }))];
-  const range = bat && inv.batV ? sizerBankRange(bat, inv) : null;
-  const batHint = !bat ? "Las que no coinciden con el inversor aparecen deshabilitadas."
-    : bat.topo === "series" ? `Módulos HV: van en serie dentro de un rack. Con este inversor, de ${range.min} a ${range.max}.`
-      : `Módulos de ${fmtNum(bat.vnom, 1)} V: van en paralelo. Hasta ${bat.max}.`;
-  return `
-    <p class="muted small">Vos armás los strings y el banco; verificamos la compatibilidad entre cada componente.</p>
-    ${sizerSelectHTML({ scope: s, field: "inv", label: "Inversor", value: fr.inv, hint: `${sizerPlural(inv.mppts.length, "MPPT", "MPPT")}, hasta ${sizerPlural(inputs, "string", "strings")} en total.`,
-      options: sizerOptions(SIZER_INVERTERS, fr.inv, (x) => `${sizerItemName(x)} (${price(x)})`) })}
-    <fieldset class="sz-group">
-      <legend>Arreglo fotovoltaico</legend>
-      ${sizerSelectHTML({ scope: s, field: "pan", label: "Panel", value: fr.pan, options: sizerOptions(SIZER_PANELS, fr.pan, (x) => `${sizerItemName(x)} (${price(x)})`) })}
-      <div class="sz-row">
-        ${sizerNumberHTML({ scope: s, field: "ps", label: "Paneles en serie por string", value: fr.ps, min: 1, hint: `Entre ${lim.minPS} y ${lim.maxPS} para este inversor y estas temperaturas.` })}
-        ${sizerNumberHTML({ scope: s, field: "s", label: "Cantidad de strings", value: fr.s, min: 1, hint: "Se reparten entre los MPPT; si sobran, van en paralelo." })}
-      </div>
-      ${sizerTempFieldsHTML(s, fr)}
-    </fieldset>
-    <fieldset class="sz-group">
-      <legend>Baterías y estructura</legend>
-      <div class="sz-row sz-row-qty">
-        ${sizerSelectHTML({ scope: s, field: "bat", label: "Batería", value: fr.bat, hint: batHint,
-          options: sizerOptions(batOptions, fr.bat, (x) => (x.id ? `${sizerItemName(x)} (${price(x)})` : x.name)) })}
-        ${sizerNumberHTML({ scope: s, field: "nb", label: "Módulos", value: fr.nb, min: 0, disabled: !fr.bat })}
-      </div>
-      ${sizerSelectHTML({ scope: s, field: "est", label: "Estructura", value: fr.est, options: sizerOptions(SIZER_STRUCTURES, fr.est, (x) => `${x.name} (${price(x)} por panel)`) })}
     </fieldset>`;
 }
 
@@ -549,8 +597,8 @@ function sizerConfigHTML(c) {
   const mppts = plan.alloc.map((k, i) => `
     <li>
       <span class="sz-mppt-name">MPPT ${i + 1}</span>
-      <span class="sz-mppt-strings">${k ? Array.from({ length: k }, () => sizerCellsHTML(plan.ps, "sz-cell")).join("") : `<span class="dim small">Libre</span>`}</span>
-      <span class="sz-mppt-meta">${k ? `${sizerPlural(k, "string", "strings")}${k > 1 ? " en paralelo" : ""}` : ""}</span>
+      <span class="sz-mppt-strings">${k ? Array.from({ length: k }, () => sizerCellsHTML(plan.lens[i], "sz-cell")).join("") : `<span class="dim small">Libre</span>`}</span>
+      <span class="sz-mppt-meta">${k ? `${sizerPlural(k, "string", "strings")} de ${plan.lens[i]} paneles${k > 1 ? " en paralelo" : ""}` : ""}</span>
     </li>`).join("");
   const bankHTML = bank ? `
     <div class="sz-config-block">
@@ -566,8 +614,9 @@ function sizerConfigHTML(c) {
   return `<div class="sz-config">
     <h4>Conexionado</h4>
     <div class="sz-config-block">
-      <h5>Arreglo FV${nInv > 1 ? ` (por inversor, ${nInv} inversores)` : ""}</h5>
-      <p><strong>${sizerPlural(plan.s, "string", "strings")} de ${plan.ps} paneles en serie</strong> (${plan.n} paneles). ${sizerWiringText(plan)}</p>
+      <h5>Arreglo FV</h5>
+      ${nInv > 1 ? `<p class="sz-config-total"><strong>Total: ${plan.s * nInv} strings y ${plan.n * nInv} paneles, repartidos en ${nInv} inversores iguales.</strong> Cada inversor lleva:</p>` : ""}
+      <p><strong>${sizerPlural(plan.s, "string", "strings")} ${sizerLensText(plan)} paneles en serie</strong> (${plan.n} paneles${nInv > 1 ? " por inversor" : ""}). ${sizerWiringText(plan)}</p>
       <ul class="sz-mppts">${mppts}</ul>
       <dl class="sz-elec">
         <div><dt>Voc a ${fmtNum(env.tmin)} °C</dt><dd>${fmtNum(v.vocCold)} V</dd></div>
@@ -597,28 +646,32 @@ function sizerBomHTML(lines, total, currency) {
 function sizerQuoteMessage(label, r, currency) {
   const c = r.config;
   const list = r.lines.map((l) => `- ${l.qty} x ${sizerItemName(l.item)}${l.note ? ` (${l.note})` : ""}`).join("\n");
-  const wiring = `Arreglo: ${c.nInv > 1 ? `${c.nInv} inversores, cada uno con ` : ""}${sizerPlural(c.plan.s, "string", "strings")} de ${c.plan.ps} paneles en serie`;
+  const perMppt = c.plan.alloc.map((k, i) => (k ? `MPPT ${i + 1}: ${sizerPlural(k, "string", "strings")} de ${c.plan.lens[i]}` : "")).filter(Boolean).join("; ");
+  const wiring = `Arreglo: ${c.nInv > 1 ? `${c.nInv} inversores, cada uno con ` : ""}${sizerPlural(c.plan.s, "string", "strings")} ${sizerLensText(c.plan)} paneles en serie (${perMppt})`;
   const bank = c.bank ? `\nBanco: ${sizerBankText(c.bank, c.bat)}` : "";
   return `Hola, armé un sistema con el dimensionador de Auryx (${label}):\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nTotal de referencia: ${sizerMoney(r.total, currency)}\n¿Me pasan una cotización?`;
 }
 
-const SIZER_MODE_LABEL = { quick: "automático rápido", custom: "automático personalizado", free: "dimensionamiento libre" };
+const SIZER_MODE_LABEL = { quick: "automático rápido", custom: "automático personalizado" };
 
 function sizerOutputHTML(sz, currency) {
-  const kind = sz.tab === "free" ? "free" : sz.mode;
-  const r = kind === "quick" ? sizerQuickResult(sz.quick) : kind === "custom" ? sizerCustomResult(sz.custom) : sizerFreeResult(sz.free);
+  const kind = sz.mode;
+  const r = kind === "quick" ? sizerQuickResult(sz.quick) : sizerCustomResult(sz.custom);
   if (r.empty) {
     return `<div class="sz-empty">${icon("solar-panel")}<p>${r.empty}</p></div>`;
   }
-  const title = kind === "quick" ? "Sistema sugerido" : kind === "custom" ? "Resultado" : "Compatibilidad";
+  const title = kind === "quick" ? "Sistema sugerido" : "Resultado";
   const badge = r.ok
-    ? `<span class="badge tone-ok">${icon("check-circle", "", "fill")}${kind === "free" ? "Compatible" : "Todo cierra"}</span>`
-    : `<span class="badge tone-bad">${icon("x-circle", "", "fill")}${kind === "free" ? "Incompatible" : "Revisar"}</span>`;
+    ? `<span class="badge tone-ok">${icon("check-circle", "", "fill")}Todo cierra</span>`
+    : `<span class="badge tone-bad">${icon("x-circle", "", "fill")}Revisar</span>`;
 
   const stats = [];
-  if (r.coverage !== undefined) stats.push({ label: "Cobertura del consumo", value: `${fmtNum(Math.min(999, r.coverage))} %` });
+  if (r.coverage !== undefined) stats.push({ label: "Cobertura del consumo", value: r.coverage > 999 ? "Más de 999 %" : `${fmtNum(r.coverage)} %` });
   stats.push({ label: "Almacenamiento", value: r.storage ? `${fmtNum(r.storage, 1)} kWh` : `<span class="sz-none">Sin batería</span>` });
   stats.push({ label: "Relación DC/AC", value: fmtNum(r.ratio, 2) });
+  const c = r.config;
+  stats.push({ label: c.nInv > 1 ? "Inversores" : "Inversor", value: `${c.nInv > 1 ? `${c.nInv} × ` : ""}${fmtNum(c.inv.kw)} kW` });
+  stats.push({ label: "Strings", value: `${c.plan.s * c.nInv} ${sizerLensText(c.plan)}` });
 
   return `
     <div class="sz-out-head">
@@ -639,23 +692,18 @@ function sizerOutputHTML(sz, currency) {
     ${r.notes && r.notes.length ? sizerNotesHTML(r.notes) : ""}
     <div class="sz-actions">
       <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(SIZER_MODE_LABEL[kind], r, currency))}" target="_blank" rel="noopener">${icon("whatsapp-logo")} Pedir cotización</a>
-      ${kind === "quick" ? `<button type="button" class="btn btn-secondary" data-action="sizer-to-free" data-fid="sz-to-free">Ajustar a mano ${icon("arrow-right")}</button>` : ""}
     </div>`;
 }
 
 function renderSizer(sz, currency) {
-  const kind = sz.tab === "free" ? "free" : sz.mode;
-  const inputs = kind === "quick" ? sizerQuickInputsHTML(sz.quick)
-    : kind === "custom" ? sizerCustomInputsHTML(sz.custom, currency) : sizerFreeInputsHTML(sz.free, currency);
-  const tab = (id, label, ic) => `<button type="button" class="sz-tab" data-action="sizer-tab" data-tab="${id}" data-fid="sz-tab-${id}" aria-pressed="${sz.tab === id}">${icon(ic)}${label}</button>`;
-  const mode = (id, label) => `<button type="button" class="sz-mode" data-action="sizer-mode" data-mode="${id}" data-fid="sz-mode-${id}" aria-pressed="${sz.mode === id}">${label}</button>`;
+  const inputs = sz.mode === "quick" ? sizerQuickInputsHTML(sz.quick) : sizerCustomInputsHTML(sz.custom, currency);
+  const mode = (id, label, ic) => `<button type="button" class="sz-tab" data-action="sizer-mode" data-mode="${id}" data-fid="sz-mode-${id}" aria-pressed="${sz.mode === id}">${icon(ic)}${label}</button>`;
   return `
     <div class="sz-bar">
-      <div class="sz-tabs" role="group" aria-label="Tipo de dimensionamiento">
-        ${tab("auto", "Automático", "magic-wand")}
-        ${tab("free", "Libre", "sliders-horizontal")}
+      <div class="sz-tabs" role="group" aria-label="Nivel de detalle">
+        ${mode("quick", "Rápido", "lightning")}
+        ${mode("custom", "Personalizado", "sliders-horizontal")}
       </div>
-      ${sz.tab === "auto" ? `<div class="sz-modes" role="group" aria-label="Nivel de detalle">${mode("quick", "Rápido")}${mode("custom", "Personalizado")}</div>` : ""}
     </div>
     <div class="sz-grid">
       <form class="sz-inputs" data-form="sizer" novalidate>${inputs}</form>

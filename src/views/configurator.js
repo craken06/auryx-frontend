@@ -95,7 +95,7 @@ function emptyStepHTML(text) {
    y el armado paso a paso con el catálogo real. Son links: cada una tiene su URL. */
 function cfgToolSwitchHTML(active) {
   const tools = [
-    { id: "sizer", href: "#configurator", icon: "magic-wand", label: "Dimensionador", hint: "Te sugerimos el sistema a partir de tu consumo" },
+    { id: "sizer", href: "#configurator", icon: "magic-wand", label: "Dimensionador", hint: "Rápido o personalizado, a partir de tu consumo" },
     { id: "steps", href: "#configurator/paso-a-paso", icon: "list-numbers", label: "Paso a paso", hint: "Elegís cada componente del catálogo" },
   ];
   return `<nav class="tool-switch" aria-label="Forma de diseñar">
