@@ -19,7 +19,7 @@ function renderProductDetail(state) {
   const catMeta = CATEGORY_META[p.category];
   const qty = state.productDetailQty || 1;
   const simpleSpecs = Object.entries(p.specs || {}).filter(([, v]) => v !== null && (typeof v !== "object" || Array.isArray(v)));
-  const keyKeys = (KEY_SPECS_BY_CATEGORY[p.category] || []).filter((k) => p.specs?.[k] != null);
+  const keyKeys = keySpecKeys(p);
   const featured = (keyKeys.length ? keyKeys : simpleSpecs.slice(0, 4).map(([k]) => k)).slice(0, 4);
   const rest = simpleSpecs.filter(([k]) => !featured.includes(k));
   const soldOut = p.availability === "sin stock";

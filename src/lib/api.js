@@ -15,6 +15,20 @@ const AVAILABILITY_MAP = {
 };
 
 /**
+ * El motor de compatibilidad y el configurador leen las claves del catálogo
+ * de demo (pmax, capacityWh). La API usa claves en español: se agregan los
+ * alias sin pisar lo que ya venga cargado. Son no enumerables para que la
+ * tabla de especificaciones (Object.entries) no muestre el dato duplicado.
+ */
+function normalizeApiSpecs(slug, specs) {
+  const out = { ...specs };
+  const alias = (key, value) => Object.defineProperty(out, key, { value, enumerable: false });
+  if (slug === "panel" && out.pmax == null && out.potencia_wp != null) alias("pmax", out.potencia_wp);
+  if (slug === "bateria" && out.capacityWh == null && out.capacidad_kwh != null) alias("capacityWh", out.capacidad_kwh * 1000);
+  return out;
+}
+
+/**
  * Convierte un producto tal como lo devuelve la API (compragamer-api)
  * al shape que espera el resto del frontend (el mismo que tenía cada
  * objeto dentro del array PRODUCTS hardcodeado en data.js).
@@ -32,7 +46,7 @@ function adaptApiProduct(apiProduct) {
     priceARS: isUSD ? Math.round(price * USD_ARS_RATE) : price,
     availability: AVAILABILITY_MAP[apiProduct.stockStatus] || "disponible",
     description: apiProduct.description || "",
-    specs: apiProduct.specs || {},
+    specs: normalizeApiSpecs(apiProduct.category?.slug, apiProduct.specs || {}),
     // El configurador filtra inversores/reguladores por systemTypes (ver
     // configurator.js). Ahora que el spec_schema de "inversor" incluye ese
     // campo, lo leemos directo de specs en vez de dejarlo vacío. Si un

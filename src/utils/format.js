@@ -91,12 +91,18 @@ function productThumbHTML(product, extraClass = "", withBadge = false) {
 
 /* Línea de especificación clave según categoría (para tarjetas y listados). */
 const KEY_SPECS_BY_CATEGORY = {
-  // incluye las claves del catálogo de demo y las que devuelve la API; se toman las presentes
-  panel: ["pmax", "potencia_wp", "efficiency", "voc", "isc"],
-  inversor: ["ratedPowerAC", "potencia_nominal_w", "maxPvPower", "maxPvVoltage", "vmpp_max", "corriente_max_entrada", "efficiency"],
+  // incluye las claves del catálogo de demo y las que devuelve la API; se toman las presentes.
+  // Un sub-array agrupa sinónimos: se usa sólo el primero que esté cargado.
+  panel: [["pmax", "potencia_wp"], "efficiency", "voc", "isc"],
+  inversor: [["ratedPowerAC", "potencia_nominal_w"], "maxPvPower", ["maxPvVoltage", "vmpp_max"], "corriente_max_entrada", "efficiency"],
   regulador: ["ratedChargeCurrent", "maxPvVoltage", "trackingEfficiency"],
-  bateria: ["capacityWh", "capacidad_kwh", "nominalVoltage", "cycles", "vida_util_ciclos", "maxContinuousCurrent"],
+  bateria: [["capacityWh", "capacidad_kwh"], "nominalVoltage", ["cycles", "vida_util_ciclos"], "maxContinuousCurrent"],
 };
+function keySpecKeys(product) {
+  return (KEY_SPECS_BY_CATEGORY[product.category] || [])
+    .map((k) => (Array.isArray(k) ? k : [k]).find((alt) => product.specs?.[alt] != null))
+    .filter(Boolean);
+}
 const SPEC_UNITS = {
   pmax: "W", efficiency: "%", voc: "V", isc: "A", vmp: "V", imp: "A",
   ratedPowerAC: "W", maxPvPower: "W", maxPvVoltage: "V", maxInputCurrentPerMppt: "A",
@@ -130,7 +136,7 @@ function specShortLabel(key) {
 }
 
 function keySpecLine(product) {
-  const keys = (KEY_SPECS_BY_CATEGORY[product.category] || []).filter((k) => product.specs?.[k] != null).slice(0, 3);
+  const keys = keySpecKeys(product).slice(0, 3);
   if (!keys.length) return "";
   return keys.map((k) => specValueText(k, product.specs[k])).join("  /  ");
 }

@@ -136,6 +136,7 @@ const SPEC_LABELS = {
   type: "Tipo", ratedPowerAC: "Potencia nominal CA (W)", maxPvPower: "Potencia FV máx. (W)",
   maxPvVoltage: "Tensión FV máx. (V)", mpptRangeMin: "MPPT mín. (V)", mpptRangeMax: "MPPT máx. (V)",
   mpptCount: "Cantidad de MPPT", maxInputCurrentPerMppt: "Corriente máx. por MPPT (A)",
+  maxShortCircuitCurrentPerMppt: "Corriente máx. de cortocircuito por MPPT (A)",
   batteryVoltageMin: "Tensión batería mín. (V)", batteryVoltageMax: "Tensión batería máx. (V)",
   ratedChargeCurrent: "Corriente de carga nominal (A)", trackingEfficiency: "Eficiencia de seguimiento MPPT (%)",
   nominalVoltage: "Tensión nominal (V)", capacityWh: "Capacidad nominal (Wh)", usableWh: "Capacidad útil (Wh)",

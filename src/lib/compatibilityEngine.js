@@ -12,6 +12,7 @@ function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage) 
   const stringCount = wiring === "series" ? 1 : 2;
   const totalVoc = +(panel.specs.voc * seriesCount).toFixed(1);
   const totalIsc = +(panel.specs.isc * stringCount).toFixed(1);
+  const totalImp = panel.specs.imp != null ? +(panel.specs.imp * stringCount).toFixed(1) : null;
   const totalPower = panel.specs.pmax * qty;
 
   const isRegulator = converter.category === "regulador";
@@ -31,7 +32,19 @@ function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage) 
     status = "bad";
     messages.push(`Tensión total del arreglo (${totalVoc}V) supera la tensión máxima admitida (${maxVoltage}V). Riesgo de daño al equipo.`);
   }
-  if (totalIsc > maxCurrent) {
+  // Con dato de cortocircuito del MPPT: Isc del arreglo vs. Isc máx. (límite duro) e
+  // Imp vs. corriente de operación (si la supera, el inversor recorta: aviso, no bloqueo).
+  // Sin ese dato (reguladores, catálogo de demo) se compara Isc contra la corriente de operación.
+  const maxShortCircuit = isRegulator ? null : converter.specs.maxShortCircuitCurrentPerMppt;
+  if (maxShortCircuit != null) {
+    if (totalIsc > maxShortCircuit) {
+      status = "bad";
+      messages.push(`Corriente de cortocircuito del arreglo (${totalIsc}A) supera la máxima admitida por MPPT (${maxShortCircuit}A).`);
+    } else if (totalImp != null && totalImp > maxCurrent) {
+      if (status !== "bad") status = "warning";
+      messages.push(`La corriente de trabajo (${totalImp}A) supera la corriente máxima de entrada por MPPT (${maxCurrent}A): el inversor va a recortar algo de potencia en horas pico.`);
+    }
+  } else if (totalIsc > maxCurrent) {
     status = "bad";
     messages.push(`Corriente total (${totalIsc}A) supera la corriente máxima de entrada (${maxCurrent}A)${isRegulator ? "" : " por MPPT"}.`);
   }
@@ -54,6 +67,11 @@ function evaluateBatteryToConverter(battery, qty, converter, systemVoltage) {
   const isRegulator = converter.category === "regulador";
   const messages = [];
   let status = "ok";
+
+  // Productos reales sin tensión nominal cargada: no se puede validar, se avisa en vez de aprobar.
+  if (battery.specs.nominalVoltage == null) {
+    return { status: "warning", messages: ["Falta la tensión nominal de la batería en el catálogo: no se pudo verificar la compatibilidad con el equipo. Consultanos antes de comprar."] };
+  }
 
   if (isRegulator) {
     if (Math.round(battery.specs.nominalVoltage) !== systemVoltage) {
