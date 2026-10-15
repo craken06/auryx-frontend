@@ -19,6 +19,12 @@ function fieldHTML({ id, label, unit, type = "number", value, bind, field, hint,
   </div>`;
 }
 
+/* Advertencias que devuelve el backend para el cálculo actual (POST /calculators/*). */
+function calcWarningsHTML(warnings) {
+  if (!warnings || !warnings.length) return "";
+  return `<ul class="calc-warn-list">${warnings.map((w) => `<li>${icon("warning")}<span>${esc(w)}</span></li>`).join("")}</ul>`;
+}
+
 /* Tarjeta de resultado: un valor principal grande + filas secundarias. */
 function resultCardHTML({ id, title = "Resultado", main, rest = [] }) {
   return `<div class="result-card" id="${id}" aria-live="polite">
@@ -38,7 +44,7 @@ function calcSectionHTML(id, title, subtitle, inputs, result, footnote = "") {
     </div>
     <div class="calc-grid">
       <div class="calc-inputs">${inputs}</div>
-      <div class="calc-result">${result}${footnote ? `<p class="xsmall dim" style="margin-top:12px">${footnote}</p>` : ""}</div>
+      <div class="calc-result">${result}<div id="calc-warn-${id}" class="calc-warnings" aria-live="polite"></div>${footnote ? `<p class="xsmall dim" style="margin-top:12px">${footnote}</p>` : ""}</div>
     </div>
   </section>`;
 }

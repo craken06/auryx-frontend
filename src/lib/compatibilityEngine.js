@@ -1,36 +1,45 @@
 /* AURYX: Motor de compatibilidad (lógica de negocio pura, sin HTML/UI). Sin dependencias. */
 
 /* =========================================================================
-   AURYX: Motor de compatibilidad (v1 simplificada, sin corrección térmica)
-   Reglas: potencia, tensión y corriente entre panel(es) y regulador/inversor,
-   y entre batería e inversor/regulador.
+   AURYX: Motor de compatibilidad LOCAL (respaldo)
+   La evaluación real la hace el backend (POST /compatibility/evaluate, reglas
+   en la tabla compatibility_rules). Esta versión simplificada se usa mientras
+   llega la respuesta, si la API no responde o con el catálogo de demo.
+   Aplica la misma corrección de Voc por temperatura mínima que el backend.
    ========================================================================= */
 
-function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage) {
-  if (!panel || !qty) return null;
-  const seriesCount = wiring === "series" ? qty : Math.ceil(qty / 2);
-  const stringCount = wiring === "series" ? 1 : 2;
-  const totalVoc = +(panel.specs.voc * seriesCount).toFixed(1);
+function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage, tMinC) {
+  if (!panel || !qty || !converter) return null;
+  const isMicro = converter.specs.es_microinversor === true;
+  const seriesCount = isMicro ? 1 : wiring === "series" ? qty : Math.ceil(qty / 2);
+  const stringCount = isMicro ? 1 : wiring === "series" ? 1 : 2;
+  const tMin = Number.isFinite(tMinC) ? tMinC : (typeof COMPAT_PARAMS !== "undefined" ? COMPAT_PARAMS.tMinC : -10);
+  const coef = panel.specs.coef_temp_voc != null ? Number(panel.specs.coef_temp_voc) : -0.3;
+  const totalVoc = +(panel.specs.voc * seriesCount * (1 + (coef / 100) * (tMin - 25))).toFixed(1);
   const totalIsc = +(panel.specs.isc * stringCount).toFixed(1);
   const totalImp = panel.specs.imp != null ? +(panel.specs.imp * stringCount).toFixed(1) : null;
   const totalPower = panel.specs.pmax * qty;
+  const checkedPower = isMicro ? panel.specs.pmax : totalPower; // micro: un panel por equipo
 
   const isRegulator = converter.category === "regulador";
   const maxVoltage = converter.specs.maxPvVoltage;
   const maxPower = isRegulator
-    ? converter.specs.maxPvPowerBySystemVoltage[systemVoltage]
+    ? (converter.specs.maxPvPowerBySystemVoltage || {})[systemVoltage]
     : converter.specs.maxPvPower;
   const maxCurrent = isRegulator
     ? converter.specs.ratedChargeCurrent
     : converter.specs.maxInputCurrentPerMppt;
-  const nominalPower = isRegulator ? maxPower : converter.specs.ratedPowerAC;
+  const nominalPower = isRegulator || isMicro ? null : converter.specs.ratedPowerAC;
 
   const messages = [];
   let status = "ok";
 
+  if (maxVoltage == null) {
+    return { status: "warning", messages: ["Faltan datos del equipo (tensión FV máxima): no se pudo verificar la compatibilidad. Consultanos."], totals: { totalVoc, totalIsc, totalPower, seriesCount, stringCount } };
+  }
   if (totalVoc > maxVoltage) {
     status = "bad";
-    messages.push(`Tensión total del arreglo (${totalVoc}V) supera la tensión máxima admitida (${maxVoltage}V). Riesgo de daño al equipo.`);
+    messages.push(`La tensión ${isMicro ? "de cada panel" : "del string"} en frío (${totalVoc}V a ${tMin}°C) supera la máxima admitida (${maxVoltage}V). Riesgo de daño al equipo.`);
   }
   // Con dato de cortocircuito del MPPT: Isc del arreglo vs. Isc máx. (límite duro) e
   // Imp vs. corriente de operación (si la supera, el inversor recorta: aviso, no bloqueo).
@@ -44,22 +53,24 @@ function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage) 
       if (status !== "bad") status = "warning";
       messages.push(`La corriente de trabajo (${totalImp}A) supera la corriente máxima de entrada por MPPT (${maxCurrent}A): el inversor va a recortar algo de potencia en horas pico.`);
     }
-  } else if (totalIsc > maxCurrent) {
+  } else if (maxCurrent != null && totalIsc > maxCurrent) {
     status = "bad";
     messages.push(`Corriente total (${totalIsc}A) supera la corriente máxima de entrada (${maxCurrent}A)${isRegulator ? "" : " por MPPT"}.`);
   }
-  if (totalPower > maxPower) {
-    status = "bad";
-    messages.push(`Potencia total (${totalPower}W) supera la potencia FV máxima admitida (${maxPower}W).`);
+  if (maxPower != null && checkedPower > maxPower) {
+    if (isMicro) { if (status !== "bad") status = "warning"; } else status = "bad";
+    messages.push(isMicro
+      ? `El panel (${checkedPower}W) supera la potencia recomendada para este microinversor (${maxPower}W): habrá recorte.`
+      : `Potencia total (${totalPower}W) supera la potencia FV máxima admitida (${maxPower}W).`);
   } else if (nominalPower && totalPower > nominalPower * 1.3 && status !== "bad") {
     status = "warning";
     messages.push(`El arreglo (${totalPower}W) está sobredimensionado respecto a la potencia nominal (${nominalPower}W). Es una práctica común, pero conviene revisarlo.`);
   }
   if (status === "ok") {
-    messages.push(`Compatible: ${totalVoc}V / ${totalIsc}A / ${totalPower}W dentro de los rangos admitidos.`);
+    messages.push(`Compatible: ${totalVoc}V en frío / ${totalIsc}A / ${totalPower}W dentro de los rangos admitidos.`);
   }
 
-  return { status, messages, totals: { totalVoc, totalIsc, totalPower, seriesCount, stringCount } };
+  return { status, messages, totals: { totalVoc, totalIsc, totalPower, seriesCount, stringCount, converterQty: isMicro ? qty : 1 } };
 }
 
 function evaluateBatteryToConverter(battery, qty, converter, systemVoltage) {

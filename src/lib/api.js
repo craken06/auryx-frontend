@@ -53,8 +53,58 @@ function adaptApiProduct(apiProduct) {
     // producto viejo todavía no lo tiene cargado, cae a [] (no aparece en
     // el configurador hasta que se le complete el dato, sin inventarlo).
     systemTypes: apiProduct.specs?.systemTypes || [],
+    // primera imagen de product_images (por orden); sin imágenes se muestra el ícono de la categoría
+    image: [...(apiProduct.images || [])].sort((a, b) => (a.order || 0) - (b.order || 0))[0]?.url || null,
     _fromApi: true,
   };
+}
+
+/* id numérico de la base a partir del id del frontend ("db-24" -> 24); null si es de demo. */
+function dbIdOf(product) {
+  const m = /^db-(\d+)$/.exec(product && product.id || "");
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Llamada a la API con timeout. Devuelve el JSON o lanza Error con el mensaje
+ * que mandó el backend (validaciones en castellano), para mostrarlo tal cual.
+ */
+async function apiRequest(path, { method = "GET", body, timeoutMs = 8000 } = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = data && data.message;
+      const err = new Error(Array.isArray(msg) ? msg.join(" ") : msg || `La API respondió ${res.status}`);
+      err.status = res.status; // sin status = no hubo respuesta (red caída, timeout)
+      throw err;
+    }
+    return data;
+  } catch (err) {
+    if (err.name === "AbortError") throw new Error("El servidor tardó demasiado en responder.");
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/* Parámetros del motor de compatibilidad (temperatura mínima de diseño, márgenes).
+   Si la API no responde se usan los mismos valores por defecto que el backend. */
+let COMPAT_PARAMS = { tMinC: -10, tCellMaxC: 70 };
+async function loadCompatibilityParams() {
+  try {
+    const data = await apiRequest("/compatibility/rules", { timeoutMs: 4000 });
+    if (data && data.params) COMPAT_PARAMS = { ...COMPAT_PARAMS, ...data.params };
+  } catch (err) {
+    console.warn("No se pudieron cargar los parámetros de compatibilidad:", err.message);
+  }
 }
 
 /**

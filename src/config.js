@@ -12,7 +12,7 @@
 // URL base del backend (compragamer-api). Cambiar acá si:
 // - corre en otro puerto en tu máquina
 // - lo desplegás en un servidor/dominio real (ej. "https://api.auryx.com")
-const API_BASE_URL = "https://f1b8-186-18-242-43.ngrok-free.app";
+const API_BASE_URL = "https://noncerebral-betsey-somniloquous.ngrok-free.dev";
 
 // Tasa de cambio de referencia, SOLO para mostrar el precio en la moneda
 // que un producto no tiene cargada en la base (ej. se cargó en ARS y el
@@ -22,13 +22,10 @@ const API_BASE_URL = "https://f1b8-186-18-242-43.ngrok-free.app";
 let USD_ARS_RATE = 1500;
 
 // WhatsApp de contacto (formato internacional, solo dígitos: 54 9 + código de área + número).
-// Es el canal por el que llegan las cotizaciones y las consultas mientras no haya backend de pedidos.
+// Canal alternativo para cotizaciones y consultas (los pedidos y el formulario van a la API).
 const WHATSAPP_NUMBER = "5491166858516";
 const WHATSAPP_DISPLAY = "+54 9 11 6685-8516";
 
-// Email que recibe los mensajes del formulario de contacto y las
-// solicitudes de cotización del carrito. Mientras no haya un endpoint de
-// backend para esto, el formulario abre el cliente de correo del usuario
-// (mailto:) con el mensaje armado. Si queda vacío, el formulario avisa
-// que el envío todavía no está configurado.
+// Email de respaldo: si la API no responde al enviar el formulario de contacto, se abre
+// el programa de correo con el mensaje armado (si queda vacío, se usa WhatsApp).
 const CONTACT_EMAIL = "";

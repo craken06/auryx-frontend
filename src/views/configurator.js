@@ -1,4 +1,88 @@
-/* AURYX: configurador "Diseñá tu sistema". Depende de: data/products.js, lib/compatibilityEngine.js, utils/format.js. */
+/* AURYX: configurador "Diseñá tu sistema". Depende de: data/products.js, lib/compatibilityEngine.js, lib/api.js, utils/format.js. */
+
+/* ---------------------------------------------------------------------------
+   Compatibilidad en el servidor: en cada paso se pide en UNA llamada el
+   veredicto de todas las opciones visibles (POST /compatibility/evaluate).
+   Mientras llega la respuesta, o si la API no responde, se muestra el motor
+   local (lib/compatibilityEngine.js). Sólo aplica al catálogo real (ids "db-").
+   --------------------------------------------------------------------------- */
+const CFG_COMPAT = { key: null, data: null, pendingKey: null };
+const DC_EXTRA_CATEGORIES = ["cable", "proteccion"];
+
+function cfgTMin(cfg) {
+  return Number.isFinite(cfg.tMinC) ? cfg.tMinC : COMPAT_PARAMS.tMinC;
+}
+
+function cfgConverterOptions(systemType) {
+  return PRODUCTS.filter((p) => p.category === systemType.sourceCategory && (p.systemTypes || []).includes(systemType.id));
+}
+
+function cfgCompatRequest(cfg) {
+  const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
+  const panel = PRODUCTS.find((p) => p.id === cfg.panelId);
+  const panelId = dbIdOf(panel);
+  if (!systemType || !panelId) return null;
+  const converter = PRODUCTS.find((p) => p.id === cfg.converterId);
+  const ids = (list) => list.map(dbIdOf).filter(Boolean);
+  const body = {
+    panel: { productId: panelId, qty: cfg.panelQty, wiring: cfg.wiring },
+    converterIds: ids(cfgConverterOptions(systemType)),
+    converterId: dbIdOf(converter),
+    batteryIds: converter && systemType.needsBattery ? ids(PRODUCTS.filter((p) => p.category === "bateria")) : [],
+    batteryQty: cfg.batteryQty,
+    extraIds: ids(PRODUCTS.filter((p) => DC_EXTRA_CATEGORIES.includes(p.category))),
+    systemVoltage: systemType.sourceCategory === "regulador" ? cfg.systemVoltage : undefined,
+    tMinC: cfgTMin(cfg),
+  };
+  return { key: JSON.stringify(body), body };
+}
+
+/* Resultado del servidor para el estado actual, o null (y dispara el pedido si hace falta). */
+function cfgServerCompat(cfg) {
+  const req = cfgCompatRequest(cfg);
+  if (!req) return null;
+  if (CFG_COMPAT.key === req.key) return CFG_COMPAT.data;
+  if (CFG_COMPAT.pendingKey !== req.key) {
+    CFG_COMPAT.pendingKey = req.key;
+    apiRequest("/compatibility/evaluate", { method: "POST", body: req.body, timeoutMs: 6000 })
+      .then((data) => {
+        if (CFG_COMPAT.pendingKey !== req.key) return; // llegó tarde: el usuario ya cambió algo
+        CFG_COMPAT.key = req.key;
+        CFG_COMPAT.data = data;
+        if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
+      })
+      .catch((err) => {
+        console.warn("Compatibilidad: se usa el motor local.", err.message);
+        if (CFG_COMPAT.pendingKey === req.key) { CFG_COMPAT.key = req.key; CFG_COMPAT.data = null; }
+      });
+  }
+  return null;
+}
+
+function cfgEvalConverter(cfg, panel, converter) {
+  if (!panel || !converter) return null;
+  const server = cfgServerCompat(cfg);
+  const id = dbIdOf(converter);
+  if (server && id && server.converters && id in server.converters) return server.converters[id];
+  return evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage, cfgTMin(cfg));
+}
+
+function cfgEvalBattery(cfg, battery, converter) {
+  if (!battery || !converter) return null;
+  const server = cfgServerCompat(cfg);
+  const id = dbIdOf(battery);
+  if (server && id && server.batteries && id in server.batteries) return server.batteries[id];
+  return evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage);
+}
+
+/* Cables y protecciones de continua: sólo con datos del servidor (null = sin verificación). */
+function cfgEvalExtra(cfg, product) {
+  const server = cfgServerCompat(cfg);
+  const id = dbIdOf(product);
+  return server && id && server.extras ? server.extras[id] || null : null;
+}
+
+const isMicroinverter = (p) => !!(p && p.specs && p.specs.es_microinversor === true);
 
 function configuratorSteps(cfg) {
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
@@ -27,7 +111,7 @@ function cfgTotals(cfg) {
     .filter((l) => l.product);
   const lines = [];
   if (panel) lines.push({ product: panel, qty: cfg.panelQty });
-  if (converter) lines.push({ product: converter, qty: 1 });
+  if (converter) lines.push({ product: converter, qty: isMicroinverter(converter) ? cfg.panelQty : 1 });
   if (battery) lines.push({ product: battery, qty: cfg.batteryQty });
   extraLines.forEach((l) => lines.push(l));
   const totalPower = panel ? panel.specs.pmax * cfg.panelQty : 0;
@@ -40,8 +124,8 @@ function cfgTotals(cfg) {
 function cfgCanAdvance(cfg) {
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
   const { panel, converter, battery } = cfgTotals(cfg);
-  const panelEval = panel && converter ? evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage) : null;
-  const batteryEval = battery && converter ? evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage) : null;
+  const panelEval = cfgEvalConverter(cfg, panel, converter);
+  const batteryEval = cfgEvalBattery(cfg, battery, converter);
   switch (cfgStepKey(cfg)) {
     case "type": return !!systemType;
     case "panels": return !!panel && cfg.panelQty > 0;
@@ -128,8 +212,8 @@ function renderConfigurator(state) {
   const totals = cfgTotals(cfg);
   const { panel, converter, battery, lines, totalPower } = totals;
 
-  const panelEval = panel && converter ? evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage) : null;
-  const batteryEval = battery && converter ? evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage) : null;
+  const panelEval = cfgEvalConverter(cfg, panel, converter);
+  const batteryEval = cfgEvalBattery(cfg, battery, converter);
 
   let title = "", lead = "", body = "";
 
@@ -190,6 +274,12 @@ function renderConfigurator(state) {
           </div>
         </div>
         ${wiringField}${voltageField}
+        <div class="field">
+          <label class="field-label" for="cfg-tmin">Temperatura mínima del lugar <span class="unit">(°C)</span></label>
+          <input id="cfg-tmin" class="input num-input" type="number" inputmode="numeric" min="-40" max="30" step="1"
+            value="${cfgTMin(cfg)}" name="min-temperature" autocomplete="off" data-bind="cfg-tmin" aria-describedby="cfg-tmin-hint" />
+          <p id="cfg-tmin-hint" class="field-hint">Con frío la tensión de los paneles sube: la verificamos a esta temperatura. Si no la sabés, dejá ${COMPAT_PARAMS.tMinC} °C.</p>
+        </div>
         <p class="total">Potencia total del arreglo: <strong class="mono" id="panel-total-power">${fmtNum(totalPower)}</strong>&nbsp;W</p>
       </div>`;
     }
@@ -198,14 +288,16 @@ function renderConfigurator(state) {
     const isReg = systemType.sourceCategory === "regulador";
     title = isReg ? "Elegí el regulador de carga" : "Elegí el inversor";
     lead = "Las opciones que no soportan tu arreglo de paneles aparecen deshabilitadas, con el motivo.";
-    const converters = PRODUCTS.filter((p) => p.category === systemType.sourceCategory && (p.systemTypes || []).includes(systemType.id));
+    const converters = cfgConverterOptions(systemType);
     body = converters.length ? `<div class="option-list">${converters.map((c) => {
-      const ev = evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, c, cfg.systemVoltage);
+      const ev = cfgEvalConverter(cfg, panel, c);
       const bad = ev && ev.status === "bad";
+      const microNote = isMicroinverter(c) ? `Microinversor: se usa uno por panel (${cfg.panelQty} unidades). ` : "";
+      const desc = microNote + (c.description || "");
       return optionButtonHTML({
         id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad,
         name: `${esc(c.brand)} ${esc(c.name)}`,
-        meta: c.description ? `<span style="font-family:var(--font-sans)">${esc(c.description)}</span>` : "",
+        meta: desc ? `<span style="font-family:var(--font-sans)">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
         msgs: ev && (bad || cfg.converterId === c.id) ? ev.messages : null,
       });
@@ -215,7 +307,7 @@ function renderConfigurator(state) {
     lead = "Verificamos que la tensión de la batería sea compatible y que la descarga alcance para el equipo.";
     const batteries = PRODUCTS.filter((p) => p.category === "bateria");
     const list = batteries.length ? `<div class="option-list">${batteries.map((b) => {
-      const ev = evaluateBatteryToConverter(b, cfg.batteryQty, converter, cfg.systemVoltage);
+      const ev = cfgEvalBattery(cfg, b, converter);
       const bad = ev && ev.status === "bad";
       return optionButtonHTML({
         id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad,
@@ -241,13 +333,15 @@ function renderConfigurator(state) {
     body = list + fields;
   } else if (key === "extras") {
     title = "Protecciones, cables y accesorios";
-    lead = "Opcional. Estos productos no tienen reglas de compatibilidad automáticas.";
+    lead = "Opcional. Los cables y protecciones de corriente continua se verifican contra tu string: tensión en frío y 1,25 × la corriente de cortocircuito.";
     const free = PRODUCTS.filter((p) => ["proteccion", "cable", "accesorio", "soporte"].includes(p.category));
     body = free.length ? `<div class="panel panel-pad" style="padding-block:6px">${free.map((p) => {
       const q = (cfg.extras && cfg.extras[p.id]) || 0;
+      const ev = cfgEvalExtra(cfg, p);
       return `
       <div class="extra-row">
-        <div style="min-width:0"><p class="name">${esc(p.name)}</p>${priceTagHTML(p, cur)}</div>
+        <div style="min-width:0"><p class="name">${esc(p.name)}</p>${priceTagHTML(p, cur)}${ev ? ` ${statusBadgeHTML(ev.status)}` : ""}
+          ${ev && ev.status !== "ok" ? `<p class="xsmall muted">${ev.messages.map(esc).join(" ")}</p>` : ""}</div>
         <div class="stepper" role="group" aria-label="Cantidad de ${esc(p.name)}">
           <button type="button" class="icon-btn" data-action="cfg-extra-step" data-id="${esc(p.id)}" data-delta="-1" data-fid="x-${esc(p.id)}-m" aria-label="Restar uno" ${q <= 0 ? "disabled" : ""}>${icon("minus")}</button>
           <span class="stepper-value">${q}</span>
@@ -257,7 +351,7 @@ function renderConfigurator(state) {
     }).join("")}</div>` : emptyStepHTML("No hay accesorios cargados en el catálogo.");
   } else if (key === "summary") {
     title = "Revisá tu sistema";
-    lead = "Si todo está bien, agregalo al carrito y pedí la cotización.";
+    lead = "Si todo está bien, agregalo al carrito para pagarlo o pedir la cotización.";
     body = `<div style="display:grid;gap:12px">
       ${verdictHTML(panelEval, "Paneles e inversor")}
       ${verdictHTML(batteryEval, "Batería")}

@@ -1006,3 +1006,15 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .legal a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
 .legal a.link-arrow { text-decoration: none; }
 .legal h2:first-child { margin-top: 0; }
+
+/* ---------- Checkout, advertencias de calculadoras y honeypot del formulario ---------- */
+.checkout-form { display: grid; gap: 12px; margin-bottom: 16px; }
+.checkout-title { font-size: 1rem; margin: 0; }
+.checkout-alt { border-top: 1px solid var(--line); padding-top: 14px; }
+.calc-warnings:empty { display: none; }
+.calc-warnings { margin-top: 12px; }
+.calc-warn-list { display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--r-surface); background: var(--warn-bg); color: var(--text); font-size: 0.875rem; list-style: none; margin: 0; }
+.calc-warn-list li { display: flex; gap: 8px; align-items: flex-start; }
+.calc-warn-list i { color: var(--warn); margin-top: 2px; }
+.hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.tone-text-ok { color: var(--ok); } .tone-text-warn { color: var(--warn); } .tone-text-bad { color: var(--bad); }

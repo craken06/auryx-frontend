@@ -29,9 +29,9 @@ function renderFooter() {
       </nav>
     </div>
     <div class="footer-base">
-      <p>Precios de referencia en ARS y USD, con IVA incluido, sujetos a confirmación de stock y condiciones en la cotización.${exchangeNoteText()}</p>
+      <p>Precios en ARS y USD con IVA incluido. Los pagos online se procesan con Mercado Pago.${exchangeNoteText()}</p>
       <p><strong>Aviso técnico:</strong> las verificaciones y calculadoras son orientativas y no reemplazan el proyecto de un profesional matriculado.</p>
-      <p class="footer-legal"><a href="#terms">Términos y condiciones</a><a href="#privacy">Política de privacidad</a></p>
+      <p class="footer-legal"><a href="#terms">Términos y condiciones</a><a href="#privacy">Política de privacidad</a><a href="#arrepentimiento"><strong>Botón de arrepentimiento</strong></a></p>
     </div>
   </div>`;
 }

@@ -47,7 +47,7 @@ function whatsappLink(text) {
 }
 
 /* Aviso técnico general: se muestra donde el usuario ve resultados de compatibilidad o cálculo. */
-const TECH_DISCLAIMER = "La verificación de compatibilidad y las calculadoras son orientativas: usan datos de la hoja del fabricante y no consideran corrección por temperatura, sombras, pérdidas de cableado ni normativa local. No reemplazan un proyecto firmado por un profesional matriculado. El dimensionamiento final lo confirmamos con vos antes de la compra, y la instalación debe hacerla personal matriculado.";
+const TECH_DISCLAIMER = "La verificación de compatibilidad y las calculadoras son orientativas: usan datos de la hoja del fabricante y corrigen la tensión por la temperatura mínima indicada, pero no consideran sombras, pérdidas de cableado ni normativa local. No reemplazan un proyecto firmado por un profesional matriculado. El dimensionamiento final lo confirmamos con vos antes de la compra, y la instalación debe hacerla personal matriculado.";
 
 function techNoteHTML(extraClass = "") {
   return `<p class="tech-note${extraClass ? " " + extraClass : ""}">${icon("info")}<span><strong>Aviso técnico.</strong> ${TECH_DISCLAIMER}</span></p>`;

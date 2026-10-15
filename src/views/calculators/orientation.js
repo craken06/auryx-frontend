@@ -3,7 +3,7 @@
 /* El hemisferio sale del signo de la latitud (negativa = sur). */
 function orientationTotals({ lat }) {
   return {
-    angle: Math.round(Math.abs(lat)),
+    angle: Math.max(10, Math.round(Math.abs(lat))), // cerca del ecuador, mínimo 10° para que la lluvia limpie
     azimuth: lat < 0 ? "Norte (0°)" : "Sur (180°)",
   };
 }

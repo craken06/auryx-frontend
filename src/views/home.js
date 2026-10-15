@@ -15,9 +15,9 @@ const CALCULATOR_LINKS = [
 /* Qué pasa después de armar el sistema. Lo usan la home, el carrito y la página de información. */
 const PROCESS_STEPS = [
   { icon: "solar-panel", title: "Armás tu sistema", text: "En el configurador o eligiendo productos sueltos. No hace falta registrarte." },
-  { icon: "chat-circle-text", title: "Pedís la cotización", text: "Con un clic se arma el mensaje con tu pedido y lo enviás por WhatsApp o por el formulario." },
+  { icon: "chat-circle-text", title: "Pagás o pedís la cotización", text: "Pagás online con Mercado Pago, o con un clic armás el mensaje con tu pedido y lo enviás por WhatsApp." },
   { icon: "clipboard-text", title: "Revisamos tu proyecto", text: "Una persona de Auryx revisa la compatibilidad y el dimensionamiento, y te consulta lo que haga falta: consumo, ubicación, techo." },
-  { icon: "receipt", title: "Recibís la cotización final", text: "Con precio, stock, envío e instalación confirmados. Recién ahí decidís si avanzás." },
+  { icon: "receipt", title: "Coordinamos envío e instalación", text: "Con stock, envío e instalación confirmados. Si pediste cotización, recién ahí decidís si avanzás." },
 ];
 
 function processStepsHTML(extraClass = "") {
@@ -96,7 +96,7 @@ function renderHome(state) {
         <h2 id="process-title" class="band-title">Cómo sigue después de armarlo</h2>
         <a class="link-arrow" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener">Consultanos por WhatsApp ${icon("arrow-right")}</a>
       </div>
-      <p class="band-lead">Sin pago online ni compromiso. Los precios publicados incluyen IVA.</p>
+      <p class="band-lead">Pagá online con Mercado Pago o pedí una cotización sin compromiso. Los precios publicados incluyen IVA.</p>
       ${processStepsHTML("process-steps-tight")}
     </div>
   </section>`;

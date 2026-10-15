@@ -17,6 +17,7 @@ function defaultConfigurator() {
   return {
     step: 0, systemTypeId: null, panelId: null, panelQty: 2, wiring: "series",
     systemVoltage: 24, converterId: null, batteryId: null, batteryQty: 1, extras: {},
+    tMinC: null, // null = la temperatura de diseño por defecto del backend
   };
 }
 
@@ -79,6 +80,10 @@ const App = {
     contactDraft: {},
     contactErrors: {},
     contactStatus: null,
+    contactSending: false,
+    checkout: { errors: {} },
+    order: null, // { id, data, error } de la página #pedido/<id>
+    revocation: { errors: {} },
   },
 
   cartReady: false, // hasta restaurar el carrito guardado no se escribe nada (evita pisarlo con uno vacío)
@@ -111,6 +116,8 @@ const App = {
       case "contact": body = renderContact(s); break;
       case "terms": body = renderTerms(); break;
       case "privacy": body = renderPrivacy(); break;
+      case "order": body = renderOrder(s); break;
+      case "revocation": body = renderRevocation(s); break;
       default: body = renderHome(s);
     }
     document.getElementById("app-root").innerHTML = body;
@@ -120,6 +127,7 @@ const App = {
 
     this.setupReveal();
     if (this.cartReady) persistCart(s.cart);
+    if (s.view === "calculators") this.calcFetchWarnings();
 
     // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
     const target = focusSelector
@@ -249,6 +257,55 @@ const App = {
       run: () => { this.state.cart.splice(Math.min(idx, this.state.cart.length), 0, removed); this.render(); },
     });
   },
+  async submitCheckout() {
+    const s = this.state;
+    const c = s.checkout;
+    const errors = {};
+    if ((c.name || "").trim().length < 2) errors.name = "Escribí tu nombre y apellido.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((c.email || "").trim())) errors.email = "Revisá el email: tiene que tener la forma nombre@dominio.com.";
+    c.errors = errors;
+    const firstError = ["name", "email"].find((k) => errors[k]);
+    if (firstError) { c.status = null; this.render({ focusSelector: `#checkout-${firstError}` }); return; }
+
+    c.sending = true; c.status = null;
+    this.render();
+    try {
+      const order = await apiRequest("/orders", {
+        method: "POST", timeoutMs: 15000,
+        body: { customer: { name: c.name.trim(), email: c.email.trim(), phone: (c.phone || "").trim() || undefined }, items: checkoutItems(s.cart) },
+      });
+      storageSet("auryx-last-order", order.publicId);
+      if (order.paymentUrl) { window.location.href = order.paymentUrl; return; } // sigue en Mercado Pago
+      c.sending = false;
+      navigateHash(`pedido/${order.publicId}`);
+    } catch (err) {
+      c.sending = false;
+      c.status = { tone: "bad", text: `${err.message} Si sigue fallando, pedí la cotización por WhatsApp.` };
+      this.render({ focusSelector: ".checkout-form .form-status" });
+    }
+  },
+
+  /* Estado del pedido: si el pago todavía no se acreditó, se reintenta unos segundos (el aviso de MP puede llegar después). */
+  async loadOrder(id, attempt = 0) {
+    const s = this.state;
+    if (attempt === 0) s.order = { id, data: null, error: null };
+    try {
+      const data = await apiRequest(`/orders/${encodeURIComponent(id)}`);
+      if (!s.order || s.order.id !== id) return; // el usuario ya se fue de la página
+      s.order.data = data;
+      if (data.status === "pagado" && storageGet("auryx-last-order") === id) {
+        s.cart = []; // pedido pagado: se vacía el carrito que lo originó
+        storageSet("auryx-last-order", "");
+      }
+      if (s.view === "order") this.render();
+      if (data.status === "pendiente_pago" && attempt < 6) setTimeout(() => this.loadOrder(id, attempt + 1), 4000);
+    } catch (err) {
+      if (!s.order || s.order.id !== id) return;
+      s.order.error = /no encontrado|Validation|uuid/i.test(err.message) ? "El número de pedido no es válido." : err.message;
+      if (s.view === "order") this.render();
+    }
+  },
+
   requestQuote() {
     const s = this.state;
     s.contactDraft = { ...s.contactDraft, message: quoteMessage(s) };
@@ -272,27 +329,59 @@ const App = {
   /* ---------------------------------------------------------------- calculadoras (actualización puntual) */
   setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
 
+  /* Las fórmulas se muestran al instante en el navegador; el backend (POST /calculators/*)
+     agrega las advertencias. Se consulta con una pausa para no llamar en cada tecla. */
+  calcWarnTimer: null,
+  calcFetchWarnings() {
+    clearTimeout(this.calcWarnTimer);
+    this.calcWarnTimer = setTimeout(async () => {
+      const s = this.state;
+      const section = CALCULATOR_RENDERERS[s.calcSection] ? s.calcSection : CALCULATOR_LINKS[0].id;
+      const c = s.calc;
+      const req = {
+        consumo: ["/calculators/consumption", { items: c.consumption }],
+        costo: ["/calculators/cost", c.cost],
+        ahorro: ["/calculators/savings", c.savings],
+        orientacion: c.orientation.mode === "optimal" ? ["/calculators/orientation", { lat: c.orientation.lat }] : null,
+      }[section];
+      const box = document.getElementById(`calc-warn-${section}`);
+      if (!box) return;
+      if (!req) { box.innerHTML = ""; return; }
+      try {
+        const { warnings } = await apiRequest(req[0], { method: "POST", body: req[1], timeoutMs: 5000 });
+        const target = document.getElementById(`calc-warn-${section}`);
+        if (target) target.innerHTML = calcWarningsHTML(warnings);
+      } catch (err) {
+        box.innerHTML = ""; // sin API las calculadoras siguen funcionando, sólo sin advertencias
+      }
+    }, 400);
+  },
+
   calcConsumptionRecompute() {
     const t = consumptionTotals(this.state.calc.consumption);
     this.setText("consumption-daily", t.daily);
     this.setText("consumption-monthly", t.monthly);
     this.setText("consumption-yearly", t.yearly);
+    this.calcFetchWarnings();
   },
   calcCostRecompute() {
     const { kwh, pricePerKwh } = this.state.calc.cost;
     this.setText("cost-total", fmtMoney(kwh * pricePerKwh));
+    this.calcFetchWarnings();
   },
   calcSavingsRecompute() {
     const t = savingsTotals(this.state.calc.savings);
     this.setText("sav-monthly", t.monthly);
     this.setText("sav-yearly", t.yearly);
     this.setText("sav-pct", t.pct);
+    this.calcFetchWarnings();
   },
   calcOrientationRecompute() {
     const t = orientationTotals(this.state.calc.orientation);
     this.setText("orient-azimuth", t.azimuth);
     this.setText("orient-angle", `≈ ${t.angle}°`);
     this.calcOrientationDraw(t.angle);
+    this.calcFetchWarnings();
   },
   calcOrientationAngleEdit(value) {
     let n = Math.round(Number(value));
@@ -352,7 +441,7 @@ const App = {
   },
 
   /* ---------------------------------------------------------------- contacto */
-  submitContact() {
+  async submitContact() {
     const s = this.state;
     const d = s.contactDraft;
     const errors = {};
@@ -368,6 +457,26 @@ const App = {
       return;
     }
 
+    s.contactSending = true;
+    s.contactStatus = null;
+    this.render();
+    try {
+      await apiRequest("/contact", { method: "POST", body: { name: d.name, email: d.email, phone: d.phone || undefined, message: d.message, website: d.website || undefined } });
+      s.contactSending = false;
+      s.contactDraft = {};
+      s.contactStatus = { tone: "ok", text: "¡Gracias! Recibimos tu mensaje y te respondemos dentro de las 48 h hábiles." };
+      this.render({ focusSelector: ".form-status" });
+      return;
+    } catch (err) {
+      s.contactSending = false;
+      // error de validación (4xx): se muestra; sin respuesta o error del servidor: canal alternativo
+      if (err.status && err.status < 500 && err.status !== 404) {
+        s.contactStatus = { tone: "bad", text: err.message };
+        this.render({ focusSelector: ".form-status" });
+        return;
+      }
+    }
+
     const body = `${d.message}\n\n${d.name}\n${d.email}${d.phone ? `\n${d.phone}` : ""}`;
     if (typeof CONTACT_EMAIL === "string" && CONTACT_EMAIL) {
       window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Consulta web: ${d.name}`)}&body=${encodeURIComponent(body)}`;
@@ -375,10 +484,31 @@ const App = {
     } else {
       // Sin backend ni email configurado, el canal es WhatsApp con el mensaje armado.
       window.open(whatsappLink(body), "_blank", "noopener");
-      s.contactStatus = { tone: "ok", text: "Abrimos WhatsApp con tu mensaje listo. Solo falta que lo envíes." };
+      s.contactStatus = { tone: "ok", text: "No pudimos conectar con el servidor: abrimos WhatsApp con tu mensaje listo. Solo falta que lo envíes." };
     }
     this.render({ focusSelector: ".form-status" });
   },
+};
+
+App.submitRevocation = async function () {
+  const r = this.state.revocation;
+  const errors = {};
+  if ((r.name || "").trim().length < 2) errors.name = "Escribí tu nombre.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((r.email || "").trim())) errors.email = "Revisá el email.";
+  if (!(r.orderId || "").trim()) errors.orderId = "Indicá el número de pedido (está en el mail o en la página del pedido).";
+  r.errors = errors;
+  const first = ["name", "email", "orderId"].find((k) => errors[k]);
+  if (first) { r.status = null; this.render({ focusSelector: `#rev-${first}` }); return; }
+  try {
+    await apiRequest("/contact", { method: "POST", body: {
+      name: r.name, email: r.email, phone: r.phone || undefined,
+      message: `[BOTÓN DE ARREPENTIMIENTO] Pedido: ${r.orderId.trim()}\n\n${(r.reason || "").trim() || "(sin comentarios)"}`,
+    } });
+    this.state.revocation = { errors: {}, done: true };
+  } catch (err) {
+    r.status = { tone: "bad", text: `${err.message} También podés pedirlo por WhatsApp.` };
+  }
+  this.render({ focusSelector: ".form-status" });
 };
 
 /* =========================================================================
@@ -491,6 +621,8 @@ const INPUT_BINDINGS = {
   },
   "orient-angle": (el) => App.calcOrientationAngleEdit(el.value),
   "contact": (el) => { App.state.contactDraft[el.dataset.field] = el.value; },
+  "checkout": (el) => { App.state.checkout[el.dataset.field] = el.value; },
+  "revocation": (el) => { App.state.revocation[el.dataset.field] = el.value; },
   "sizer": (el) => {
     if (el.tagName === "SELECT") return; // los selects se resuelven en "change"
     App.state.sizer[el.dataset.scope][el.dataset.field] = el.value;
@@ -503,6 +635,11 @@ const CHANGE_BINDINGS = {
   "store-sort": (el) => App.setStoreSort(el.value),
   "cfg-wiring": (el) => { App.state.configurator.wiring = el.value; App.render(); },
   "cfg-voltage": (el) => { App.state.configurator.systemVoltage = Number(el.value); App.render(); },
+  "cfg-tmin": (el) => {
+    const t = Math.round(Number(el.value));
+    App.state.configurator.tMinC = Number.isFinite(t) && el.value !== "" ? Math.max(-40, Math.min(30, t)) : null;
+    App.render();
+  },
   "cfg-panel-qty": () => App.render(),
   "cfg-battery-qty": () => App.render(),
   "detail-qty": () => App.render(),
@@ -541,6 +678,8 @@ document.addEventListener("toggle", (e) => {
 
 document.addEventListener("submit", (e) => {
   if (e.target.dataset.form === "contact") { e.preventDefault(); App.submitContact(); }
+  if (e.target.dataset.form === "checkout") { e.preventDefault(); App.submitCheckout(); }
+  if (e.target.dataset.form === "revocation") { e.preventDefault(); App.submitRevocation(); }
   if (e.target.dataset.form === "sizer") e.preventDefault();
 });
 
@@ -595,6 +734,12 @@ function applyRouteFromHash() {
   } else if (view === "calculators") {
     s.view = "calculators";
     s.calcSection = param || null;
+  } else if (view === "pedido") {
+    if (!param) return;
+    s.view = "order";
+    if (!s.order || s.order.id !== param) App.loadOrder(param);
+  } else if (view === "arrepentimiento") {
+    s.view = "revocation";
   } else if (["cart", "info", "contact", "terms", "privacy"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};
@@ -663,7 +808,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, 2500);
 
   try {
-    const apiProducts = await loadProductsFromAPI();
+    const [apiProducts] = await Promise.all([loadProductsFromAPI(), loadCompatibilityParams()]);
     if (apiProducts && apiProducts.length > 0) {
       PRODUCTS = apiProducts;
     } else {

@@ -19,9 +19,9 @@ function renderInfo() {
         <p>Cada producto tiene las especificaciones de su hoja de datos: tensión de circuito abierto, corriente de cortocircuito, potencia máxima, rangos de tensión de batería. Con esos valores calcula el motor de compatibilidad.</p>
         <h2>Qué verifica el configurador</h2>
         <p>Que la tensión del string no supere el máximo del inversor o regulador, que la corriente entre en cada MPPT, que la potencia FV esté dentro de lo admitido y que la batería trabaje en el rango de tensión del equipo. Si algo queda justo, te avisamos en lugar de bloquearlo.</p>
-        <p>Es una verificación simplificada: todavía <strong>no aplica corrección por temperatura</strong>. Para instalaciones definitivas, el dimensionamiento final lo revisamos con vos.</p>
+        <p>La tensión se verifica <strong>en frío</strong> (con la temperatura mínima del lugar), que es cuando los paneles dan más tensión, y la corriente contra el límite de cortocircuito de cada entrada. Los cables y protecciones de continua se controlan contra el string. No considera sombras, pérdidas de cableado ni normativa local: para instalaciones definitivas, el dimensionamiento final lo revisamos con vos.</p>
         <h2>Precios y compra</h2>
-        <p>Los precios son de referencia, en pesos y dólares, e <strong>incluyen IVA</strong>. El carrito termina en una solicitud de cotización: te contactamos para confirmar precio, stock, envío e instalación. Todavía no se paga online.</p>
+        <p>Los precios están en pesos y dólares e <strong>incluyen IVA</strong>. Podés pagar online con Mercado Pago o, si preferís, pedir una cotización por WhatsApp o por el formulario. En los dos casos coordinamos con vos el envío y la instalación, y revisamos el dimensionamiento antes de despachar.</p>
         <p>Más detalle en los <a href="#terms">Términos y condiciones</a> y la <a href="#privacy">Política de privacidad</a>.</p>
       </div>
       <div class="fact-list">
@@ -85,7 +85,9 @@ function renderContact(state) {
           ${fieldError("message")}
         </div>
         ${status ? `<p class="form-status tone-${status.tone}" role="status">${status.text}</p>` : ""}
-        <button type="submit" class="btn btn-primary btn-lg">${CONTACT_EMAIL ? "Enviar mensaje" : "Enviar por WhatsApp"}</button>
+        <div class="hp-field" aria-hidden="true"><label for="contact-website">No completar</label>
+          <input id="contact-website" name="website" tabindex="-1" autocomplete="off" data-bind="contact" data-field="website" /></div>
+        <button type="submit" class="btn btn-primary btn-lg" ${state.contactSending ? "disabled" : ""}>${state.contactSending ? "Enviando…" : "Enviar mensaje"}</button>
         <p class="xsmall dim">Al enviar aceptás la <a href="#privacy">Política de privacidad</a>.</p>
       </form>
     </div>
