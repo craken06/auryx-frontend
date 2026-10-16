@@ -12,7 +12,7 @@
 // URL base del backend (compragamer-api). Cambiar acá si:
 // - corre en otro puerto en tu máquina
 // - lo desplegás en un servidor/dominio real (ej. "https://api.auryx.com")
-const API_BASE_URL = "https://noncerebral-betsey-somniloquous.ngrok-free.dev";
+const API_BASE_URL = "https://compragamer-api.onrender.com";
 
 // Tasa de cambio de referencia, SOLO para mostrar el precio en la moneda
 // que un producto no tiene cargada en la base (ej. se cargó en ARS y el
