@@ -70,9 +70,10 @@ function dbIdOf(product) {
  * que mandó el backend (validaciones en castellano), para mostrarlo tal cual.
  * Con `auth: true` manda el token del cliente; si la API responde 401 la sesión
  * venció: se borra (el carrito no se toca) y se pide ingresar de nuevo, volviendo
- * después a la página actual.
+ * después a la página actual. Con `redirectOn401: false` solo se borra la sesión y
+ * se avisa (evento "auryx:session-expired"); quien llama decide qué mostrar.
  */
-async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth = false } = {}) {
+async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth = false, redirectOn401 = true } = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const headers = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
@@ -90,11 +91,16 @@ async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth =
       const msg = data && data.message;
       const err = new Error(Array.isArray(msg) ? msg.join(" ") : msg || `La API respondió ${res.status}`);
       err.status = res.status; // sin status = no hubo respuesta (red caída, timeout)
-      if (auth && res.status === 401) {
+      // 401 de un token que ya no es el actual (se ingresó con otra cuenta mientras tanto): se ignora
+      const current = getSession();
+      if (auth && res.status === 401 && session && current && current.token === session.token) {
         clearSession();
         markSessionExpired();
-        rememberAfterLogin(location.hash);
-        navigateHash("ingresar");
+        window.dispatchEvent(new CustomEvent("auryx:session-expired"));
+        if (redirectOn401) {
+          rememberAfterLogin(location.hash);
+          navigateHash("ingresar");
+        }
       }
       throw err;
     }

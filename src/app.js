@@ -37,11 +37,16 @@ function apiErrorText(err) {
 }
 
 /* Lo tipeado en el checkout se guarda en sessionStorage antes de pagar: si la sesión venció
-   (401), después de ingresar de nuevo se vuelve al carrito con todo como estaba. */
+   (401), después de ingresar de nuevo se vuelve al carrito con todo como estaba. El borrador
+   lleva el id del cliente: solo se recupera si vuelve a ingresar la misma persona. */
 const CHECKOUT_DRAFT_KEY = "auryx-checkout-draft";
-function saveCheckoutDraft(c) {
+function saveCheckoutDraft(c, customerId) {
   const { errors, sending, slow, status, ...draft } = c;
+  draft.customerId = customerId;
   try { sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* se ignora */ }
+}
+function peekCheckoutDraft() {
+  try { return JSON.parse(sessionStorage.getItem(CHECKOUT_DRAFT_KEY) || "null"); } catch (e) { return null; }
 }
 function clearCheckoutDraft() {
   try { sessionStorage.removeItem(CHECKOUT_DRAFT_KEY); } catch (e) { /* se ignora */ }
@@ -123,6 +128,7 @@ const App = {
   toastAction: null,
   gsiInitialized: false, // google.accounts.id.initialize se llama una sola vez
   meFetchedToken: null, // GET /me se pide una vez por visita (y de nuevo si cambia la sesión)
+  accountOwnerId: null, // id del cliente cuyos datos están en memoria (checkout, Mis datos, pedidos)
 
   get cartCount() { return this.state.cart.reduce((s, it) => s + Number(it.qty), 0); },
 
@@ -277,7 +283,10 @@ const App = {
         bad.status = 0;
         throw bad;
       }
+      // ingresó otra persona: no le queda a la vista nada de la anterior (solo un borrador suyo)
+      if (this.accountOwnerId !== data.customer.id) this.forgetAccountData({ keepDraftFor: data.customer.id });
       setSession(data);
+      this.accountOwnerId = data.customer.id;
       this.state.login = defaultLogin();
       const after = takeAfterLogin();
       // desde el carrito se sigue en el carrito, ya con el formulario de compra
@@ -298,34 +307,39 @@ const App = {
     clearSession();
     try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* se ignora */ }
     this.forgetAccountData();
+    this.accountOwnerId = null;
     this.state.mobileNavOpen = false;
     if (stay) this.render();
     else navigateHash("");
     this.toast("Cerraste sesión.");
   },
 
-  /* Sin sesión no quedan a la vista datos de la cuenta anterior. */
-  forgetAccountData() {
+  /* Sin sesión (o con otra cuenta) no quedan a la vista datos de la cuenta anterior.
+     keepDraftFor: se conserva el borrador del checkout solo si es de ese cliente. */
+  forgetAccountData({ keepDraftFor = null } = {}) {
     const s = this.state;
     s.checkout = defaultCheckout();
     s.account = defaultAccountForm();
     s.myOrders = null;
     if (s.order && isOrderCode(s.order.id)) s.order = null;
     this.meFetchedToken = null;
-    clearCheckoutDraft();
+    const draft = peekCheckoutDraft();
+    if (!(draft && keepDraftFor !== null && draft.customerId === keepDraftFor)) clearCheckoutDraft();
   },
 
   /* Al entrar al carrito: si se volvió de ingresar después de un 401, se recupera lo tipeado;
      si no, con sesión se precarga lo guardado en la cuenta (sin pisar lo que el usuario escribió). */
   prepareCheckout(entering) {
     const s = this.state;
-    const draft = takeCheckoutDraft();
-    if (draft) {
-      s.checkout = { ...defaultCheckout(), ...draft, address: { ...emptyAddress(), ...(draft.address || {}) }, touched: true };
-    }
     const session = getSession();
-    if (!session) return;
+    if (!session) return; // el borrador espera a que se vuelva a ingresar
+    const draft = takeCheckoutDraft();
+    if (draft && draft.customerId === session.customer.id) {
+      const { customerId, ...fields } = draft;
+      s.checkout = { ...defaultCheckout(), ...fields, address: { ...emptyAddress(), ...(fields.address || {}) }, touched: true };
+    }
     if (!s.checkout.touched) fillFromCustomer(s.checkout, session.customer);
+    // GET /me una vez por visita al carrito (o si cambió la sesión, p. ej. se ingresó desde el carrito)
     if (entering || this.meFetchedToken !== session.token) this.refreshMe("checkout");
   },
 
@@ -335,15 +349,35 @@ const App = {
     const session = getSession();
     if (!session) return;
     this.meFetchedToken = session.token;
+    const viewFor = { checkout: "cart", account: "my-account" }[formKey];
     let me;
-    try { me = await apiRequest("/me", { auth: true, timeoutMs: 70000 }); } catch (err) { return; } // 401: apiRequest ya pidió ingresar
+    try {
+      // sin redirección automática: la respuesta puede llegar un minuto después, en otra página
+      me = await apiRequest("/me", { auth: true, timeoutMs: 70000, redirectOn401: false });
+    } catch (err) {
+      if (err.status !== 401 || getSession()) return; // sin respuesta: queda lo de la sesión
+      const s = this.state;
+      if (s.view === "cart" && viewFor === "cart") {
+        // sesión vencida en el carrito: se sigue en el carrito como invitado, con el aviso
+        takeSessionExpired();
+        if (!s.login.busy) s.login = { ...defaultLogin(), error: "Tu sesión venció. Ingresá de nuevo." };
+        this.render();
+      } else if (s.view === "my-account" && viewFor === "my-account") {
+        rememberAfterLogin(location.hash); // Mis datos necesita sesión
+        navigateHash("ingresar");
+      } else {
+        takeSessionExpired(); // el usuario ya está en otra página: solo se actualiza el header
+        this.render();
+      }
+      return;
+    }
     const now = getSession();
     if (!now || now.token !== session.token || !me || typeof me !== "object") return;
     setSession({ token: now.token, customer: me });
     const form = this.state[formKey];
     if (!form || form.touched || form.sending) return;
     fillFromCustomer(form, me);
-    if (this.state.view === { checkout: "cart", account: "my-account" }[formKey]) this.render();
+    if (this.state.view === viewFor) this.render();
   },
 
   /* #mis-pedidos: se pide de nuevo en cada visita. */
@@ -478,7 +512,8 @@ const App = {
     if (firstError) { c.status = null; this.render({ focusSelector: `#checkout-${firstError}` }); return; }
 
     // antes de llamar: si la sesión venció (401), apiRequest lleva a #ingresar y al volver se recupera
-    saveCheckoutDraft(c);
+    const owner = getSession();
+    saveCheckoutDraft(c, owner ? owner.customer.id : null);
     Object.assign(c, { sending: true, slow: false, status: null });
     this.render();
     // Render gratis puede estar dormido: a los 5 s se avisa que puede tardar
@@ -932,18 +967,46 @@ document.addEventListener("error", (e) => {
 window.addEventListener("storage", (e) => {
   if (e.key !== SESSION_KEY || !App.cartReady) return;
   const s = App.state;
-  if (!getSession()) {
+  const session = getSession();
+  if (!session) {
     const accountPage = s.view === "my-orders" || s.view === "my-account" || (s.view === "order" && s.order && isOrderCode(s.order.id));
     App.forgetAccountData();
+    App.accountOwnerId = null;
     if (accountPage) {
       rememberAfterLogin(location.hash);
       navigateHash("ingresar");
       return;
     }
-  } else if (s.view === "cart") {
-    App.prepareCheckout(false);
+  } else {
+    // ingresó otra cuenta en otra pestaña: nada de lo tipeado por la anterior queda a la vista
+    if (App.accountOwnerId !== session.customer.id) {
+      App.forgetAccountData({ keepDraftFor: session.customer.id });
+      App.accountOwnerId = session.customer.id;
+      if (s.view === "my-orders") App.loadMyOrders();
+      if (s.view === "my-account") { fillFromCustomer(s.account, session.customer); App.refreshMe("account"); }
+    }
+    if (s.view === "cart") App.prepareCheckout(false);
   }
   App.render();
+});
+
+// Sesión vencida (401): se descartan los pedidos en memoria; el checkout queda para la misma persona
+window.addEventListener("auryx:session-expired", () => {
+  const s = App.state;
+  s.myOrders = null;
+  if (s.order && isOrderCode(s.order.id)) s.order = null;
+  s.account = defaultAccountForm();
+  App.meFetchedToken = null;
+});
+
+// Volver desde Mercado Pago con "Atrás" restaura la página de la caché (bfcache): el botón
+// de pago no tiene que quedar en "Preparando el pago…"
+window.addEventListener("pageshow", (e) => {
+  if (!e.persisted) return;
+  const c = App.state.checkout;
+  if (!c.sending && !c.slow) return;
+  Object.assign(c, { sending: false, slow: false });
+  if (App.cartReady) App.render();
 });
 
 // <details> no burbujea "toggle": se escucha en captura
@@ -1128,6 +1191,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.warn("Usando catálogo de demo: no se pudo conectar con la API en", API_BASE_URL);
     }
     App.state.cart = restoreCart();
+    const bootSession = getSession();
+    App.accountOwnerId = bootSession ? bootSession.customer.id : null;
     App.cartReady = true;
     clearTimeout(slowTimer);
     applyRouteFromHash();

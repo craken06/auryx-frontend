@@ -98,7 +98,7 @@ function myOrderCardHTML(o) {
       <p class="order-card-summary">${esc(orderSummaryText(o.items))}</p>
       <div class="order-card-badges">
         <span class="order-card-pair"><span class="small dim">Pago</span> ${orderBadgeHTML(PAYMENT_LABELS, o.status)}</span>
-        <span class="order-card-pair"><span class="small dim">Entrega</span> ${orderBadgeHTML(FULFILLMENT_LABELS, o.fulfillmentStatus)}</span>
+        ${o.status === "pagado" ? `<span class="order-card-pair"><span class="small dim">Entrega</span> ${orderBadgeHTML(FULFILLMENT_LABELS, o.fulfillmentStatus)}</span>` : ""}
         ${o.trackingNumber ? `<span class="small dim">Seguimiento <span class="mono">${esc(o.trackingNumber)}</span></span>` : ""}
       </div>
       <div class="order-card-foot">

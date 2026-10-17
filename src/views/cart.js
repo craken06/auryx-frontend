@@ -423,7 +423,7 @@ function renderCodeOrder(d) {
         <p class="muted" role="status">${esc(copy.text)}</p>
         <dl class="order-facts">
           <div><dt>Pago</dt><dd>${orderBadgeHTML(PAYMENT_LABELS, d.status)}</dd></div>
-          <div><dt>Entrega</dt><dd>${orderBadgeHTML(FULFILLMENT_LABELS, d.fulfillmentStatus)}</dd></div>
+          ${d.status === "pagado" ? `<div><dt>Entrega</dt><dd>${orderBadgeHTML(FULFILLMENT_LABELS, d.fulfillmentStatus)}</dd></div>` : ""}
           ${d.trackingNumber ? `<div><dt>Seguimiento</dt><dd class="mono">${esc(d.trackingNumber)}</dd></div>` : ""}
         </dl>
         ${payUrl ? `<a class="btn btn-primary" href="${esc(payUrl)}">${icon("credit-card")} Pagar con Mercado Pago</a>` : ""}
