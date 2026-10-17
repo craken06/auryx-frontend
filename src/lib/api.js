@@ -1,4 +1,4 @@
-/* AURYX: Cliente de la API real (compragamer-api). Depende de: config.js (API_BASE_URL, USD_ARS_RATE). */
+/* AURYX: Cliente de la API real (compragamer-api). Depende de: config.js (API_BASE_URL, USD_ARS_RATE), lib/session.js. */
 
 /* =========================================================================
    AURYX: Conexión con el backend real (compragamer-api / NestJS + Prisma)
@@ -68,15 +68,21 @@ function dbIdOf(product) {
 /**
  * Llamada a la API con timeout. Devuelve el JSON o lanza Error con el mensaje
  * que mandó el backend (validaciones en castellano), para mostrarlo tal cual.
+ * Con `auth: true` manda el token del cliente; si la API responde 401 la sesión
+ * venció: se borra (el carrito no se toca) y se pide ingresar de nuevo, volviendo
+ * después a la página actual.
  */
-async function apiRequest(path, { method = "GET", body, timeoutMs = 8000 } = {}) {
+async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth = false } = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+  const session = auth ? getSession() : null;
+  if (session) headers.Authorization = `Bearer ${session.token}`;
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method,
       signal: controller.signal,
-      headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await res.json().catch(() => null);
@@ -84,6 +90,11 @@ async function apiRequest(path, { method = "GET", body, timeoutMs = 8000 } = {})
       const msg = data && data.message;
       const err = new Error(Array.isArray(msg) ? msg.join(" ") : msg || `La API respondió ${res.status}`);
       err.status = res.status; // sin status = no hubo respuesta (red caída, timeout)
+      if (auth && res.status === 401) {
+        clearSession();
+        rememberAfterLogin(location.hash);
+        navigateHash("ingresar");
+      }
       throw err;
     }
     return data;

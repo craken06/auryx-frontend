@@ -29,3 +29,7 @@ const WHATSAPP_DISPLAY = "+54 9 11 6685-8516";
 // Email de respaldo: si la API no responde al enviar el formulario de contacto, se abre
 // el programa de correo con el mensaje armado (si queda vacío, se usa WhatsApp).
 const CONTACT_EMAIL = "";
+
+// Client ID de Google (OAuth "Aplicación web") para "Continuar con Google". Es público: no es
+// un secreto. Vacío = el ingreso de clientes queda deshabilitado y #ingresar lo avisa.
+const GOOGLE_CLIENT_ID = "";

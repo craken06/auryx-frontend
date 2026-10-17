@@ -1,4 +1,4 @@
-/* AURYX: header (navegación, moneda, tema, carrito) + menú móvil. Depende de: data/products.js, utils/format.js. */
+/* AURYX: header (navegación, moneda, tema, carrito, cuenta) + menú móvil. Depende de: data/products.js, utils/format.js, views/account.js. */
 
 /* =========================================================================
    AURYX: Vistas. Cada función devuelve un string de HTML. Las acciones del
@@ -21,7 +21,7 @@ function navCurrent(linkId, view) {
 }
 
 function renderNav(state) {
-  const { view, currency, cart, cartCount, mobileNavOpen, theme } = state;
+  const { view, currency, cart, cartCount, mobileNavOpen, theme, session } = state;
 
   const links = NAV_LINKS.map((l) => {
     const current = navCurrent(l.id, view) ? ' aria-current="page"' : "";
@@ -52,6 +52,28 @@ function renderNav(state) {
       </div>
       <div class="cart-preview-foot"><a href="#cart" class="btn btn-primary btn-block">Ver carrito</a></div>`;
 
+  // Cuenta: sin sesión, "Ingresar"; con sesión, foto + nombre con su menú
+  const customer = session && session.customer;
+  const account = customer
+    ? `
+      <div class="dropdown account-dropdown">
+        <button type="button" class="account-btn" aria-haspopup="true" aria-label="Tu cuenta: ${esc(customer.name || customer.email || "")}">
+          ${avatarHTML(customer, 30)}<span class="account-name">${esc(customerFirstName(customer))}</span>${icon("caret-down")}
+        </button>
+        <div class="dropdown-panel align-right account-panel">
+          <a href="#mis-pedidos" class="menu-item">${icon("package")}Mis pedidos</a>
+          <a href="#mi-cuenta" class="menu-item">${icon("user-circle")}Mis datos</a>
+          <div class="menu-sep" role="presentation"></div>
+          <button type="button" class="menu-item" data-action="logout">${icon("sign-out")}Cerrar sesión</button>
+        </div>
+      </div>`
+    : `<a href="#ingresar" class="btn btn-secondary btn-sm login-btn" data-action="login-start" aria-label="Ingresar">${icon("user")}<span class="login-label">Ingresar</span></a>`;
+  const mobileAccount = customer
+    ? `<a href="#mis-pedidos"${view === "my-orders" ? ' aria-current="page"' : ""}>Mis pedidos</a>
+      <a href="#mi-cuenta"${view === "my-account" ? ' aria-current="page"' : ""}>Mis datos</a>
+      <button type="button" data-action="logout">Cerrar sesión</button>`
+    : `<a href="#ingresar" data-action="login-start"${view === "login" ? ' aria-current="page"' : ""}>Ingresar</a>`;
+
   const nextCurrency = currency === "ARS" ? "USD" : "ARS";
   const nextTheme = theme === "dark" ? "claro" : "oscuro";
 
@@ -72,6 +94,7 @@ function renderNav(state) {
         </a>
         <div class="dropdown-panel align-right">${cartPanel}</div>
       </div>
+      ${account}
       <button type="button" class="icon-btn menu-btn" data-action="nav-toggle" data-fid="menu"
         aria-expanded="${mobileNavOpen}" aria-controls="mobile-nav" aria-label="${mobileNavOpen ? "Cerrar menú" : "Abrir menú"}">
         ${icon(mobileNavOpen ? "x" : "list")}
@@ -80,5 +103,6 @@ function renderNav(state) {
   </div>
   <nav id="mobile-nav" class="mobile-nav wrap" aria-label="Principal (móvil)" ${mobileNavOpen ? "" : "hidden"}>
     ${NAV_LINKS.map((l) => `<a href="${l.href}"${navCurrent(l.id, view) ? ' aria-current="page"' : ""}>${l.label}</a>`).join("")}
+    ${mobileAccount}
   </nav>`;
 }

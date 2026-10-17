@@ -21,6 +21,10 @@ function defaultConfigurator() {
   };
 }
 
+/* Estado de #ingresar: busy = esperando a la API; slow = pasaron 5 s (Render despertando);
+   gsiError = no cargó el script de Google. */
+function defaultLogin() { return { busy: false, slow: false, error: null, gsiError: false }; }
+
 const prefersReducedMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
@@ -84,6 +88,7 @@ const App = {
     checkout: { errors: {} },
     order: null, // { id, data, error } de la página #pedido/<id>
     revocation: { errors: {} },
+    login: defaultLogin(), // estado de #ingresar
   },
 
   cartReady: false, // hasta restaurar el carrito guardado no se escribe nada (evita pisarlo con uno vacío)
@@ -91,6 +96,7 @@ const App = {
   homeRevealed: false,
   toastTimer: null,
   toastAction: null,
+  gsiInitialized: false, // google.accounts.id.initialize se llama una sola vez
 
   get cartCount() { return this.state.cart.reduce((s, it) => s + Number(it.qty), 0); },
 
@@ -102,6 +108,7 @@ const App = {
 
     document.getElementById("nav-root").innerHTML = renderNav({
       view: s.view, currency: s.currency, cart: s.cart, cartCount: this.cartCount, mobileNavOpen: s.mobileNavOpen, theme: s.theme,
+      session: getSession(),
     });
 
     let body = "";
@@ -118,6 +125,9 @@ const App = {
       case "privacy": body = renderPrivacy(); break;
       case "order": body = renderOrder(s); break;
       case "revocation": body = renderRevocation(s); break;
+      case "login": body = renderLogin(s); break;
+      case "my-orders": body = renderMyOrders(s); break;
+      case "my-account": body = renderMyAccount(s); break;
       default: body = renderHome(s);
     }
     document.getElementById("app-root").innerHTML = body;
@@ -128,6 +138,7 @@ const App = {
     this.setupReveal();
     if (this.cartReady) persistCart(s.cart);
     if (s.view === "calculators") this.calcFetchWarnings();
+    if (s.view === "login") this.mountGoogleButton();
 
     // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
     const target = focusSelector
@@ -197,6 +208,61 @@ const App = {
     if (meta) meta.setAttribute("content", theme === "light" ? "#f3f5f9" : "#05080f");
     storageSet("auryx-theme", theme);
     this.render();
+  },
+
+  /* ---------------------------------------------------------------- cuenta */
+  /* El render reemplaza el HTML de la página: el botón de Google se vuelve a
+     dibujar en #gsi-button después de cada render de #ingresar. */
+  mountGoogleButton() {
+    const s = this.state;
+    if (!GOOGLE_CLIENT_ID || s.login.gsiError || getSession()) return;
+    loadGoogleScript().then(() => {
+      if (!this.gsiInitialized) {
+        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (resp) => App.loginWithGoogle(resp.credential) });
+        this.gsiInitialized = true;
+      }
+      const el = document.getElementById("gsi-button");
+      if (el) google.accounts.id.renderButton(el, { theme: "outline", size: "large", text: "continue_with", locale: "es" });
+    }).catch(() => {
+      s.login.gsiError = true;
+      if (s.view === "login") this.render();
+    });
+  },
+
+  /* El comprobante de Google se cambia por un token propio. Con la API dormida
+     (Render gratis) puede tardar cerca de un minuto: se avisa a los 5 s. */
+  async loginWithGoogle(credential) {
+    const l = this.state.login;
+    if (l.busy) return;
+    Object.assign(l, { busy: true, slow: false, error: null });
+    this.render();
+    const slowTimer = setTimeout(() => {
+      if (!l.busy) return;
+      l.slow = true;
+      if (this.state.view === "login") this.render();
+    }, 5000);
+    try {
+      const data = await apiRequest("/customer-auth/google", { method: "POST", body: { credential }, timeoutMs: 70000 });
+      setSession(data);
+      this.state.login = defaultLogin();
+      navigateHash(takeAfterLogin());
+      this.toast(`Hola, ${esc(customerFirstName(data.customer))}. Ya ingresaste.`);
+    } catch (err) {
+      // sin respuesta de la API (red caída): mensaje propio en vez del "Failed to fetch" del navegador
+      const error = err.status || /tardó/.test(err.message) ? err.message : "No pudimos conectar con el servidor. Probá de nuevo en un rato.";
+      Object.assign(l, { busy: false, slow: false, error });
+      if (this.state.view === "login") this.render({ focusSelector: ".login-status" });
+    } finally {
+      clearTimeout(slowTimer);
+    }
+  },
+
+  logout() {
+    clearSession();
+    try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* se ignora */ }
+    this.state.mobileNavOpen = false;
+    navigateHash("");
+    this.toast("Cerraste sesión.");
   },
 
   /* ---------------------------------------------------------------- tienda */
@@ -525,6 +591,9 @@ const ACTIONS = {
   "reload": () => location.reload(),
   "toast-dismiss": () => App.dismissToast(),
   "toast-action": () => { const a = App.toastAction; App.dismissToast(); if (a && a.run) a.run(); },
+  // link "Ingresar": recuerda la página actual para volver después (el link navega solo)
+  "login-start": () => rememberAfterLogin(location.hash),
+  "logout": () => App.logout(),
 
   "filter": (d) => App.setStoreFilter(d.key, d.value),
   "filters-clear": () => App.clearStoreFilters(),
@@ -671,6 +740,18 @@ document.addEventListener("change", (e) => {
   if (fn) fn(e.target);
 });
 
+// La foto de la cuenta que no carga se quita y queda la inicial ("error" no burbujea: captura)
+document.addEventListener("error", (e) => {
+  if (!(e.target && e.target.matches && e.target.matches("img[data-avatar-img]"))) return;
+  BROKEN_AVATARS.add(e.target.getAttribute("src"));
+  e.target.remove();
+}, true);
+
+// Ingreso o salida en otra pestaña: se actualiza el header
+window.addEventListener("storage", (e) => {
+  if (e.key === SESSION_KEY && App.cartReady) App.render();
+});
+
 // <details> no burbujea "toggle": se escucha en captura
 document.addEventListener("toggle", (e) => {
   if (e.target.dataset && e.target.dataset.bind === "filters-open") App.state.filtersOpen = e.target.open;
@@ -740,6 +821,19 @@ function applyRouteFromHash() {
     if (!s.order || s.order.id !== param) App.loadOrder(param);
   } else if (view === "arrepentimiento") {
     s.view = "revocation";
+  } else if (view === "ingresar") {
+    if (s.view !== "login" && !s.login.busy) s.login = defaultLogin();
+    s.view = "login";
+  } else if (view === "mis-pedidos" || view === "mi-cuenta") {
+    if (!getSession()) {
+      // sin sesión: a #ingresar, y después de ingresar se vuelve acá
+      rememberAfterLogin(raw);
+      history.replaceState(null, "", "#ingresar");
+      if (s.view !== "login" && !s.login.busy) s.login = defaultLogin();
+      s.view = "login";
+    } else {
+      s.view = view === "mis-pedidos" ? "my-orders" : "my-account";
+    }
   } else if (["cart", "info", "contact", "terms", "privacy"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};
