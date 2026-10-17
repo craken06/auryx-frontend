@@ -53,6 +53,24 @@ function loginStatusHTML(l) {
   return "";
 }
 
+/* Qué gana el cliente con la cuenta: se muestra debajo del botón de ingreso. */
+const LOGIN_BENEFITS = [
+  { icon: "shopping-cart-simple", title: "Comprá online", text: "Pagás con Mercado Pago en pocos pasos." },
+  { icon: "package", title: "Seguí tus pedidos", text: "Ves el estado del pago y de la entrega." },
+  { icon: "lightning", title: "Checkout más rápido", text: "Guardamos tu teléfono y dirección para la próxima." },
+];
+
+/* Composición de #ingresar: tarjeta a la izquierda, foto de la home a la derecha (se oculta en pantallas chicas). */
+function authLayoutHTML(cardHTML) {
+  return `
+  <section class="auth">
+    <div class="wrap auth-grid">
+      <div class="auth-card panel">${cardHTML}</div>
+      <div class="auth-media" aria-hidden="true"><img src="${HOME_IMAGES.hero}" alt="" width="1200" height="1500" loading="lazy" /></div>
+    </div>
+  </section>`;
+}
+
 /* #ingresar */
 function renderLogin(state) {
   const session = getSession();
@@ -60,29 +78,37 @@ function renderLogin(state) {
 
   if (session) {
     const c = session.customer;
-    return `
-    <div class="wrap page">
-      <div class="panel panel-pad login-card">
-        <div class="login-who">${avatarHTML(c, 48)}<div><p class="login-name">${esc(c.name || "")}</p><p class="small dim">${esc(c.email || "")}</p></div></div>
-        <p class="muted">Ya ingresaste con tu cuenta.</p>
-        <div class="hero-ctas"><a href="#mis-pedidos" class="btn btn-primary">Mis pedidos</a><a href="#store" class="btn btn-secondary">Seguir viendo productos</a></div>
-      </div>
-    </div>`;
+    return authLayoutHTML(`
+        <div class="auth-who">
+          ${avatarHTML(c, 64)}
+          <div class="auth-who-text"><p class="login-name">${esc(c.name || "")}</p><p class="small dim">${esc(c.email || "")}</p></div>
+        </div>
+        <div class="auth-head">
+          <h1 class="auth-title">Ya ingresaste</h1>
+          <p class="muted">Desde tu cuenta ves tus pedidos y los datos que usamos para la entrega.</p>
+        </div>
+        <div class="auth-actions">
+          <a href="#mis-pedidos" class="btn btn-primary">${icon("package")}Mis pedidos</a>
+          <a href="#mi-cuenta" class="btn btn-secondary">${icon("user-circle")}Mis datos</a>
+        </div>
+        <a href="#store" class="auth-link">Seguir viendo productos ${icon("arrow-right")}</a>`);
   }
 
-  const slot = googleSlotHTML(l);
-  const status = loginStatusHTML(l);
+  const benefits = LOGIN_BENEFITS.map((b) => `
+          <li>${icon(b.icon)}<div><strong>${b.title}</strong><span class="small dim">${b.text}</span></div></li>`).join("");
 
-  return `
-  <div class="wrap page">
-    <div class="panel panel-pad login-card">
-      <h1 class="page-title" style="font-size:1.75rem">Ingresá a tu cuenta</h1>
-      <p class="muted">Necesitás una cuenta para comprar. Usamos tu cuenta solo para identificarte y mostrarte tus pedidos.</p>
-      ${slot}
-      ${status}
-      <p class="xsmall dim">Al ingresar aceptás los <a href="#terms">Términos y condiciones</a>. Mirá qué datos guardamos en la <a href="#privacy">Política de privacidad</a>.</p>
-    </div>
-  </div>`;
+  return authLayoutHTML(`
+        <div class="auth-head">
+          <h1 class="auth-title">Ingresá a tu cuenta</h1>
+          <p class="muted">Necesitás una cuenta para comprar. La usamos solo para identificarte y mostrarte tus pedidos.</p>
+        </div>
+        <div class="auth-google">
+          ${googleSlotHTML(l)}
+          ${loginStatusHTML(l)}
+        </div>
+        <ul class="auth-benefits">${benefits}
+        </ul>
+        <p class="xsmall dim auth-legal">Al ingresar aceptás los <a href="#terms">Términos y condiciones</a>. Mirá qué datos guardamos en la <a href="#privacy">Política de privacidad</a>.</p>`);
 }
 
 

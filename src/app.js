@@ -255,7 +255,11 @@ const App = {
         this.gsiInitialized = true;
       }
       const el = document.getElementById("gsi-button");
-      if (el) google.accounts.id.renderButton(el, { theme: "outline", size: "large", text: "continue_with", locale: "es" });
+      if (!el) return;
+      // ancho del contenedor (Google acepta de 200 a 400 px) y colores según el tema del sitio
+      const width = Math.max(200, Math.min(400, Math.floor(el.clientWidth || 320)));
+      const theme = this.state.theme === "light" ? "outline" : "filled_black";
+      google.accounts.id.renderButton(el, { theme, size: "large", text: "continue_with", shape: "rectangular", width, locale: "es" });
     }).catch(() => {
       s.login.gsiError = true;
       if (s.view === "login" || s.view === "cart") this.render();
