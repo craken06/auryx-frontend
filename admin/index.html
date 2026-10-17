@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Administración | AURYX</title>
+<meta name="theme-color" content="#05080f">
+<!-- Tema antes de pintar: elección guardada > preferencia del sistema > oscuro (marca) -->
+<script>
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('auryx-admin-theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5/wdth.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<style>
+  /* Mismo sistema de diseño que el sitio (auryx-frontend/css/styles.css):
+     navy + amarillo solar como único acento; verde/ámbar/rojo solo para estados.
+     Radios: controles 8px, superficies 14px, etiquetas pill. */
+  :root {
+    --font-sans: "Archivo Variable", "Archivo", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+    --r-control: 8px; --r-surface: 14px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --bg: #05080f; --bg-raised: #090e19; --surface: #0d1422; --surface-2: #141d30;
+    --line: #1c2740; --line-strong: #2b3a58;
+    --text: #eef1f7; --text-mid: #b6bfd2; --text-dim: #8994ad;
+    --accent: #f5b301; --accent-hover: #ffc533; --accent-ink: #f5b301; --on-accent: #05080f;
+    --accent-soft: rgba(245, 179, 1, 0.12);
+    --ok: #5cc58f; --ok-bg: rgba(92, 197, 143, 0.13);
+    --warn: #f0a24b; --warn-bg: rgba(240, 162, 75, 0.14);
+    --bad: #f07a72; --bad-bg: rgba(240, 122, 114, 0.14);
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f5f9; --bg-raised: #fafbfd; --surface: #fbfcfe; --surface-2: #e9edf4;
+    --line: #d6dce7; --line-strong: #b9c2d3;
+    --text: #121a2e; --text-mid: #3d4862; --text-dim: #5a6681;
+    --accent-hover: #e0a300; --accent-ink: #8a5f00; --on-accent: #121a2e;
+    --accent-soft: rgba(245, 179, 1, 0.16);
+    --ok: #1d7a4c; --ok-bg: rgba(29, 122, 76, 0.1);
+    --warn: #9a5508; --warn-bg: rgba(154, 85, 8, 0.1);
+    --bad: #b3332b; --bad-bg: rgba(179, 51, 43, 0.09);
+    color-scheme: light;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; min-height: 100dvh; background: var(--bg); color: var(--text);
+    font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  a { color: var(--accent-ink); }
+  code { font-family: var(--font-mono); font-size: 0.8125rem; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .ph { line-height: 1; flex-shrink: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hidden { display: none !important; }
+  .muted { color: var(--text-dim); font-size: 0.8125rem; }
+
+  .wordmark {
+    display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; width: max-content;
+    font-weight: 800; font-stretch: 62%; font-size: 1.75rem; line-height: 0.9; letter-spacing: 0.01em;
+  }
+  .wordmark::after { content: ""; width: 46%; height: 3px; border-radius: 2px; background: var(--accent); margin-left: 27%; }
+
+  /* ------------------------------------------------ controles */
+  label { display: block; margin-top: 14px; margin-bottom: 6px; font-weight: 600; font-size: 0.8125rem; color: var(--text-mid); }
+  input:not([type="checkbox"]), select, textarea {
+    width: 100%; min-height: 40px; padding: 8px 12px;
+    background: var(--bg-raised); color: var(--text); font: inherit; font-size: 0.875rem;
+    border: 1px solid var(--line-strong); border-radius: var(--r-control);
+    transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: 1; }
+  input:hover, select:hover, textarea:hover { border-color: var(--text-dim); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  select {
+    appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 34px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%), linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+    background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%; background-size: 5px 5px; background-repeat: no-repeat;
+  }
+  select option { background-color: var(--bg-raised); color: var(--text); }
+  textarea { font-family: var(--font-mono); font-size: 0.8125rem; min-height: 220px; resize: vertical; }
+  input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+
+  button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 40px; margin-top: 16px; padding: 8px 16px;
+    border: 1px solid transparent; border-radius: var(--r-control);
+    background: var(--accent); color: var(--on-accent);
+    font: inherit; font-size: 0.875rem; font-weight: 600; line-height: 1.2; white-space: nowrap; cursor: pointer;
+    transition: background-color 0.18s var(--ease), border-color 0.18s var(--ease), color 0.18s var(--ease), transform 0.12s var(--ease);
+  }
+  button:hover:not(:disabled) { background: var(--accent-hover); }
+  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button .ph { font-size: 1.1em; }
+  button.secondary { background: transparent; border-color: var(--line-strong); color: var(--text); }
+  button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+  button.danger { background: transparent; border-color: color-mix(in srgb, var(--bad) 55%, transparent); color: var(--bad); }
+  button.danger:hover:not(:disabled) { background: var(--bad-bg); border-color: var(--bad); }
+  button.small { min-height: 32px; padding: 5px 11px; margin: 0 4px 0 0; font-size: 0.8125rem; }
+  button.link { min-height: 0; margin: 0; padding: 0; border: 0; background: none; color: var(--accent-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  button.link:hover:not(:disabled) { background: none; color: var(--text); }
+  button.icon-only { padding-inline: 9px; }
+
+  /* ------------------------------------------------ superficies */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-surface); padding: 22px; margin-bottom: 20px; }
+  @media (min-width: 768px) { .card { padding: 26px 28px; } }
+  .card-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 4px; }
+  .card h2 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.005em; }
+  .card > p.muted { margin: 8px 0 0; max-width: 90ch; line-height: 1.6; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 160px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button { margin-top: 20px; }
+
+  .msg { margin-top: 14px; padding: 10px 14px; border-radius: var(--r-control); display: none; font-size: 0.875rem; font-weight: 500; }
+  .msg.ok { display: block; background: var(--ok-bg); color: var(--ok); }
+  .msg.error { display: block; background: var(--bad-bg); color: var(--bad); }
+
+  .tag { display: inline-flex; align-items: center; padding: 2px 9px; margin: 2px 2px 2px 0; border-radius: 999px; font-size: 0.75rem; font-weight: 600; line-height: 1.5; white-space: nowrap; background: var(--surface-2); color: var(--text-mid); }
+  .tag.ok { background: var(--ok-bg); color: var(--ok); }
+  .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .tag.bad { background: var(--bad-bg); color: var(--bad); }
+
+  /* ------------------------------------------------ tablas */
+  .table-wrap { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-control); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 10px 12px; vertical-align: top; }
+  thead th {
+    background: var(--bg-raised); color: var(--text-dim); font-size: 0.6875rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; border-bottom: 1px solid var(--line);
+  }
+  tbody tr + tr td, tbody tr + tr th { border-top: 1px solid var(--line); }
+  tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+  tbody th { color: var(--text-dim); font-weight: 600; white-space: nowrap; width: 1%; }
+  td strong { font-weight: 650; }
+  /* el código del pedido (primera columna) va en mono y en una sola línea */
+  .table-wrap td:first-child strong { font-family: var(--font-mono); font-weight: 600; white-space: nowrap; }
+  #tabla_pedidos td:first-child, #tabla_clientes td:nth-child(3), #tabla_mensajes td:first-child { white-space: nowrap; }
+  #tabla_clientes td:nth-child(5), #tabla_clientes td:nth-child(6) { min-width: 104px; }
+  #tabla_pedidos td:nth-child(2) { min-width: 200px; }
+  #tabla_pedidos td:nth-child(3) { min-width: 190px; }
+  #tabla_pedidos td:nth-child(5) { min-width: 170px; }
+  #tabla_pedidos td:nth-child(4), #tabla_clientes td:nth-child(8) { white-space: nowrap; font-weight: 600; }
+  #tabla_mensajes td:nth-child(3) { min-width: 280px; }
+  .table-wrap table td[colspan] { padding: 28px 12px; text-align: center; color: var(--text-dim); }
+
+  /* ------------------------------------------------ login */
+  .login-screen { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+  .login-card { width: 100%; max-width: 400px; margin: 0; padding: 36px 32px; display: grid; gap: 4px; }
+  .login-card .wordmark { margin-bottom: 22px; }
+  .login-card h1 { font-size: 1.75rem; font-weight: 750; font-stretch: 82%; letter-spacing: -0.015em; }
+  .login-card button[type="submit"] { width: 100%; margin-top: 22px; min-height: 44px; }
+
+  /* ------------------------------------------------ estructura: barra lateral + contenido */
+  .shell { min-height: 100dvh; }
+  .sidebar { background: var(--bg-raised); border-bottom: 1px solid var(--line); padding: 14px 16px 0; }
+  .side-brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .side-brand .side-label { display: block; margin-top: 8px; font-size: 0.75rem; color: var(--text-dim); font-weight: 500; }
+  .side-tools { display: flex; gap: 8px; }
+  .side-tools button { margin: 0; }
+  nav.tabs { display: flex; gap: 4px; overflow-x: auto; margin-top: 12px; padding-bottom: 10px; scrollbar-width: none; }
+  nav.tabs button {
+    margin: 0; justify-content: flex-start; flex: none; min-height: 40px; padding: 8px 12px;
+    background: transparent; color: var(--text-mid); font-weight: 500;
+  }
+  nav.tabs button .ph { font-size: 18px; color: var(--text-dim); }
+  nav.tabs button:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+  nav.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+  nav.tabs button[aria-selected="true"] .ph { color: var(--accent-ink); }
+  .content { padding: 24px 16px 64px; min-width: 0; }
+  .content-head { margin-bottom: 20px; }
+  .content-head h1 { font-size: clamp(1.75rem, 3vw, 2.25rem); font-weight: 750; font-stretch: 82%; letter-spacing: -0.015em; line-height: 1.05; }
+  @media (min-width: 1000px) {
+    .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+    .sidebar {
+      position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column;
+      border-bottom: 0; border-right: 1px solid var(--line); padding: 28px 16px 20px;
+    }
+    .side-brand { padding: 0 8px; }
+    .side-brand .side-tools { display: none; }
+    nav.tabs { flex-direction: column; overflow: visible; margin-top: 32px; padding: 0; }
+    nav.tabs button { width: 100%; }
+    .side-foot { margin-top: auto; display: flex; gap: 8px; padding: 0 4px; }
+    .side-foot button { margin: 0; }
+    .side-foot button:last-child { flex: 1; }
+    .content { padding: 40px 40px 80px; max-width: 1360px; }
+  }
+  @media (max-width: 999px) { .side-foot { display: none; } }
+
+  /* ------------------------------------------------ piezas puntuales */
+  .imgs { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .imgs figure { margin: 0; width: 120px; font-size: 0.75rem; color: var(--text-dim); display: grid; gap: 6px; }
+  .imgs img { width: 120px; height: 86px; object-fit: cover; border: 1px solid var(--line); border-radius: var(--r-control); }
+  .imgs figure button { justify-self: start; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none;
+    background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-right: 10px;
+  }
+  .avatar.big { width: 64px; height: 64px; font-size: 28px; margin-right: 0; }
+  .ful { display: grid; gap: 6px; min-width: 170px; }
+  .ful select, .ful input { min-height: 34px; padding-block: 5px; }
+  .ful button.small { justify-self: start; margin: 0 !important; }
+  .ful .err { color: var(--bad); font-size: 0.75rem; }
+  .ficha-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .ficha-head h2 { font-size: 1.375rem !important; }
+  #cliente_ficha > table { border: 1px solid var(--line); border-radius: var(--r-control); border-collapse: separate; border-spacing: 0; overflow: hidden; }
+  #cliente_ficha h3 { font-size: 1rem !important; }
+  .label-inline { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .label-inline button { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<section id="login" class="login-screen hidden">
+  <div class="card login-card">
+    <span class="wordmark" translate="no">AURYX</span>
+    <h1>Administración</h1>
+    <p class="muted" style="font-size:0.875rem">Ingresá con tu usuario del panel.</p>
+    <form id="login_form">
+      <label for="login_user">Usuario</label>
+      <input id="login_user" name="username" autocomplete="username" spellcheck="false" required>
+      <label for="login_pass">Contraseña</label>
+      <input id="login_pass" name="password" type="password" autocomplete="current-password" required>
+      <button type="submit"><i class="ph ph-sign-in" aria-hidden="true"></i>Ingresar</button>
+      <div id="login_msg" class="msg" role="alert"></div>
+    </form>
+  </div>
+</section>
+
+<div id="app" class="shell hidden">
+<aside class="sidebar">
+  <div class="side-brand">
+    <div><span class="wordmark" translate="no">AURYX</span><span class="side-label">Administración</span></div>
+    <div class="side-tools">
+      <button type="button" class="secondary small icon-only" data-theme-toggle aria-label="Cambiar tema"><i class="ph ph-moon" aria-hidden="true"></i></button>
+      <button type="button" class="secondary small" onclick="logout()"><i class="ph ph-sign-out" aria-hidden="true"></i>Salir</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button role="tab" data-tab="productos" aria-selected="true"><i class="ph ph-solar-panel" aria-hidden="true"></i>Productos</button>
+    <button role="tab" data-tab="faltantes" aria-selected="false"><i class="ph ph-warning-circle" aria-hidden="true"></i>Faltan datos</button>
+    <button role="tab" data-tab="pedidos" aria-selected="false"><i class="ph ph-package" aria-hidden="true"></i>Pedidos</button>
+    <button role="tab" data-tab="clientes" aria-selected="false"><i class="ph ph-users" aria-hidden="true"></i>Clientes</button>
+    <button role="tab" data-tab="mensajes" aria-selected="false"><i class="ph ph-chat-circle-text" aria-hidden="true"></i>Mensajes</button>
+    <button role="tab" data-tab="reglas" aria-selected="false"><i class="ph ph-plugs-connected" aria-hidden="true"></i>Reglas de compatibilidad</button>
+  </nav>
+  <div class="side-foot">
+    <button type="button" class="secondary small icon-only" data-theme-toggle aria-label="Cambiar tema"><i class="ph ph-moon" aria-hidden="true"></i></button>
+    <button type="button" class="secondary small" onclick="logout()"><i class="ph ph-sign-out" aria-hidden="true"></i>Cerrar sesión</button>
+  </div>
+</aside>
+
+<main class="content">
+<header class="content-head"><h1 id="page_title">Productos</h1></header>
+
+<!-- ============================== PRODUCTOS -->
+<section data-panel="productos">
+<div class="card">
+  <h2 id="form_title">Cargar producto</h2>
+  <label for="category_id">Categoría</label>
+  <select id="category_id"><option value="">Cargando categorías…</option></select>
+
+  <div class="row">
+    <div><label for="brand">Marca</label><input id="brand" placeholder="Canadian Solar…" autocomplete="off"></div>
+    <div><label for="name">Nombre / Modelo</label><input id="name" placeholder="CS6R-550MS…" autocomplete="off"></div>
+  </div>
+
+  <div class="row">
+    <div><label for="sku">SKU</label><input id="sku" placeholder="Opcional…" autocomplete="off" spellcheck="false"></div>
+    <div><label for="price">Precio (IVA incluido)</label><input id="price" type="number" step="0.01" inputmode="decimal" placeholder="185000…"></div>
+    <div><label for="currency">Moneda</label>
+      <select id="currency"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+  </div>
+
+  <div class="row">
+    <div><label for="stock_status">Estado de stock</label>
+      <select id="stock_status">
+        <option value="disponible">Disponible</option>
+        <option value="a_pedido">A pedido</option>
+        <option value="sin_stock">Sin stock</option>
+      </select></div>
+    <div><label for="active">Visible en la tienda</label>
+      <select id="active"><option value="true">Sí</option><option value="false">No (oculto)</option></select></div>
+    <div><label for="datasheet_url">URL Datasheet</label><input id="datasheet_url" type="url" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
+  </div>
+
+  <label for="description">Descripción (opcional)</label>
+  <textarea id="description" style="min-height:72px; font-family:inherit; font-size:0.875rem"></textarea>
+
+  <div class="label-inline" style="margin-top:14px; margin-bottom:6px">
+    <label for="specs" style="margin:0">Specs técnicas (JSON)</label>
+    <button type="button" class="secondary small" onclick="cargarPlantilla()"><i class="ph ph-file-code" aria-hidden="true"></i>Cargar plantilla según categoría</button>
+  </div>
+  <textarea id="specs" spellcheck="false" placeholder='{"potencia_wp": 550, "voc": 49.5, …}'></textarea>
+
+  <div id="images_box" class="hidden">
+    <label>Imágenes (URL https pública: GitHub, Cloudinary, sitio del fabricante…)</label>
+    <div class="imgs" id="images_list"></div>
+    <div class="row" style="margin-top:10px; align-items:center">
+      <div style="flex:3"><input id="img_url" type="url" placeholder="https://…" aria-label="URL de la imagen" autocomplete="off" spellcheck="false"></div>
+      <div><input id="img_alt" placeholder="Texto alternativo…" aria-label="Texto alternativo" autocomplete="off"></div>
+      <div style="flex:0 0 auto; min-width:0"><button type="button" class="secondary small" onclick="agregarImagen()"><i class="ph ph-image" aria-hidden="true"></i>Agregar imagen</button></div>
+    </div>
+  </div>
+
+  <input type="hidden" id="editing_id" value="">
+  <div class="actions">
+    <button id="btn_guardar" onclick="guardarProducto()">Guardar producto</button>
+    <button id="btn_cancelar" class="secondary hidden" onclick="cancelarEdicion()">Cancelar edición</button>
+  </div>
+  <div id="msg" class="msg" role="status"></div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Productos cargados</h2>
+    <div>
+      <button class="secondary small" onclick="cargarProductos()"><i class="ph ph-arrow-clockwise" aria-hidden="true"></i>Actualizar</button>
+      <button class="danger small" onclick="borrarTodos()"><i class="ph ph-trash" aria-hidden="true"></i>Borrar todos</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table id="tabla">
+      <thead><tr><th>ID</th><th>Categoría</th><th>Marca</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Categorías (referencia)</h2>
+  <div class="table-wrap">
+    <table id="tabla_categorias">
+      <thead><tr><th>ID</th><th>Slug</th><th>Nombre</th><th>Campos del schema</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================== FALTAN DATOS -->
+<section data-panel="faltantes" class="hidden">
+<div class="card">
+  <h2>Productos con specs incompletos</h2>
+  <p class="muted">"Obligatorios" = campos requeridos por el schema de la categoría. "Configurador" = datos que usa el motor de compatibilidad: sin ellos el producto se marca "revisar" o no aparece.</p>
+  <div class="table-wrap">
+  <table id="tabla_faltantes">
+    <thead><tr><th>ID</th><th>Categoría</th><th>Producto</th><th>Obligatorios</th><th>Configurador</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================== PEDIDOS -->
+<section data-panel="pedidos" class="hidden">
+<div class="card">
+  <div class="row" style="align-items:flex-end">
+    <div style="flex:0 1 220px">
+      <label for="pedidos_filtro" style="margin-top:0">Mostrar</label>
+      <select id="pedidos_filtro">
+        <option value="para_preparar" selected>Para preparar</option>
+        <option value="pendientes_pago">Pendientes de pago</option>
+        <option value="entregados">Entregados</option>
+        <option value="todos">Todos</option>
+      </select>
+    </div>
+    <div style="flex:0 1 240px">
+      <label for="pedidos_q" style="margin-top:0">Buscar por código</label>
+      <input id="pedidos_q" type="search" placeholder="AX-…" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+  <div id="pedidos_msg" class="msg" role="status"></div>
+  <div class="table-wrap">
+  <table id="tabla_pedidos">
+    <thead><tr><th>Pedido</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Entrega</th><th>Estado de entrega</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================== CLIENTES -->
+<section data-panel="clientes" class="hidden">
+<div class="card" id="clientes_lista">
+  <label for="clientes_q" style="margin-top:0">Buscar por nombre, email o teléfono</label>
+  <input id="clientes_q" type="search" placeholder="Nombre o email…" autocomplete="off" style="max-width:340px">
+  <div class="table-wrap">
+  <table id="tabla_clientes">
+    <thead><tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Cuenta</th><th>Alta</th><th>Último ingreso</th><th>Pedidos</th><th>Total pagado</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+</div>
+<div class="card hidden" id="cliente_ficha"></div>
+</section>
+
+<!-- ============================== MENSAJES -->
+<section data-panel="mensajes" class="hidden">
+<div class="card">
+  <h2>Mensajes del formulario de contacto</h2>
+  <div class="table-wrap">
+  <table id="tabla_mensajes">
+    <thead><tr><th>Fecha</th><th>De</th><th>Mensaje</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================== REGLAS -->
+<section data-panel="reglas" class="hidden">
+<div class="card">
+  <p class="muted" style="margin-top:0">Cada regla compara una métrica (p. ej. <code>vocCold</code>, la tensión del string en frío) contra un dato del equipo (<code>maxPvVoltage</code>). Dentro de un mismo grupo gana la primera que se cumple. Las filas <code>_param</code> son parámetros globales (temperatura mínima de diseño, márgenes). Los cambios se aplican en hasta 1 minuto.</p>
+  <div class="table-wrap">
+  <table id="tabla_reglas">
+    <thead><tr><th>Par</th><th>Grupo</th><th>Condición</th><th>Resultado</th><th>Mensaje</th><th>Activa</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <div id="reglas_msg" class="msg" role="status"></div>
+</div>
+</section>
+</main>
+</div>
+
+<script src="../src/config.js?v=20261021"></script>
+<script src="backend.js?v=20261021"></script>
+<script>
+let categorias = [];
+let editingImages = [];
+
+// Escapa texto antes de meterlo en el HTML (nombres y mensajes vienen de la base y de formularios públicos).
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// --- Sesión: el token vive en sessionStorage (se borra al cerrar la pestaña) ---
+const getToken = () => { try { return sessionStorage.getItem('auryx-admin-token'); } catch { return null; } };
+const setToken = (t) => { try { t ? sessionStorage.setItem('auryx-admin-token', t) : sessionStorage.removeItem('auryx-admin-token'); } catch {} };
+
+// Las rutas "/api/..." se resuelven en backend.js, que llama a compragamer-api directo.
+async function api(path, options = {}) {
+  try {
+    return await backend(path, options, getToken());
+  } catch (err) {
+    if (err.status === 401 && path !== '/api/login') { showLogin('Tu sesión venció. Ingresá de nuevo.'); throw new Error('Sesión vencida'); }
+    throw err;
+  }
+}
+
+function showLogin(text) {
+  setToken(null);
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login').classList.remove('hidden');
+  const m = document.getElementById('login_msg');
+  if (text) { m.textContent = text; m.className = 'msg error'; }
+}
+
+document.getElementById('login_form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const m = document.getElementById('login_msg');
+  try {
+    const { token } = await api('/api/login', { method: 'POST', body: JSON.stringify({ user: login_user.value, password: login_pass.value }) });
+    setToken(token);
+    login_pass.value = '';
+    m.className = 'msg';
+    startApp();
+  } catch (err) {
+    m.textContent = err.message; m.className = 'msg error';
+  }
+});
+
+function logout() { showLogin(); }
+
+function flash(id, text, ok = true) {
+  const m = document.getElementById(id);
+  m.textContent = text;
+  m.className = 'msg ' + (ok ? 'ok' : 'error');
+}
+
+// --- Pestañas ---
+const LOADERS = { productos: cargarProductos, faltantes: cargarFaltantes, pedidos: cargarPedidos, clientes: cargarClientes, mensajes: cargarMensajes, reglas: cargarReglas };
+document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+function showTab(tab, sinCarga = false) {
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  document.querySelectorAll('[data-panel]').forEach((s) => s.classList.toggle('hidden', s.dataset.panel !== tab));
+  const btn = document.querySelector(`nav.tabs button[data-tab="${tab}"]`);
+  if (btn) document.getElementById('page_title').textContent = btn.textContent.trim();
+  if (!sinCarga) LOADERS[tab]().catch((err) => console.error(err));
+}
+
+// Plantillas de specs por slug de categoría
+const plantillas = {
+  panel: {
+    potencia_wp: 0, voc: 0, isc: 0, vmp: 0, imp: 0, coef_temp_voc: 0, tech: "N-type TOPCon",
+    ip_modulo: "IP68", grado_ip_caja_conexiones: "IP67",
+    normas: ["IEC 61215", "IEC 61730"], clase_fuego: "C",
+    carga_viento_pa: 0, carga_nieve_pa: 0, niebla_salina: false,
+    grosor_vidrio_mm: 0, rango_temp_c: [-40, 85],
+    tiene_cables: true, bastidor_material: ""
+  },
+  inversor: {
+    potencia_nominal_w: 0, tipo: "monofasico", es_microinversor: false,
+    vmpp_min: 0, vmpp_max: 0, corriente_max_entrada: 0,
+    nivel_activacion_fuga_tierra_ma: 0, nivel_fallo_aislamiento: "",
+    proteccion_polaridad_inversa: true, proteccion_sobretemperatura: true,
+    proteccion_sobretension_transitoria: true, proteccion_arco_electrico: false,
+    rele_programable: false, altitud_max_m: 0, humedad_max_pct: 0,
+    ip: "IP65", material_carcasa: "", normas: ["EN 62109", "IEC 62109"],
+    grado_contaminacion: 3,
+    // Campos del motor de compatibilidad: completar con la hoja de datos.
+    // En inversores con MPPT asimétricos, cargar la corriente del MPPT más chico.
+    maxPvVoltage: 0, mpptRangeMin: 0, mpptRangeMax: 0, mpptCount: 0,
+    maxPvPower: 0, maxInputCurrentPerMppt: 0, maxShortCircuitCurrentPerMppt: 0, ratedPowerAC: 0,
+    batteryVoltageMin: 0, batteryVoltageMax: 0,
+    systemTypes: ["ongrid"]
+  },
+  bateria: {
+    capacidad_kwh: 0, tipo: "LiFePO4", vida_util_ciclos: 0,
+    nominalVoltage: 0, maxContinuousCurrent: 0,
+    ip: "IP65", temp_almacenamiento_c: [-20, 60],
+    tension_flotacion_v: 0, tension_absorcion_v: 0,
+    normas: ["UL 1973", "IEC 62619"]
+  },
+  regulador: {
+    tipo: "MPPT", ratedChargeCurrent: 0, maxPvVoltage: 0,
+    systemVoltageOptions: [12, 24], maxPvPowerBySystemVoltage: { "12": 0, "24": 0 },
+    trackingEfficiency: 0, systemTypes: ["offgrid"], ip: "IP20", normas: []
+  },
+  cable: {
+    tipo: "cable_dc", norma_cable: "", seccion_mm2: 0, tension_max_v: 0,
+    corriente_max_a: 0, largo_m: 0, resistencia_uv: true, ip: "IP68", normas: []
+  },
+  proteccion: { tipo: "", lado: "dc", tension_max_v: 0, corriente_nominal_a: 0, compatible_con: [], material: "" },
+  accesorio: { tipo: "", compatible_con: [], carga_max_kg: 0, material: "" },
+  soporte: { tipo: "", compatible_con: [], carga_max_kg: 0, material: "" }
+};
+
+async function cargarCategorias() {
+  categorias = await api('/api/categories');
+  document.getElementById('category_id').innerHTML = categorias.map((c) => `<option value="${c.id}" data-slug="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
+  document.querySelector('#tabla_categorias tbody').innerHTML = categorias.map((c) => `
+    <tr><td>${c.id}</td><td>${esc(c.slug)}</td><td>${esc(c.name)}</td>
+    <td class="muted">${esc(c.spec_schema?.properties ? Object.keys(c.spec_schema.properties).join(', ') : '(sin schema)')}</td></tr>`).join('');
+}
+
+function cargarPlantilla() {
+  const sel = document.getElementById('category_id');
+  const slug = sel.options[sel.selectedIndex]?.dataset.slug;
+  document.getElementById('specs').value = JSON.stringify(plantillas[slug] || {}, null, 2);
+}
+
+const FIELDS = ['brand', 'name', 'sku', 'price', 'currency', 'stock_status', 'active', 'description', 'datasheet_url', 'specs'];
+
+async function guardarProducto() {
+  const editingId = document.getElementById('editing_id').value;
+  const body = { category_id: document.getElementById('category_id').value };
+  FIELDS.forEach((f) => { body[f] = document.getElementById(f).value; });
+  try {
+    const data = await api(editingId ? `/api/products/${editingId}` : '/api/products', { method: editingId ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    flash('msg', editingId ? `Producto ${editingId} actualizado` : `Producto guardado con ID ${data.id}`);
+    if (editingId) cancelarEdicion();
+    cargarProductos();
+  } catch (err) { flash('msg', err.message, false); }
+}
+
+async function editarProducto(id) {
+  showTab('productos');
+  const p = await api(`/api/products/${id}`);
+  document.getElementById('editing_id').value = p.id;
+  document.getElementById('category_id').value = p.category_id;
+  document.getElementById('brand').value = p.brand || '';
+  document.getElementById('name').value = p.name || '';
+  document.getElementById('sku').value = p.sku || '';
+  document.getElementById('price').value = p.price || '';
+  document.getElementById('currency').value = p.currency || 'ARS';
+  document.getElementById('stock_status').value = p.stock_status || 'disponible';
+  document.getElementById('active').value = String(p.active !== false);
+  document.getElementById('description').value = p.description || '';
+  document.getElementById('datasheet_url').value = p.datasheet_url || '';
+  document.getElementById('specs').value = JSON.stringify(p.specs || {}, null, 2);
+  editingImages = p.images || [];
+  renderImagenes();
+  document.getElementById('images_box').classList.remove('hidden');
+  document.getElementById('btn_guardar').textContent = 'Actualizar producto';
+  document.getElementById('form_title').textContent = `Editar producto #${p.id}`;
+  document.getElementById('btn_cancelar').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelarEdicion() {
+  document.getElementById('editing_id').value = '';
+  ['brand', 'name', 'sku', 'price', 'description', 'datasheet_url', 'specs'].forEach((f) => { document.getElementById(f).value = ''; });
+  document.getElementById('active').value = 'true';
+  document.getElementById('images_box').classList.add('hidden');
+  document.getElementById('btn_guardar').textContent = 'Guardar producto';
+  document.getElementById('form_title').textContent = 'Cargar producto';
+  document.getElementById('btn_cancelar').classList.add('hidden');
+}
+
+function renderImagenes() {
+  document.getElementById('images_list').innerHTML = editingImages.length
+    ? editingImages.map((i) => `<figure><img src="${esc(i.url)}" alt="${esc(i.alt_text)}"><figcaption>${esc(i.alt_text || '')}
+        <button type="button" class="danger small" onclick="borrarImagen(${i.id})"><i class="ph ph-x" aria-hidden="true"></i>Quitar</button></figcaption></figure>`).join('')
+    : '<span class="muted">Sin imágenes: la tienda muestra el ícono de la categoría.</span>';
+}
+
+async function agregarImagen() {
+  const id = document.getElementById('editing_id').value;
+  try {
+    const img = await api(`/api/products/${id}/images`, { method: 'POST', body: JSON.stringify({ url: img_url.value.trim(), alt_text: img_alt.value.trim(), order: editingImages.length }) });
+    editingImages.push({ id: img.id, url: img.url, alt_text: img.altText, order: img.order });
+    img_url.value = ''; img_alt.value = '';
+    renderImagenes();
+    cargarProductos();
+  } catch (err) { flash('msg', err.message, false); }
+}
+
+async function borrarImagen(imageId) {
+  const id = document.getElementById('editing_id').value;
+  try {
+    await api(`/api/products/${id}/images/${imageId}`, { method: 'DELETE' });
+    editingImages = editingImages.filter((i) => i.id !== imageId);
+    renderImagenes();
+    cargarProductos();
+  } catch (err) { flash('msg', err.message, false); }
+}
+
+async function borrarProducto(id) {
+  if (!confirm(`¿Borrar el producto ID ${id}? No se puede deshacer. (Para ocultarlo sin borrarlo, editalo y poné "Visible: No".)`)) return;
+  try { await api(`/api/products/${id}`, { method: 'DELETE' }); flash('msg', `Producto ${id} borrado`); cargarProductos(); }
+  catch (err) { flash('msg', err.message, false); }
+}
+
+async function borrarTodos() {
+  const frase = prompt('Esto borra TODOS los productos y no se puede deshacer.\nPara confirmar, escribí: BORRAR TODO');
+  if (frase !== 'BORRAR TODO') return;
+  try { await api('/api/products', { method: 'DELETE', body: JSON.stringify({ confirm: frase }) }); flash('msg', 'Todos los productos fueron borrados'); cargarProductos(); }
+  catch (err) { flash('msg', err.message, false); }
+}
+
+const STOCK = { disponible: ['Disponible', 'ok'], a_pedido: ['A pedido', 'warn'], sin_stock: ['Sin stock', 'bad'] };
+const stockTag = (st) => { const [label, cls] = STOCK[st] || [st, '']; return `<span class="tag ${cls}">${esc(label)}</span>`; };
+
+async function cargarProductos() {
+  const productos = await api('/api/products');
+  document.querySelector('#tabla tbody').innerHTML = productos.map((p) => `
+    <tr>
+      <td>${p.id}</td><td>${esc(p.category_name)}</td><td>${esc(p.brand)}</td><td>${esc(p.name)}</td>
+      <td style="white-space:nowrap">${esc(Number(p.price).toLocaleString('es-AR'))} ${esc(p.currency)}</td><td>${stockTag(p.stock_status)}</td>
+      <td>${p.active ? '' : '<span class="tag warn">oculto</span>'}${p.images ? `<span class="tag">${p.images} img</span>` : ''}${p.in_configurator ? '<span class="tag ok">configurador</span>' : ''}</td>
+      <td><button class="secondary small" onclick="editarProducto(${p.id})"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Editar</button>
+          <button class="danger small icon-only" onclick="borrarProducto(${p.id})" aria-label="Borrar producto ${p.id}"><i class="ph ph-trash" aria-hidden="true"></i></button></td>
+    </tr>`).join('');
+}
+
+async function cargarFaltantes() {
+  const rows = await api('/api/products/incomplete');
+  const tags = (list, cls) => list.map((k) => `<span class="tag ${cls}">${esc(k)}</span>`).join('') || '<span class="muted">-</span>';
+  document.querySelector('#tabla_faltantes tbody').innerHTML = rows.length ? rows.map((r) => `
+    <tr><td>${r.id}</td><td>${esc(r.category)}</td><td>${esc(r.brand)} ${esc(r.name)}</td>
+    <td>${tags(r.missingRequired, 'bad')}</td><td>${tags(r.missingEngine, 'warn')}</td>
+    <td><button class="secondary small" onclick="editarProducto(${r.id})">Completar</button></td></tr>`).join('')
+    : '<tr><td colspan="6">Todos los productos tienen sus datos completos.</td></tr>';
+}
+
+const ESTADOS = { pagado: 'ok', pendiente_pago: 'warn', cotizacion: '', rechazado: 'bad', cancelado: 'bad' };
+const money = (n) => Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+
+const FULFILLMENT_LABEL = { pendiente: 'Pendiente', preparando: 'Preparando', enviado: 'Enviado', listo_para_retirar: 'Listo para retirar', entregado: 'Entregado' };
+const DELIVERY_LABEL = { envio: 'Envío', retiro: 'Retiro' };
+// Mismas reglas que la API (solo un pedido pagado cambia de entrega; el método define las opciones).
+const FULFILLMENT_ALLOWED = {
+  envio: ['pendiente', 'preparando', 'enviado', 'entregado'],
+  retiro: ['pendiente', 'preparando', 'listo_para_retirar', 'entregado'],
+  sinMetodo: ['pendiente', 'preparando', 'entregado'],
+};
+const allowedFulfillment = (o) => o.status !== 'pagado' ? [] : (FULFILLMENT_ALLOWED[o.deliveryMethod] || FULFILLMENT_ALLOWED.sinMetodo);
+const fecha = (d) => d ? new Date(d).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+
+// "calle, piso · ciudad, provincia (CP)"; el piso se omite si no hay.
+function direccion(a) {
+  if (!a) return '';
+  const calle = [a.street, a.floor].filter(Boolean).join(', ');
+  return `${calle} · ${a.city || ''}, ${a.province || ''} (${a.zip || ''})`;
+}
+
+// Foto del cliente, o un círculo con la inicial si no tiene (o si la imagen no carga).
+function avatarHtml(c, big = false) {
+  const inicial = esc((String(c.name || c.email || '?').trim()[0] || '?').toUpperCase());
+  const cls = 'avatar' + (big ? ' big' : '');
+  if (c.avatarUrl && /^https?:\/\//i.test(c.avatarUrl)) {
+    return `<img class="${cls}" src="${esc(c.avatarUrl)}" alt="" referrerpolicy="no-referrer" data-initial="${inicial}" onerror="avatarFallback(this)">`;
+  }
+  return `<span class="${cls}">${inicial}</span>`;
+}
+function avatarFallback(img) {
+  const s = document.createElement('span');
+  s.className = img.className;
+  s.textContent = img.dataset.initial || '?';
+  img.replaceWith(s);
+}
+
+function celdaEntrega(o) {
+  const permitidas = allowedFulfillment(o);
+  if (!permitidas.length) return `<span class="muted">${esc(FULFILLMENT_LABEL[o.fulfillmentStatus] || o.fulfillmentStatus)}</span>`;
+  const actual = o.fulfillmentStatus;
+  const opciones = (permitidas.includes(actual) ? permitidas : [actual, ...permitidas])
+    .map((s) => `<option value="${esc(s)}" ${s === actual ? 'selected' : ''}>${esc(FULFILLMENT_LABEL[s] || s)}</option>`).join('');
+  return `<div class="ful" data-id="${esc(o.id)}">
+    <select data-ful="status" aria-label="Estado de entrega">${opciones}</select>
+    <input data-ful="tracking" placeholder="Nº de seguimiento" value="${esc(o.trackingNumber || '')}" class="${actual === 'enviado' ? '' : 'hidden'}">
+    <button type="button" class="small" data-ful="save" style="margin-top:6px">Guardar</button>
+    <div class="err hidden" data-ful="err"></div></div>`;
+}
+
+let pedidosSeq = 0;
+async function cargarPedidos() {
+  const seq = ++pedidosSeq;
+  const qs = new URLSearchParams({ filter: pedidos_filtro.value });
+  if (pedidos_q.value.trim()) qs.set('q', pedidos_q.value.trim());
+  const rows = await api('/api/orders?' + qs);
+  if (seq !== pedidosSeq) return; // llegó una respuesta más nueva
+  document.querySelector('#tabla_pedidos tbody').innerHTML = rows.length ? rows.map((o) => `
+    <tr><td><strong>${esc(o.code || '-')}</strong><br><span class="muted">${fecha(o.createdAt)}</span>
+      <br><span class="tag ${ESTADOS[o.status] ?? ''}">${esc(o.status.replace('_', ' '))}</span>${o.mpPaymentId ? `<br><span class="muted">MP #${esc(o.mpPaymentId)}</span>` : ''}</td>
+    <td>${o.customer ? `<button type="button" class="link" data-cliente="${esc(o.customer.id)}">${esc(o.customer.name)}</button>` : esc(o.customerName) + ' <span class="tag">sin cuenta</span>'}
+      <br><span class="muted">${esc(o.customerEmail)}</span>${o.customerPhone ? `<br><span class="muted" style="white-space:nowrap">${esc(o.customerPhone)}</span>` : ''}${o.notes ? `<br><span class="muted">${esc(o.notes)}</span>` : ''}
+      ${o.billingDoc ? `<br><span class="muted">Factura: ${esc(o.billingName || '')} <span style="white-space:nowrap">${esc(o.billingDoc)}</span></span>` : ''}</td>
+    <td>${o.items.map((i) => `${i.quantity}× ${esc(i.productName)}`).join('<br>')}</td>
+    <td>${money(o.totalArs)}</td>
+    <td>${o.deliveryMethod ? `<strong>${esc(DELIVERY_LABEL[o.deliveryMethod] || o.deliveryMethod)}</strong>` : '<span class="muted">-</span>'}${o.shippingAddress ? `<br><span class="muted">${esc(direccion(o.shippingAddress))}</span>` : ''}</td>
+    <td>${celdaEntrega(o)}</td></tr>`).join('')
+    : '<tr><td colspan="6">No hay pedidos con este filtro.</td></tr>';
+}
+
+const debounce = (fn, ms = 300) => { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; };
+pedidos_filtro.addEventListener('change', () => cargarPedidos().catch((err) => flash('pedidos_msg', err.message, false)));
+pedidos_q.addEventListener('input', debounce(() => cargarPedidos().catch((err) => flash('pedidos_msg', err.message, false))));
+
+const tbodyPedidos = document.querySelector('#tabla_pedidos tbody');
+tbodyPedidos.addEventListener('change', (e) => {
+  if (e.target.dataset.ful !== 'status') return;
+  e.target.closest('.ful').querySelector('[data-ful="tracking"]').classList.toggle('hidden', e.target.value !== 'enviado');
+});
+tbodyPedidos.addEventListener('click', async (e) => {
+  const cli = e.target.closest('[data-cliente]');
+  if (cli) { abrirCliente(cli.dataset.cliente); return; }
+  if (e.target.dataset.ful !== 'save') return;
+  const box = e.target.closest('.ful');
+  const err = box.querySelector('[data-ful="err"]');
+  const status = box.querySelector('[data-ful="status"]').value;
+  const body = { status };
+  if (status === 'enviado') body.trackingNumber = box.querySelector('[data-ful="tracking"]').value.trim();
+  err.classList.add('hidden');
+  e.target.disabled = true;
+  try {
+    const o = await api(`/api/orders/${encodeURIComponent(box.dataset.id)}/fulfillment`, { method: 'PATCH', body: JSON.stringify(body) });
+    flash('pedidos_msg', `Pedido ${o.code || ''} actualizado`);
+    await cargarPedidos();
+  } catch (ex) {
+    err.textContent = ex.message; err.classList.remove('hidden');
+    e.target.disabled = false;
+  }
+});
+
+// --- Clientes ---
+const PROVEEDOR = { google: 'Google', microsoft: 'Microsoft' };
+let clientesSeq = 0;
+async function cargarClientes() {
+  volverALista();
+  const seq = ++clientesSeq;
+  const q = clientes_q.value.trim();
+  const rows = await api('/api/customers' + (q ? '?q=' + encodeURIComponent(q) : ''));
+  if (seq !== clientesSeq) return;
+  document.querySelector('#tabla_clientes tbody').innerHTML = rows.length ? rows.map((c) => `
+    <tr><td style="white-space:nowrap">${avatarHtml(c)}<button type="button" class="link" data-cliente="${esc(c.id)}">${esc(c.name)}</button>${c.blocked ? ' <span class="tag bad">bloqueado</span>' : ''}</td>
+    <td>${esc(c.email)}</td><td>${esc(c.phone || '-')}</td><td>${(c.providers || []).map((p) => `<span class="tag">${esc(PROVEEDOR[p] || p)}</span>`).join('')}</td>
+    <td>${fecha(c.createdAt)}</td><td>${fecha(c.lastLoginAt)}</td><td>${esc(c.paidOrders)}</td><td>${money(c.paidTotalArs)}</td></tr>`).join('')
+    : '<tr><td colspan="8">No hay clientes que coincidan.</td></tr>';
+}
+clientes_q.addEventListener('input', debounce(() => cargarClientes().catch((err) => console.error(err))));
+document.querySelector('#tabla_clientes tbody').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cliente]');
+  if (b) abrirCliente(b.dataset.cliente);
+});
+
+function volverALista() {
+  document.getElementById('cliente_ficha').classList.add('hidden');
+  document.getElementById('clientes_lista').classList.remove('hidden');
+}
+
+async function abrirCliente(id) {
+  showTab('clientes', true);
+  const ficha = document.getElementById('cliente_ficha');
+  document.getElementById('clientes_lista').classList.add('hidden');
+  ficha.classList.remove('hidden');
+  ficha.innerHTML = '<span class="muted">Cargando…</span>';
+  try {
+    renderFicha(await api(`/api/customers/${encodeURIComponent(id)}`), false);
+  } catch (err) {
+    ficha.innerHTML = `<button type="button" class="secondary small" data-act="volver" style="margin-top:0"><i class="ph ph-arrow-left" aria-hidden="true"></i>Volver</button><div class="msg error">${esc(err.message)}</div>`;
+  }
+}
+
+function renderFicha(c, confirmando, error = '') {
+  const ficha = document.getElementById('cliente_ficha');
+  ficha._cliente = c;
+  const bloqueo = confirmando
+    ? `<span>¿Seguro que querés ${c.blocked ? 'desbloquear' : 'bloquear'} a este cliente?</span>
+       <button type="button" class="${c.blocked ? '' : 'danger'} small" data-act="bloqueo-si" style="margin-top:0">Sí</button>
+       <button type="button" class="secondary small" data-act="bloqueo-no" style="margin-top:0">No</button>`
+    : `<button type="button" class="${c.blocked ? '' : 'danger'} small" data-act="bloqueo" style="margin-top:0">${c.blocked ? 'Desbloquear' : 'Bloquear'}</button>`;
+  const orders = c.orders || [];
+  ficha.innerHTML = `
+    <button type="button" class="secondary small" data-act="volver" style="margin-top:0"><i class="ph ph-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="ficha-head" style="margin-top:12px">
+      ${avatarHtml(c, true)}
+      <div style="flex:1; min-width:200px">
+        <h2 style="font-size:18px; margin:0">${esc(c.name)} ${c.blocked ? '<span class="tag bad">bloqueado</span>' : ''}</h2>
+        <div class="muted">${esc(c.email)}</div>
+      </div>
+      <div>${bloqueo}</div>
+    </div>
+    ${error ? `<div class="msg error">${esc(error)}</div>` : ''}
+    <table style="margin-top:20px; max-width:680px"><tbody>
+      <tr><th>Teléfono</th><td>${esc(c.phone || '-')}</td></tr>
+      <tr><th>Ingreso con</th><td>${(c.providers || []).map((p) => `<span class="tag">${esc(PROVEEDOR[p] || p)}</span>`).join('') || '-'}</td></tr>
+      <tr><th>Alta</th><td>${fecha(c.createdAt)}</td></tr>
+      <tr><th>Último ingreso</th><td>${fecha(c.lastLoginAt)}</td></tr>
+      <tr><th>Dirección guardada</th><td>${c.defaultAddress ? esc(direccion(c.defaultAddress)) : '-'}</td></tr>
+      <tr><th>Facturación</th><td>${c.billingDoc ? `${esc(c.billingName || '')} · ${esc(c.billingDoc)}` : '-'}</td></tr>
+      <tr><th>Pedidos pagados</th><td>${esc(c.paidOrders)} · ${money(c.paidTotalArs)}</td></tr>
+    </tbody></table>
+    <h3 style="font-size:15px; margin:20px 0 8px">Pedidos</h3>
+    <div class="table-wrap"><table><thead><tr><th>Código</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Entrega</th><th>Pago</th><th>Estado de entrega</th></tr></thead><tbody>
+    ${orders.length ? orders.map((o) => `<tr><td><strong>${esc(o.code || '-')}</strong></td><td>${fecha(o.createdAt)}</td>
+      <td>${(o.items || []).map((i) => `${i.quantity}× ${esc(i.productName)}`).join('<br>')}</td><td>${money(o.totalArs)}</td>
+      <td>${o.deliveryMethod ? esc(DELIVERY_LABEL[o.deliveryMethod] || o.deliveryMethod) : '-'}${o.shippingAddress ? `<br><span class="muted">${esc(direccion(o.shippingAddress))}</span>` : ''}</td>
+      <td><span class="tag ${ESTADOS[o.status] ?? ''}">${esc(String(o.status).replace('_', ' '))}</span>${o.mpPaymentId ? `<br><span class="muted">MP #${esc(o.mpPaymentId)}</span>` : ''}</td>
+      <td>${esc(FULFILLMENT_LABEL[o.fulfillmentStatus] || o.fulfillmentStatus)}${o.trackingNumber ? `<br><span class="muted">${esc(o.trackingNumber)}</span>` : ''}</td></tr>`).join('')
+      : '<tr><td colspan="7">Todavía no hizo pedidos.</td></tr>'}
+    </tbody></table></div>`;
+}
+
+document.getElementById('cliente_ficha').addEventListener('click', async (e) => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (!act) return;
+  const c = e.currentTarget._cliente;
+  if (act === 'volver') { cargarClientes().catch((err) => console.error(err)); return; }
+  if (act === 'bloqueo') renderFicha(c, true);
+  else if (act === 'bloqueo-no') renderFicha(c, false);
+  else if (act === 'bloqueo-si') {
+    try {
+      const row = await api(`/api/customers/${encodeURIComponent(c.id)}`, { method: 'PATCH', body: JSON.stringify({ blocked: !c.blocked }) });
+      renderFicha({ ...c, blocked: row.blocked }, false);
+    } catch (err) { renderFicha(c, false, err.message); }
+  }
+});
+
+async function cargarMensajes() {
+  const rows = await api('/api/contact');
+  document.querySelector('#tabla_mensajes tbody').innerHTML = rows.length ? rows.map((m) => `
+    <tr style="${m.read ? 'opacity:.6' : ''}"><td>${new Date(m.createdAt).toLocaleString('es-AR')}</td>
+    <td>${esc(m.name)}<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a> ${esc(m.phone || '')}</td>
+    <td style="white-space:pre-wrap">${esc(m.message)}</td>
+    <td>${m.read ? '' : `<button class="secondary small" onclick="marcarLeido(${m.id})"><i class="ph ph-check" aria-hidden="true"></i>Leído</button>`}</td></tr>`).join('')
+    : '<tr><td colspan="4">No hay mensajes.</td></tr>';
+}
+
+async function marcarLeido(id) { await api(`/api/contact/${id}/read`, { method: 'PUT' }); cargarMensajes(); }
+
+let reglas = [];
+async function cargarReglas() {
+  reglas = await api('/api/rules');
+  document.querySelector('#tabla_reglas tbody').innerHTML = reglas.length ? reglas.map((r) => `
+    <tr><td>${esc(r.sourceCategory)} → ${esc(r.targetCategory)}</td><td>${esc(r.checkKey)} <span class="muted">#${r.priority}</span></td>
+    <td><input value="${esc(JSON.stringify(r.condition))}" data-rule="${r.id}" data-field="condition" style="font-family:monospace;font-size:12px;min-width:220px"></td>
+    <td><span class="tag ${r.resultType === 'bad' ? 'bad' : r.resultType === 'warning' ? 'warn' : ''}">${esc(r.resultType)}</span></td>
+    <td><textarea data-rule="${r.id}" data-field="message" style="min-height:48px;font-family:inherit;font-size:12px;min-width:220px">${esc(r.message)}</textarea></td>
+    <td><input type="checkbox" data-rule="${r.id}" data-field="active" ${r.active ? 'checked' : ''} style="width:auto"></td>
+    <td><button class="small" onclick="guardarRegla(${r.id})">Guardar</button></td></tr>`).join('')
+    : '<tr><td colspan="7">La tabla está vacía: el motor usa las reglas por defecto. Corré <code>node scripts/migrate.js --apply</code> en compragamer-api para cargarlas y poder editarlas.</td></tr>';
+}
+
+async function guardarRegla(id) {
+  const get = (f) => document.querySelector(`[data-rule="${id}"][data-field="${f}"]`);
+  try {
+    const condition = JSON.parse(get('condition').value);
+    await api(`/api/rules/${id}`, { method: 'PUT', body: JSON.stringify({ condition, message: get('message').value, active: get('active').checked }) });
+    flash('reglas_msg', `Regla ${id} guardada`);
+  } catch (err) { flash('reglas_msg', err.message, false); }
+}
+
+async function startApp() {
+  try {
+    await api('/api/me');
+  } catch (err) {
+    showLogin(err.message === 'Sesión vencida' ? 'Tu sesión venció. Ingresá de nuevo.' : `No se pudo conectar con la API: ${err.message}`);
+    return;
+  }
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  await cargarCategorias();
+  showTab('productos');
+}
+
+// --- Tema claro/oscuro (mismo criterio que el sitio) ---
+function aplicarIconoTema() {
+  const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+  document.querySelectorAll('[data-theme-toggle]').forEach((b) => {
+    b.innerHTML = `<i class="ph ph-${dark ? 'sun' : 'moon'}" aria-hidden="true"></i>`;
+    b.setAttribute('aria-label', dark ? 'Pasar a modo claro' : 'Pasar a modo oscuro');
+  });
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#05080f' : '#f3f5f9');
+}
+document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('auryx-admin-theme', next); } catch {}
+  aplicarIconoTema();
+}));
+aplicarIconoTema();
+
+getToken() ? startApp() : showLogin();
+</script>
+
+</body>
+</html>
