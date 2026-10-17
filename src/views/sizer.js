@@ -642,14 +642,48 @@ function sizerBomHTML(lines, total, currency) {
   </div>`;
 }
 
-/* Mensaje de WhatsApp con el sistema armado, para pedir la cotización real. */
-function sizerQuoteMessage(label, r, currency) {
+/* Datos que cargó el usuario, solo los campos que se ven en pantalla para ese modo y objetivo. */
+function sizerInputsSummary(kind, st) {
+  const num = (v, dec = 0) => { const n = sizerNum(v); return fmtNum(n, Number.isInteger(n) ? 0 : dec); };
+  const goal = SIZER_GOALS.find((g) => g.id === st.goal);
+  const rows = [
+    ["Objetivo", goal ? goal.label : st.goal],
+    ["Consumo mensual", `${num(st.cons)} kWh/mes`],
+    ["Ubicación", sizerLocation(st.hsp).label],
+  ];
+  if (st.goal === "red") rows.push(["Cobertura del consumo", `${num(st.cover)} %`]);
+  else if (st.goal === "resp") rows.push(["Horas de respaldo", `${num(st.hours, 1)} h`]);
+  else rows.push(["Días de autonomía", `${num(st.days, 1)} días`]);
+  if (kind === "custom") {
+    if (st.goal !== "red") rows.push(["Cargas críticas", `${num(st.crit, 1)} kW`]);
+    rows.push(["Conexión", st.phase === "tri" ? "Trifásica 380 V" : "Monofásica 220 V"]);
+    rows.push(["Superficie libre", `${num(st.area, 1)} m²`]);
+    const est = sizerById(SIZER_STRUCTURES, st.est);
+    if (est) rows.push(["Tipo de techo", est.name]);
+    const ori = SIZER_ORIENTATIONS.find((o) => o.value === String(st.ori));
+    if (ori) rows.push(["Orientación", ori.label]);
+    rows.push(["Temperaturas", `mín. ${num(st.tmin, 1)} °C / máx. ${num(st.tmax, 1)} °C`]);
+    const pan = sizerById(SIZER_PANELS, st.pan);
+    if (pan) rows.push(["Panel elegido", sizerItemName(pan)]);
+    const inv = sizerCustomSizing(st).inv;
+    const chosen = st.inv !== "auto" ? sizerById(SIZER_INVERTERS, st.inv) : null;
+    if (chosen) rows.push(["Inversor elegido", sizerItemName(chosen)]);
+    else rows.push(["Inversor", inv ? `automático (${sizerItemName(inv)})` : "automático"]);
+    const bat = sizerBatteriesFor(inv).length ? sizerById(SIZER_BATTERIES, st.bat) : null;
+    if (bat) rows.push(["Batería elegida", sizerItemName(bat)]);
+  }
+  return rows.map(([k, v]) => `- ${k}: ${v}`).join("\n");
+}
+
+/* Mensaje de WhatsApp con lo que cargó el usuario y el sistema armado, para pedir la cotización real. */
+function sizerQuoteMessage(kind, inputs, r, currency) {
+  const label = SIZER_MODE_LABEL[kind];
   const c = r.config;
   const list = r.lines.map((l) => `- ${l.qty} x ${sizerItemName(l.item)}${l.note ? ` (${l.note})` : ""}`).join("\n");
   const perMppt = c.plan.alloc.map((k, i) => (k ? `MPPT ${i + 1}: ${sizerPlural(k, "string", "strings")} de ${c.plan.lens[i]}` : "")).filter(Boolean).join("; ");
   const wiring = `Arreglo: ${c.nInv > 1 ? `${c.nInv} inversores, cada uno con ` : ""}${sizerPlural(c.plan.s, "string", "strings")} ${sizerLensText(c.plan)} paneles en serie (${perMppt})`;
   const bank = c.bank ? `\nBanco: ${sizerBankText(c.bank, c.bat)}` : "";
-  return `Hola, armé un sistema con el dimensionador de Auryx (${label}):\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nTotal de referencia: ${sizerMoney(r.total, currency)}\n¿Me pasan una cotización?`;
+  return `Hola, armé un sistema con el dimensionador de Auryx (${label}).\n\nMis datos:\n${sizerInputsSummary(kind, inputs)}\n\nSistema sugerido:\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nTotal de referencia: ${sizerMoney(r.total, currency)}\n¿Me pasan una cotización?`;
 }
 
 const SIZER_MODE_LABEL = { quick: "automático rápido", custom: "automático personalizado" };
@@ -691,7 +725,7 @@ function sizerOutputHTML(sz, currency) {
     ${sizerBomHTML(r.lines, r.total, currency)}
     ${r.notes && r.notes.length ? sizerNotesHTML(r.notes) : ""}
     <div class="sz-actions">
-      <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(SIZER_MODE_LABEL[kind], r, currency))}" target="_blank" rel="noopener">${icon("whatsapp-logo")} Pedir cotización</a>
+      <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener">${icon("whatsapp-logo")} Pedir cotización</a>
     </div>`;
 }
 
