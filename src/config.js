@@ -32,4 +32,4 @@ const CONTACT_EMAIL = "";
 
 // Client ID de Google (OAuth "Aplicación web") para "Continuar con Google". Es público: no es
 // un secreto. Vacío = el ingreso de clientes queda deshabilitado y #ingresar lo avisa.
-const GOOGLE_CLIENT_ID = "";
+const GOOGLE_CLIENT_ID = "22309348641-70prap97ugr2a30af2fjrtphruia4q4g.apps.googleusercontent.com";
