@@ -1,4 +1,4 @@
-/* AURYX: carrito, checkout (Mercado Pago) y estado del pedido. Depende de: utils/format.js, lib/api.js. */
+/* AURYX: carrito, checkout (Mercado Pago) y estado del pedido. Depende de: utils/format.js, lib/api.js, lib/session.js; usa avatarHTML, googleSlotHTML y loginStatusHTML de views/account.js en tiempo de ejecución. */
 
 function cartTotals(cart) {
   return {
@@ -100,46 +100,236 @@ function renderCart(state) {
   </div>`;
 }
 
+
 /* ---------------------------------------------------------------------------
-   Checkout: los datos del cliente y el carrito van a POST /orders. El backend
-   recalcula los precios y devuelve el link de pago de Mercado Pago (o guarda el
-   pedido como cotización si el pago online no está habilitado).
+   Checkout: para comprar hace falta una cuenta. El nombre y el email salen de
+   la cuenta; acá se piden teléfono, entrega y, si hace falta, la facturación.
+   El backend recalcula los precios y devuelve el link de pago de Mercado Pago
+   (o guarda el pedido como cotización si el pago online no está habilitado).
    --------------------------------------------------------------------------- */
 function cartCanPayOnline(cart) {
   return cart.length > 0 && cart.every((it) => dbIdOf(it.product));
 }
 
+// Las 24 jurisdicciones, con la misma etiqueta exacta que valida la API.
+const PROVINCES = [
+  "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Ciudad Autónoma de Buenos Aires", "Córdoba",
+  "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones",
+  "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe",
+  "Santiago del Estero", "Tierra del Fuego", "Tucumán",
+];
+
+const emptyAddress = () => ({ street: "", floor: "", city: "", province: "", zip: "" });
+
+/* touched = el usuario ya tipeó algo: la precarga desde la cuenta no lo pisa. */
+function defaultCheckout() {
+  return {
+    phone: "", delivery: "envio", address: emptyAddress(),
+    billingOpen: false, billingDoc: "", billingName: "", saveDetails: true,
+    errors: {}, sending: false, slow: false, status: null, touched: false,
+  };
+}
+
+/* Copia teléfono, dirección y facturación guardados en la cuenta a un formulario (checkout o Mis datos). */
+function fillFromCustomer(form, customer) {
+  const c = customer || {};
+  const a = c.defaultAddress || {};
+  form.phone = c.phone || "";
+  form.address = { street: a.street || "", floor: a.floor || "", city: a.city || "", province: a.province || "", zip: a.zip || "" };
+  form.billingDoc = c.billingDoc || "";
+  form.billingName = c.billingName || "";
+  if ("billingOpen" in form) form.billingOpen = !!(form.billingDoc || form.billingName);
+}
+
+/* Validaciones: las mismas reglas y mensajes que la API (customers/validation.ts).
+   La API sigue siendo la que decide: si no está de acuerdo, se muestra su mensaje. */
+const FORM_FIELD_ORDER = ["phone", "street", "floor", "city", "province", "zip", "billingDoc", "billingName"];
+const trimStr = (v) => (typeof v === "string" ? v.trim() : "");
+
+function phoneError(raw) {
+  const digits = trimStr(raw).replace(/\D/g, "");
+  return digits.length < 8 || digits.length > 15 ? "Revisá el teléfono: tiene que tener entre 8 y 15 números." : null;
+}
+
+function addressErrors(address) {
+  const a = address || {};
+  const errors = {};
+  const street = trimStr(a.street);
+  if (street.length < 3 || street.length > 120) errors.street = "Falta la calle y el número.";
+  if (trimStr(a.floor).length > 40) errors.floor = "Revisá el piso o departamento: es demasiado largo.";
+  const city = trimStr(a.city);
+  if (city.length < 2 || city.length > 80) errors.city = "Falta la localidad.";
+  if (!PROVINCES.includes(trimStr(a.province))) errors.province = "Elegí una provincia de la lista.";
+  const zip = trimStr(a.zip).toUpperCase();
+  if (!/^\d{4}$/.test(zip) && !/^[A-Z]\d{4}[A-Z]{3}$/.test(zip)) errors.zip = "Revisá el código postal: son 4 números (o el formato CPA, ej. C1425ABC).";
+  return errors;
+}
+
+// CUIT/CUIL: pesos 5,4,3,2,7,6,5,4,3,2; verificador = 11 - (suma % 11), 11 → 0, 10 → inválido.
+function isValidCuit(digits) {
+  if (!/^\d{11}$/.test(digits)) return false;
+  const w = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const sum = w.reduce((acc, p, i) => acc + p * Number(digits[i]), 0);
+  let dv = 11 - (sum % 11);
+  if (dv === 11) dv = 0;
+  if (dv === 10) return false;
+  return dv === Number(digits[10]);
+}
+
+/* Facturación: los dos datos o ninguno. */
+function billingErrors(rawDoc, rawName) {
+  const docText = trimStr(rawDoc);
+  const name = trimStr(rawName);
+  const errors = {};
+  if (!docText && !name) return errors;
+  if (!docText) errors.billingDoc = "Falta el DNI o CUIT para la factura.";
+  else {
+    const doc = docText.replace(/\D/g, "");
+    if (doc.length === 11) { if (!isValidCuit(doc)) errors.billingDoc = "Revisá el CUIT: el número no es válido."; }
+    else if (doc.length < 7 || doc.length > 8) errors.billingDoc = "Revisá el documento: el DNI tiene 7 u 8 números y el CUIT 11.";
+  }
+  if (!name) errors.billingName = "Falta el nombre o razón social para la factura.";
+  else if (name.length < 2 || name.length > 120) errors.billingName = "Revisá el nombre o razón social para la factura.";
+  return errors;
+}
+
+const firstErrorField = (errors) => FORM_FIELD_ORDER.find((k) => errors[k]);
+
+/* Dirección como la espera la API (piso vacío = null). */
+function addressBody(a) {
+  return { street: trimStr(a.street), floor: trimStr(a.floor) || null, city: trimStr(a.city), province: trimStr(a.province), zip: trimStr(a.zip).toUpperCase() };
+}
+const addressIsEmpty = (a) => !["street", "floor", "city", "province", "zip"].some((k) => trimStr(a && a[k]));
+
+/* Campos de formulario compartidos por el checkout y Mis datos. prefix arma los id ("checkout-phone"),
+   bind es el data-bind que los conecta con el estado. */
+function formFieldKit(prefix, bind, errors) {
+  const err = (k) => errors[k] ? `<p id="${prefix}-${k}-error" class="field-error">${esc(errors[k])}</p>` : "";
+  const inv = (k) => errors[k] ? `aria-invalid="true" aria-describedby="${prefix}-${k}-error"` : "";
+  const input = (k, label, value, attrs = "", group = "") => `
+    <div class="field">
+      <label class="field-label" for="${prefix}-${k}">${label}</label>
+      <input id="${prefix}-${k}" class="input" name="${k}" value="${esc(value || "")}" data-bind="${bind}" data-field="${k}"${group ? ` data-group="${group}"` : ""} ${attrs} ${inv(k)} />
+      ${err(k)}
+    </div>`;
+  return { err, inv, input };
+}
+
+function addressFieldsHTML(prefix, bind, address, errors) {
+  const a = address || {};
+  const { input, err, inv } = formFieldKit(prefix, bind, errors);
+  const options = PROVINCES.map((p) => `<option value="${esc(p)}"${a.province === p ? " selected" : ""}>${esc(p)}</option>`).join("");
+  return `
+    ${input("street", "Calle y número", a.street, 'autocomplete="address-line1"', "address")}
+    <div class="form-row form-row-tight">
+      ${input("floor", 'Piso / depto <span class="unit">(opcional)</span>', a.floor, 'autocomplete="address-line2"', "address")}
+      ${input("zip", "Código postal", a.zip, 'autocomplete="postal-code" spellcheck="false"', "address")}
+    </div>
+    ${input("city", "Localidad", a.city, 'autocomplete="address-level2"', "address")}
+    <div class="field">
+      <label class="field-label" for="${prefix}-province">Provincia</label>
+      <select id="${prefix}-province" class="select" name="province" autocomplete="address-level1" data-bind="${bind}" data-field="province" data-group="address" ${inv("province")}>
+        <option value=""${a.province ? "" : " selected"}>Elegí la provincia</option>${options}
+      </select>
+      ${err("province")}
+    </div>`;
+}
+
+function billingFieldsHTML(prefix, bind, doc, name, errors) {
+  const { input } = formFieldKit(prefix, bind, errors);
+  return `
+    ${input("billingDoc", "DNI o CUIT", doc, 'inputmode="numeric" autocomplete="off" spellcheck="false"')}
+    ${input("billingName", "Nombre o razón social", name, 'autocomplete="off"')}`;
+}
+
+/* Línea de estado mientras se espera a la API: a los 5 s avisa que Render está despertando. */
+function pendingStatusHTML(text, slow) {
+  return `<p class="form-status login-status" role="status"><span class="spinner" aria-hidden="true"></span> ${slow ? "Despertando el servidor, puede tardar hasta un minuto…" : text}</p>`;
+}
+
 function checkoutFormHTML(state) {
-  const c = state.checkout || {};
-  const errors = c.errors || {};
-  const fieldError = (k) => errors[k] ? `<p id="checkout-${k}-error" class="field-error">${errors[k]}</p>` : "";
-  const invalid = (k) => errors[k] ? `aria-invalid="true" aria-describedby="checkout-${k}-error"` : "";
   if (!cartCanPayOnline(state.cart)) {
     return `<p class="small muted">Tu carrito tiene productos de ejemplo: pedí la cotización y te pasamos el precio final.</p>`;
   }
+  const session = getSession();
+  if (!session) {
+    // Sin cuenta el carrito funciona igual; para pagar hay que ingresar (después se vuelve acá)
+    const l = state.login || {};
+    return `
+    <div class="checkout-login">
+      <h2 class="checkout-title">Ingresá para comprar</h2>
+      <p class="small muted">Necesitás una cuenta para comprar. Usamos tu cuenta solo para identificarte y mostrarte tus pedidos. Tu carrito queda guardado.</p>
+      ${googleSlotHTML(l)}
+      ${loginStatusHTML(l)}
+    </div>`;
+  }
+
+  const who = session.customer;
+  const c = state.checkout;
+  const errors = c.errors || {};
+  const { input } = formFieldKit("checkout", "checkout", errors);
+  const radio = (value, title, note) => `
+      <label class="choice">
+        <input type="radio" id="checkout-delivery-${value}" name="delivery" value="${value}" data-bind="checkout-delivery"${c.delivery === value ? " checked" : ""} />
+        <span><strong>${title}</strong><small>${note}</small></span>
+      </label>`;
+  let status = "";
+  if (c.sending) status = pendingStatusHTML("Preparando el pago…", c.slow);
+  else if (c.status) status = `<p class="form-status tone-${c.status.tone}" role="${c.status.tone === "bad" ? "alert" : "status"}">${esc(c.status.text)}</p>`;
+
   return `
   <form class="form checkout-form" data-form="checkout" novalidate>
     <h2 class="checkout-title">Datos para el pedido</h2>
-    <div class="field">
-      <label class="field-label" for="checkout-name">Nombre y apellido</label>
-      <input id="checkout-name" class="input" name="name" autocomplete="name" value="${esc(c.name || "")}" data-bind="checkout" data-field="name" ${invalid("name")} />
-      ${fieldError("name")}
+    <div class="checkout-who">
+      ${avatarHTML(who, 28)}
+      <p class="small">Comprando como <strong>${esc(who.name || who.email || "")}</strong>${who.name && who.email ? ` <span class="dim">(${esc(who.email)})</span>` : ""} · ¿No sos vos? <button type="button" class="link-btn" data-action="logout" data-stay="1">Salir</button></p>
     </div>
-    <div class="field">
-      <label class="field-label" for="checkout-email">Email</label>
-      <input id="checkout-email" class="input" name="email" type="email" autocomplete="email" spellcheck="false" value="${esc(c.email || "")}" data-bind="checkout" data-field="email" ${invalid("email")} />
-      ${fieldError("email")}
-    </div>
-    <div class="field">
-      <label class="field-label" for="checkout-phone">Teléfono <span class="unit">(para coordinar el envío)</span></label>
-      <input id="checkout-phone" class="input" name="tel" type="tel" autocomplete="tel" inputmode="tel" value="${esc(c.phone || "")}" data-bind="checkout" data-field="phone" />
-    </div>
-    ${c.status ? `<p class="form-status tone-${c.status.tone}" role="status">${esc(c.status.text)}</p>` : ""}
+    ${input("phone", 'Teléfono <span class="unit">(para coordinar la entrega)</span>', c.phone, 'type="tel" autocomplete="tel" inputmode="tel"')}
+    <fieldset class="field choice-group">
+      <legend class="field-label">Entrega</legend>
+      ${radio("envio", "Envío", "costo a coordinar")}
+      ${radio("retiro", "Retiro", "a coordinar")}
+    </fieldset>
+    ${c.delivery === "envio" ? addressFieldsHTML("checkout", "checkout", c.address, errors) : ""}
+    <details class="checkout-billing" data-bind="checkout-billing"${c.billingOpen ? " open" : ""}>
+      <summary>¿Necesitás la factura a nombre de otra persona o empresa?</summary>
+      <div class="checkout-billing-body">${billingFieldsHTML("checkout", "checkout", c.billingDoc, c.billingName, errors)}</div>
+    </details>
+    <label class="check">
+      <input type="checkbox" id="checkout-save" data-bind="checkout-save"${c.saveDetails ? " checked" : ""} />
+      <span>Guardar estos datos para la próxima compra</span>
+    </label>
+    ${status}
     <button type="submit" class="btn btn-primary btn-lg btn-block" ${c.sending ? "disabled" : ""}>
       ${icon("credit-card")} ${c.sending ? "Preparando el pago…" : "Pagar con Mercado Pago"}
     </button>
     <p class="xsmall dim">El pago lo procesa Mercado Pago: Auryx no ve ni guarda los datos de tu tarjeta. Al pagar aceptás los <a href="#terms">Términos</a>.</p>
   </form>`;
+}
+
+/* Errores del checkout del lado del sitio ({} si está todo bien). */
+function checkoutErrors(c) {
+  const errors = {};
+  const phone = phoneError(c.phone);
+  if (phone) errors.phone = phone;
+  if (c.delivery === "envio") Object.assign(errors, addressErrors(c.address));
+  if (c.billingOpen) Object.assign(errors, billingErrors(c.billingDoc, c.billingName));
+  return errors;
+}
+
+/* Cuerpo de POST /orders. La facturación va solo si se abrió y se completó. */
+function checkoutBody(c, cart) {
+  const body = {
+    items: checkoutItems(cart),
+    phone: trimStr(c.phone),
+    delivery: { method: c.delivery },
+    saveDetails: !!c.saveDetails,
+  };
+  if (c.delivery === "envio") body.delivery.address = addressBody(c.address);
+  if (c.billingOpen && (trimStr(c.billingDoc) || trimStr(c.billingName))) {
+    body.billing = { doc: trimStr(c.billingDoc), name: trimStr(c.billingName) };
+  }
+  return body;
 }
 
 /* Agrupa el carrito por producto para el pedido (un sistema y un producto suelto pueden repetir ítem). */
@@ -152,6 +342,51 @@ function checkoutItems(cart) {
   return [...byId].map(([productId, qty]) => ({ productId, qty }));
 }
 
+/* ---------------------------------------------------------------------------
+   Pedidos: estados, etiquetas y la página #pedido/<código o id>.
+   --------------------------------------------------------------------------- */
+const ORDER_CODE_RE = /^AX-[A-Z0-9]{6}$/i;
+const isOrderCode = (id) => ORDER_CODE_RE.test(id || "");
+
+const PAYMENT_LABELS = {
+  pendiente_pago: { label: "Pendiente de pago", tone: "warn" },
+  pagado: { label: "Pagado", tone: "ok" },
+  rechazado: { label: "Rechazado", tone: "bad" },
+  cancelado: { label: "Cancelado", tone: "bad" },
+  cotizacion: { label: "Cotización", tone: "muted" },
+};
+const FULFILLMENT_LABELS = {
+  pendiente: { label: "Pendiente", tone: "muted" },
+  preparando: { label: "Preparando", tone: "warn" },
+  enviado: { label: "Enviado", tone: "ok" },
+  listo_para_retirar: { label: "Listo para retirar", tone: "ok" },
+  entregado: { label: "Entregado", tone: "ok" },
+};
+const DELIVERY_LABELS = { envio: "Envío (costo a coordinar)", retiro: "Retiro (a coordinar)" };
+
+function orderBadgeHTML(map, status) {
+  const it = map[status] || { label: status || "—", tone: "muted" };
+  return `<span class="badge tone-${it.tone}">${esc(it.label)}</span>`;
+}
+
+function fmtOrderDate(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* Solo se abre un link de pago https (lo arma Mercado Pago). */
+const safePaymentUrl = (url) => (typeof url === "string" && /^https:\/\//i.test(url) ? url : null);
+
+/* "Producto… y 2 productos más" */
+function orderSummaryText(items) {
+  const list = items || [];
+  if (!list.length) return "";
+  const rest = list.length - 1;
+  return `${list[0].productName}${rest ? ` y ${rest} producto${rest > 1 ? "s" : ""} más` : ""}`;
+}
+
+function orderWhatsappText(code) { return `Hola, tengo una consulta por mi pedido ${code}`; }
+
 /* Página de vuelta del pago (#pedido/<id>): consulta el estado a la API. */
 const ORDER_STATUS_COPY = {
   pagado: { tone: "ok", icon: "check-circle", title: "¡Pago aprobado!", text: "Recibimos tu pago. En las próximas 48 h hábiles te contactamos para coordinar el envío y la instalación." },
@@ -161,18 +396,81 @@ const ORDER_STATUS_COPY = {
   cotizacion: { tone: "ok", icon: "chat-circle-text", title: "Recibimos tu pedido", text: "Lo guardamos como solicitud de cotización: te contactamos para confirmar precio, stock, envío e instalación." },
 };
 
+function orderItemsHTML(d) {
+  return `
+      <ul class="summary-lines" style="border-top:0;padding-top:0">
+        ${(d.items || []).map((i) => `<li><span class="name"><span class="mono">${i.quantity}×</span> ${esc(i.productName)}</span><span class="price">${fmtARS(i.unitPriceArs * i.quantity)}</span></li>`).join("")}
+      </ul>
+      <div class="summary-total"><span class="muted">Total</span><span class="price price-lg">${fmtARS(d.totalArs)}<small class="iva">IVA incluido</small></span></div>`;
+}
+
+/* Pedido con código (de un cliente): código grande, pago, entrega con seguimiento, productos y dirección. */
+function renderCodeOrder(d) {
+  const copy = ORDER_STATUS_COPY[d.status] || ORDER_STATUS_COPY.pendiente_pago;
+  const payUrl = d.status === "pendiente_pago" ? safePaymentUrl(d.paymentUrl) : null;
+  const a = d.shippingAddress;
+  const addressHTML = a ? `<p class="muted">${esc(a.street)}${a.floor ? `, ${esc(a.floor)}` : ""}<br>${esc(a.city)}, ${esc(a.province)} (${esc(a.zip)})</p>` : "";
+  return `
+  <div class="wrap page">
+    <div class="page-head">
+      <p class="small dim">Pedido${d.createdAt ? ` del ${esc(fmtOrderDate(d.createdAt))}` : ""}</p>
+      <h1 class="page-title order-code mono">${esc(d.code)}</h1>
+      <p class="xsmall dim">Guardá este código por cualquier consulta.</p>
+    </div>
+    <div class="order-grid">
+      <section class="panel panel-pad order-status" aria-labelledby="order-status-title">
+        <h2 id="order-status-title" class="summary-title">${icon(copy.icon, `tone-text-${copy.tone}`, "fill")} ${esc(copy.title)}</h2>
+        <p class="muted" role="status">${esc(copy.text)}</p>
+        <dl class="order-facts">
+          <div><dt>Pago</dt><dd>${orderBadgeHTML(PAYMENT_LABELS, d.status)}</dd></div>
+          <div><dt>Entrega</dt><dd>${orderBadgeHTML(FULFILLMENT_LABELS, d.fulfillmentStatus)}</dd></div>
+          ${d.trackingNumber ? `<div><dt>Seguimiento</dt><dd class="mono">${esc(d.trackingNumber)}</dd></div>` : ""}
+        </dl>
+        ${payUrl ? `<a class="btn btn-primary" href="${esc(payUrl)}">${icon("credit-card")} Pagar con Mercado Pago</a>` : ""}
+      </section>
+      <section class="panel panel-pad" aria-labelledby="order-items-title">
+        <h2 id="order-items-title" class="summary-title">Productos</h2>
+        ${orderItemsHTML(d)}
+      </section>
+      <section class="panel panel-pad" aria-labelledby="order-delivery-title">
+        <h2 id="order-delivery-title" class="summary-title">Entrega</h2>
+        <p>${esc(DELIVERY_LABELS[d.deliveryMethod] || "A coordinar")}</p>
+        ${d.deliveryMethod === "envio" ? addressHTML : ""}
+        ${d.billingDoc ? `<h3 class="order-subtitle">Facturación</h3><p class="muted">${esc(d.billingName || "")} <span class="mono">${esc(d.billingDoc)}</span></p>` : ""}
+      </section>
+    </div>
+    <div class="hero-ctas" style="margin-top:24px">
+      ${d.status === "rechazado" ? `<a href="#cart" class="btn btn-primary">Volver al carrito</a>` : ""}
+      <a href="#mis-pedidos" class="btn btn-secondary">Mis pedidos</a>
+      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(d.code))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
+    </div>
+  </div>`;
+}
+
 function renderOrder(state) {
   const o = state.order || {};
+  if (o.notMine) {
+    return `<div class="wrap page"><div class="empty" style="max-width:640px;margin-inline:auto">${icon("lock-simple")}
+      <h1 class="page-title" style="font-size:1.75rem">Este pedido no es de tu cuenta</h1>
+      <p>Revisá que hayas ingresado con la misma cuenta con la que compraste. Si el pedido es tuyo, escribinos.</p>
+      <div class="hero-ctas" style="justify-content:center">
+        <a href="#mis-pedidos" class="btn btn-primary">Ver mis pedidos</a>
+        <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(o.id || ""))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultanos</a>
+      </div></div></div>`;
+  }
   if (o.error) {
     return `<div class="wrap page"><div class="empty" style="max-width:640px;margin-inline:auto">${icon("warning-circle")}
       <h1 class="page-title" style="font-size:1.75rem">No encontramos el pedido</h1><p>${esc(o.error)}</p>
-      <a class="btn btn-secondary" href="${whatsappLink(`Hola, tengo una consulta por mi pedido ${o.id || ""}`)}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultanos</a></div></div>`;
+      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(o.id || ""))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultanos</a></div></div>`;
   }
   if (!o.data) {
     return `<div class="wrap page"><div class="empty" style="max-width:640px;margin-inline:auto">${icon("hourglass-medium")}
       <h1 class="page-title" style="font-size:1.75rem">Consultando tu pedido…</h1></div></div>`;
   }
   const d = o.data;
+  if (d.code) return renderCodeOrder(d);
+
+  // Pedido viejo (sin cuenta), identificado por UUID: se muestra como antes
   const copy = ORDER_STATUS_COPY[d.status] || ORDER_STATUS_COPY.pendiente_pago;
   return `
   <div class="wrap page">
@@ -181,15 +479,10 @@ function renderOrder(state) {
       <p class="page-lead" role="status">${esc(copy.text)}</p>
       <p class="xsmall dim">Pedido <span class="mono">${esc(d.publicId)}</span>. Guardá este número por cualquier consulta.</p>
     </div>
-    <div class="panel panel-pad" style="max-width:720px">
-      <ul class="summary-lines" style="border-top:0;padding-top:0">
-        ${d.items.map((i) => `<li><span class="name"><span class="mono">${i.quantity}×</span> ${esc(i.productName)}</span><span class="price">${fmtARS(i.unitPriceArs * i.quantity)}</span></li>`).join("")}
-      </ul>
-      <div class="summary-total"><span class="muted">Total</span><span class="price price-lg">${fmtARS(d.totalArs)}<small class="iva">IVA incluido</small></span></div>
-    </div>
+    <div class="panel panel-pad" style="max-width:720px">${orderItemsHTML(d)}</div>
     <div class="hero-ctas" style="margin-top:24px">
       ${d.status === "rechazado" ? `<a href="#cart" class="btn btn-primary">Volver al carrito</a>` : `<a href="#store" class="btn btn-secondary">Seguir viendo productos</a>`}
-      <a class="btn btn-secondary" href="${whatsappLink(`Hola, tengo una consulta por mi pedido ${d.publicId}`)}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
+      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(d.publicId))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
     </div>
   </div>`;
 }

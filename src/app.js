@@ -30,6 +30,29 @@ const prefersReducedMotion = () => window.matchMedia && window.matchMedia("(pref
 function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* modo privado: se ignora */ } }
 
+/* Mensaje para un error de la API. Sin status = no hubo respuesta (red caída): se evita el
+   "Failed to fetch" del navegador; el timeout ya trae su propio mensaje. */
+function apiErrorText(err) {
+  return err.status || /tardó/.test(err.message) ? err.message : "No pudimos conectar con el servidor. Probá de nuevo en un rato.";
+}
+
+/* Lo tipeado en el checkout se guarda en sessionStorage antes de pagar: si la sesión venció
+   (401), después de ingresar de nuevo se vuelve al carrito con todo como estaba. */
+const CHECKOUT_DRAFT_KEY = "auryx-checkout-draft";
+function saveCheckoutDraft(c) {
+  const { errors, sending, slow, status, ...draft } = c;
+  try { sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* se ignora */ }
+}
+function clearCheckoutDraft() {
+  try { sessionStorage.removeItem(CHECKOUT_DRAFT_KEY); } catch (e) { /* se ignora */ }
+}
+function takeCheckoutDraft() {
+  let draft = null;
+  try { draft = JSON.parse(sessionStorage.getItem(CHECKOUT_DRAFT_KEY) || "null"); } catch (e) { draft = null; }
+  clearCheckoutDraft();
+  return draft && typeof draft === "object" ? draft : null;
+}
+
 /* Carrito persistente: se guardan solo id + cantidad (los precios se toman siempre del catálogo
    actual). Las líneas cuyo producto todavía no está en el catálogo cargado (por ejemplo, la API
    no respondió y se usa el catálogo de demo) se conservan aparte para no perderlas. */
@@ -85,8 +108,10 @@ const App = {
     contactErrors: {},
     contactStatus: null,
     contactSending: false,
-    checkout: { errors: {} },
-    order: null, // { id, data, error } de la página #pedido/<id>
+    checkout: defaultCheckout(), // formulario del checkout (ver cart.js)
+    order: null, // { id, data, error, notMine } de la página #pedido/<id>
+    myOrders: null, // { data, error, slow } de #mis-pedidos
+    account: defaultAccountForm(), // formulario de #mi-cuenta
     revocation: { errors: {} },
     login: defaultLogin(), // estado de #ingresar
   },
@@ -97,6 +122,7 @@ const App = {
   toastTimer: null,
   toastAction: null,
   gsiInitialized: false, // google.accounts.id.initialize se llama una sola vez
+  meFetchedToken: null, // GET /me se pide una vez por visita (y de nuevo si cambia la sesión)
 
   get cartCount() { return this.state.cart.reduce((s, it) => s + Number(it.qty), 0); },
 
@@ -138,7 +164,7 @@ const App = {
     this.setupReveal();
     if (this.cartReady) persistCart(s.cart);
     if (s.view === "calculators") this.calcFetchWarnings();
-    if (s.view === "login") this.mountGoogleButton();
+    if (s.view === "login" || s.view === "cart") this.mountGoogleButton();
 
     // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
     const target = focusSelector
@@ -212,10 +238,11 @@ const App = {
 
   /* ---------------------------------------------------------------- cuenta */
   /* El render reemplaza el HTML de la página: el botón de Google se vuelve a
-     dibujar en #gsi-button después de cada render de #ingresar. */
+     dibujar en #gsi-button después de cada render de #ingresar o del carrito
+     (el script se carga solo cuando hay que mostrar el botón). */
   mountGoogleButton() {
     const s = this.state;
-    if (!GOOGLE_CLIENT_ID || s.login.gsiError || getSession()) return;
+    if (!GOOGLE_CLIENT_ID || s.login.gsiError || getSession() || !document.getElementById("gsi-button")) return;
     loadGoogleScript().then(() => {
       if (!this.gsiInitialized) {
         google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (resp) => App.loginWithGoogle(resp.credential) });
@@ -225,7 +252,7 @@ const App = {
       if (el) google.accounts.id.renderButton(el, { theme: "outline", size: "large", text: "continue_with", locale: "es" });
     }).catch(() => {
       s.login.gsiError = true;
-      if (s.view === "login") this.render();
+      if (s.view === "login" || s.view === "cart") this.render();
     });
   },
 
@@ -236,33 +263,152 @@ const App = {
     if (l.busy) return;
     Object.assign(l, { busy: true, slow: false, error: null });
     this.render();
+    const onLoginPage = () => this.state.view === "login" || this.state.view === "cart";
     const slowTimer = setTimeout(() => {
       if (!l.busy) return;
       l.slow = true;
-      if (this.state.view === "login") this.render();
+      if (onLoginPage()) this.render();
     }, 5000);
     try {
       const data = await apiRequest("/customer-auth/google", { method: "POST", body: { credential }, timeoutMs: 70000 });
+      // sin token o sin cliente no se guarda nada: sería una sesión rota
+      if (!data || typeof data.token !== "string" || !data.token || !data.customer || typeof data.customer !== "object") {
+        const bad = new Error("No pudimos completar el ingreso. Probá de nuevo.");
+        bad.status = 0;
+        throw bad;
+      }
       setSession(data);
       this.state.login = defaultLogin();
-      navigateHash(takeAfterLogin());
+      const after = takeAfterLogin();
+      // desde el carrito se sigue en el carrito, ya con el formulario de compra
+      navigateHash(this.state.view === "cart" ? "cart" : after);
       this.toast(`Hola, ${esc(customerFirstName(data.customer))}. Ya ingresaste.`);
     } catch (err) {
       // sin respuesta de la API (red caída): mensaje propio en vez del "Failed to fetch" del navegador
-      const error = err.status || /tardó/.test(err.message) ? err.message : "No pudimos conectar con el servidor. Probá de nuevo en un rato.";
+      const error = err.status === 0 ? err.message : apiErrorText(err);
       Object.assign(l, { busy: false, slow: false, error });
-      if (this.state.view === "login") this.render({ focusSelector: ".login-status" });
+      if (onLoginPage()) this.render({ focusSelector: ".login-status" });
     } finally {
       clearTimeout(slowTimer);
     }
   },
 
-  logout() {
+  /* stay: "¿No sos vos? Salir" del checkout se queda en el carrito. */
+  logout({ stay = false } = {}) {
     clearSession();
     try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) { /* se ignora */ }
+    this.forgetAccountData();
     this.state.mobileNavOpen = false;
-    navigateHash("");
+    if (stay) this.render();
+    else navigateHash("");
     this.toast("Cerraste sesión.");
+  },
+
+  /* Sin sesión no quedan a la vista datos de la cuenta anterior. */
+  forgetAccountData() {
+    const s = this.state;
+    s.checkout = defaultCheckout();
+    s.account = defaultAccountForm();
+    s.myOrders = null;
+    if (s.order && isOrderCode(s.order.id)) s.order = null;
+    this.meFetchedToken = null;
+    clearCheckoutDraft();
+  },
+
+  /* Al entrar al carrito: si se volvió de ingresar después de un 401, se recupera lo tipeado;
+     si no, con sesión se precarga lo guardado en la cuenta (sin pisar lo que el usuario escribió). */
+  prepareCheckout(entering) {
+    const s = this.state;
+    const draft = takeCheckoutDraft();
+    if (draft) {
+      s.checkout = { ...defaultCheckout(), ...draft, address: { ...emptyAddress(), ...(draft.address || {}) }, touched: true };
+    }
+    const session = getSession();
+    if (!session) return;
+    if (!s.checkout.touched) fillFromCustomer(s.checkout, session.customer);
+    if (entering || this.meFetchedToken !== session.token) this.refreshMe("checkout");
+  },
+
+  /* Trae los datos de la cuenta (pueden haber cambiado en otro dispositivo) y, si el usuario
+     todavía no tocó el formulario, lo vuelve a completar. Sin respuesta queda lo de la sesión. */
+  async refreshMe(formKey) {
+    const session = getSession();
+    if (!session) return;
+    this.meFetchedToken = session.token;
+    let me;
+    try { me = await apiRequest("/me", { auth: true, timeoutMs: 70000 }); } catch (err) { return; } // 401: apiRequest ya pidió ingresar
+    const now = getSession();
+    if (!now || now.token !== session.token || !me || typeof me !== "object") return;
+    setSession({ token: now.token, customer: me });
+    const form = this.state[formKey];
+    if (!form || form.touched || form.sending) return;
+    fillFromCustomer(form, me);
+    if (this.state.view === { checkout: "cart", account: "my-account" }[formKey]) this.render();
+  },
+
+  /* #mis-pedidos: se pide de nuevo en cada visita. */
+  async loadMyOrders() {
+    const s = this.state;
+    const m = { data: null, error: null, slow: false };
+    s.myOrders = m;
+    const slowTimer = setTimeout(() => {
+      m.slow = true;
+      if (s.myOrders === m && s.view === "my-orders" && !m.data && !m.error) this.render();
+    }, 5000);
+    try {
+      const data = await apiRequest("/me/orders", { auth: true, timeoutMs: 70000 });
+      m.data = Array.isArray(data) ? data : [];
+    } catch (err) {
+      if (err.status === 401) return; // apiRequest ya pidió ingresar
+      m.error = apiErrorText(err);
+    } finally {
+      clearTimeout(slowTimer);
+    }
+    if (s.myOrders === m && s.view === "my-orders") this.render();
+  },
+
+  /* #mi-cuenta: PATCH /me. Lo que queda vacío se borra de la cuenta (null). */
+  async saveMyAccount() {
+    const s = this.state;
+    const f = s.account;
+    if (f.sending) return;
+    const errors = {};
+    if (trimStr(f.phone)) { const e = phoneError(f.phone); if (e) errors.phone = e; }
+    if (!addressIsEmpty(f.address)) Object.assign(errors, addressErrors(f.address));
+    Object.assign(errors, billingErrors(f.billingDoc, f.billingName));
+    f.errors = errors;
+    const first = firstErrorField(errors);
+    if (first) { f.status = null; this.render({ focusSelector: `#account-${first}` }); return; }
+
+    const hasBilling = trimStr(f.billingDoc) || trimStr(f.billingName);
+    const body = {
+      phone: trimStr(f.phone) || null,
+      defaultAddress: addressIsEmpty(f.address) ? null : addressBody(f.address),
+      billing: hasBilling ? { doc: trimStr(f.billingDoc), name: trimStr(f.billingName) } : null,
+    };
+    Object.assign(f, { sending: true, slow: false, status: null });
+    this.render();
+    const slowTimer = setTimeout(() => {
+      if (!f.sending) return;
+      f.slow = true;
+      if (s.account === f && s.view === "my-account") this.render();
+    }, 5000);
+    try {
+      const me = await apiRequest("/me", { method: "PATCH", auth: true, timeoutMs: 70000, body });
+      const session = getSession();
+      if (session && me && typeof me === "object") {
+        setSession({ token: session.token, customer: me });
+        fillFromCustomer(f, me);
+      }
+      Object.assign(f, { sending: false, slow: false, touched: false, status: { tone: "ok", text: "Guardamos tus datos." } });
+    } catch (err) {
+      Object.assign(f, { sending: false, slow: false });
+      if (err.status === 401) return; // apiRequest ya pidió ingresar
+      f.status = { tone: "bad", text: apiErrorText(err) };
+    } finally {
+      clearTimeout(slowTimer);
+    }
+    if (s.account === f && s.view === "my-account") this.render({ focusSelector: ".account-form .form-status" });
   },
 
   /* ---------------------------------------------------------------- tienda */
@@ -326,40 +472,55 @@ const App = {
   async submitCheckout() {
     const s = this.state;
     const c = s.checkout;
-    const errors = {};
-    if ((c.name || "").trim().length < 2) errors.name = "Escribí tu nombre y apellido.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((c.email || "").trim())) errors.email = "Revisá el email: tiene que tener la forma nombre@dominio.com.";
-    c.errors = errors;
-    const firstError = ["name", "email"].find((k) => errors[k]);
+    if (c.sending) return;
+    c.errors = checkoutErrors(c);
+    const firstError = firstErrorField(c.errors);
     if (firstError) { c.status = null; this.render({ focusSelector: `#checkout-${firstError}` }); return; }
 
-    c.sending = true; c.status = null;
+    // antes de llamar: si la sesión venció (401), apiRequest lleva a #ingresar y al volver se recupera
+    saveCheckoutDraft(c);
+    Object.assign(c, { sending: true, slow: false, status: null });
     this.render();
+    // Render gratis puede estar dormido: a los 5 s se avisa que puede tardar
+    const slowTimer = setTimeout(() => {
+      if (!c.sending) return;
+      c.slow = true;
+      if (s.checkout === c && s.view === "cart") this.render();
+    }, 5000);
     try {
-      const order = await apiRequest("/orders", {
-        method: "POST", timeoutMs: 15000,
-        body: { customer: { name: c.name.trim(), email: c.email.trim(), phone: (c.phone || "").trim() || undefined }, items: checkoutItems(s.cart) },
-      });
-      storageSet("auryx-last-order", order.publicId);
-      if (order.paymentUrl) { window.location.href = order.paymentUrl; return; } // sigue en Mercado Pago
-      c.sending = false;
-      navigateHash(`pedido/${order.publicId}`);
+      const order = await apiRequest("/orders", { method: "POST", auth: true, timeoutMs: 70000, body: checkoutBody(c, s.cart) });
+      clearCheckoutDraft();
+      storageSet("auryx-last-order", order.code);
+      const payUrl = safePaymentUrl(order.paymentUrl);
+      if (payUrl) { window.location.href = payUrl; return; } // sigue en Mercado Pago
+      Object.assign(c, { sending: false, slow: false });
+      navigateHash(`pedido/${order.code}`);
     } catch (err) {
-      c.sending = false;
-      c.status = { tone: "bad", text: `${err.message} Si sigue fallando, pedí la cotización por WhatsApp.` };
-      this.render({ focusSelector: ".checkout-form .form-status" });
+      Object.assign(c, { sending: false, slow: false });
+      if (err.status === 401) return; // ya se fue a #ingresar; lo tipeado queda en sessionStorage
+      clearCheckoutDraft();
+      // validación (400) o demasiados intentos (429): el mensaje de la API tal cual
+      const text = err.status && err.status < 500 ? err.message : `${apiErrorText(err)} Si sigue fallando, pedí la cotización por WhatsApp.`;
+      c.status = { tone: "bad", text };
+      if (s.checkout === c && s.view === "cart") this.render({ focusSelector: ".checkout-form .form-status" });
+    } finally {
+      clearTimeout(slowTimer);
     }
   },
 
-  /* Estado del pedido: si el pago todavía no se acreditó, se reintenta unos segundos (el aviso de MP puede llegar después). */
+  /* Estado del pedido: si el pago todavía no se acreditó, se reintenta unos segundos (el aviso de MP puede llegar después).
+     Con código AX-… el pedido es de un cliente: se pide con su sesión, y un 404 es "no es de tu cuenta".
+     Con UUID (pedidos viejos, sin cuenta) se consulta como siempre, sin sesión. */
   async loadOrder(id, attempt = 0) {
     const s = this.state;
-    if (attempt === 0) s.order = { id, data: null, error: null };
+    const byCode = isOrderCode(id);
+    if (attempt === 0) s.order = { id, data: null, error: null, notMine: false };
     try {
-      const data = await apiRequest(`/orders/${encodeURIComponent(id)}`);
+      const data = await apiRequest(`/orders/${encodeURIComponent(id)}`, byCode ? { auth: true, timeoutMs: 70000 } : {});
       if (!s.order || s.order.id !== id) return; // el usuario ya se fue de la página
       s.order.data = data;
-      if (data.status === "pagado" && storageGet("auryx-last-order") === id) {
+      const last = (storageGet("auryx-last-order") || "").toUpperCase();
+      if (data.status === "pagado" && last && last === String(data.code || id).toUpperCase()) {
         s.cart = []; // pedido pagado: se vacía el carrito que lo originó
         storageSet("auryx-last-order", "");
       }
@@ -367,7 +528,10 @@ const App = {
       if (data.status === "pendiente_pago" && attempt < 6) setTimeout(() => this.loadOrder(id, attempt + 1), 4000);
     } catch (err) {
       if (!s.order || s.order.id !== id) return;
-      s.order.error = /no encontrado|Validation|uuid/i.test(err.message) ? "El número de pedido no es válido." : err.message;
+      if (byCode && err.status === 401) { s.order = null; return; } // apiRequest ya pidió ingresar; al volver se consulta de nuevo
+      if (byCode && err.status === 404) s.order.notMine = true;
+      else if (byCode) s.order.error = apiErrorText(err);
+      else s.order.error = /no encontrado|Validation|uuid/i.test(err.message) ? "El número de pedido no es válido." : err.message;
       if (s.view === "order") this.render();
     }
   },
@@ -593,7 +757,8 @@ const ACTIONS = {
   "toast-action": () => { const a = App.toastAction; App.dismissToast(); if (a && a.run) a.run(); },
   // link "Ingresar": recuerda la página actual para volver después (el link navega solo)
   "login-start": () => rememberAfterLogin(location.hash),
-  "logout": () => App.logout(),
+  "logout": (d) => App.logout({ stay: d.stay === "1" }),
+  "my-orders-retry": () => { App.loadMyOrders(); App.render(); },
 
   "filter": (d) => App.setStoreFilter(d.key, d.value),
   "filters-clear": () => App.clearStoreFilters(),
@@ -661,6 +826,13 @@ const ACTIONS = {
 };
 
 /* Inputs: actualización en vivo sin re-render (no se pierde el cursor). */
+/* Checkout y Mis datos: los campos de dirección van en form.address; touched = ya tipeó (la precarga no lo pisa). */
+function setFormField(form, el) {
+  if (el.dataset.group === "address") form.address[el.dataset.field] = el.value;
+  else form[el.dataset.field] = el.value;
+  form.touched = true;
+}
+
 const INPUT_BINDINGS = {
   "detail-qty": (el) => { App.state.productDetailQty = Math.max(1, Number(el.value) || 1); },
   "cfg-panel-qty": (el) => {
@@ -690,7 +862,8 @@ const INPUT_BINDINGS = {
   },
   "orient-angle": (el) => App.calcOrientationAngleEdit(el.value),
   "contact": (el) => { App.state.contactDraft[el.dataset.field] = el.value; },
-  "checkout": (el) => { App.state.checkout[el.dataset.field] = el.value; },
+  "checkout": (el) => setFormField(App.state.checkout, el),
+  "account": (el) => setFormField(App.state.account, el),
   "revocation": (el) => { App.state.revocation[el.dataset.field] = el.value; },
   "sizer": (el) => {
     if (el.tagName === "SELECT") return; // los selects se resuelven en "change"
@@ -712,6 +885,13 @@ const CHANGE_BINDINGS = {
   "cfg-panel-qty": () => App.render(),
   "cfg-battery-qty": () => App.render(),
   "detail-qty": () => App.render(),
+  "checkout-delivery": (el) => {
+    const c = App.state.checkout;
+    c.delivery = el.value === "retiro" ? "retiro" : "envio";
+    c.touched = true;
+    App.render(); // muestra u oculta la dirección; el foco vuelve al radio
+  },
+  "checkout-save": (el) => { App.state.checkout.saveDetails = el.checked; App.state.checkout.touched = true; },
   "sizer": (el) => {
     // en el personalizado, consumo, superficie, etc. cambian el inversor automático y sus baterías:
     // al confirmar el valor se redibuja el formulario completo
@@ -747,19 +927,35 @@ document.addEventListener("error", (e) => {
   e.target.remove();
 }, true);
 
-// Ingreso o salida en otra pestaña: se actualiza el header
+// Ingreso o salida en otra pestaña: se actualiza el header. Si se cerró la sesión y la página
+// actual es de la cuenta (Mis pedidos, Mis datos, un pedido con código), se pide ingresar.
 window.addEventListener("storage", (e) => {
-  if (e.key === SESSION_KEY && App.cartReady) App.render();
+  if (e.key !== SESSION_KEY || !App.cartReady) return;
+  const s = App.state;
+  if (!getSession()) {
+    const accountPage = s.view === "my-orders" || s.view === "my-account" || (s.view === "order" && s.order && isOrderCode(s.order.id));
+    App.forgetAccountData();
+    if (accountPage) {
+      rememberAfterLogin(location.hash);
+      navigateHash("ingresar");
+      return;
+    }
+  } else if (s.view === "cart") {
+    App.prepareCheckout(false);
+  }
+  App.render();
 });
 
 // <details> no burbujea "toggle": se escucha en captura
 document.addEventListener("toggle", (e) => {
   if (e.target.dataset && e.target.dataset.bind === "filters-open") App.state.filtersOpen = e.target.open;
+  if (e.target.dataset && e.target.dataset.bind === "checkout-billing") App.state.checkout.billingOpen = e.target.open;
 }, true);
 
 document.addEventListener("submit", (e) => {
   if (e.target.dataset.form === "contact") { e.preventDefault(); App.submitContact(); }
   if (e.target.dataset.form === "checkout") { e.preventDefault(); App.submitCheckout(); }
+  if (e.target.dataset.form === "account") { e.preventDefault(); App.saveMyAccount(); }
   if (e.target.dataset.form === "revocation") { e.preventDefault(); App.submitRevocation(); }
   if (e.target.dataset.form === "sizer") e.preventDefault();
 });
@@ -817,24 +1013,38 @@ function applyRouteFromHash() {
     s.calcSection = param || null;
   } else if (view === "pedido") {
     if (!param) return;
-    s.view = "order";
-    if (!s.order || s.order.id !== param) App.loadOrder(param);
+    if (isOrderCode(param) && !getSession()) {
+      routeToLogin(raw); // el pedido con código es de una cuenta
+    } else {
+      s.view = "order";
+      if (!s.order || s.order.id !== param) App.loadOrder(param);
+    }
   } else if (view === "arrepentimiento") {
     s.view = "revocation";
   } else if (view === "ingresar") {
     if (s.view !== "login" && !s.login.busy) s.login = defaultLogin();
+    // llegó por un 401: se explica por qué hay que ingresar de nuevo
+    if (takeSessionExpired() && !s.login.busy) s.login.error = "Tu sesión venció. Ingresá de nuevo.";
     s.view = "login";
   } else if (view === "mis-pedidos" || view === "mi-cuenta") {
+    const next = view === "mis-pedidos" ? "my-orders" : "my-account";
     if (!getSession()) {
-      // sin sesión: a #ingresar, y después de ingresar se vuelve acá
-      rememberAfterLogin(raw);
-      history.replaceState(null, "", "#ingresar");
-      if (s.view !== "login" && !s.login.busy) s.login = defaultLogin();
-      s.view = "login";
-    } else {
-      s.view = view === "mis-pedidos" ? "my-orders" : "my-account";
+      routeToLogin(raw); // después de ingresar se vuelve acá
+    } else if (s.view !== next) {
+      s.view = next;
+      if (next === "my-orders") App.loadMyOrders();
+      else {
+        s.account = defaultAccountForm();
+        fillFromCustomer(s.account, getSession().customer);
+        App.refreshMe("account");
+      }
     }
-  } else if (["cart", "info", "contact", "terms", "privacy"].includes(view)) {
+  } else if (view === "cart") {
+    const entering = s.view !== "cart";
+    if (entering && !s.login.busy) s.login = defaultLogin();
+    s.view = "cart";
+    App.prepareCheckout(entering);
+  } else if (["info", "contact", "terms", "privacy"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};
   } else {
@@ -856,6 +1066,15 @@ function applyRouteFromHash() {
 
   App.render(pageChanged && !isFirst ? { focusSelector: "#main" } : {});
   if (afterRender) requestAnimationFrame(afterRender);
+}
+
+/* Página que necesita sesión: se recuerda el destino y se muestra #ingresar en su lugar. */
+function routeToLogin(raw) {
+  const s = App.state;
+  rememberAfterLogin(raw);
+  history.replaceState(null, "", "#ingresar");
+  if (s.view !== "login" && !s.login.busy) s.login = defaultLogin();
+  s.view = "login";
 }
 
 /* Único punto de entrada para navegar desde código: siempre pasa por el hash,

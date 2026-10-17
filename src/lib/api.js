@@ -92,6 +92,7 @@ async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth =
       err.status = res.status; // sin status = no hubo respuesta (red caída, timeout)
       if (auth && res.status === 401) {
         clearSession();
+        markSessionExpired();
         rememberAfterLogin(location.hash);
         navigateHash("ingresar");
       }

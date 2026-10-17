@@ -69,22 +69,27 @@ function renderPrivacy() {
     "Qué datos usamos, para qué y cómo podés ejercer tus derechos.",
     [
       { h: "1. Qué datos tratamos", p: [
-        "Solo los que vos escribís de forma voluntaria: nombre, email, teléfono (opcional), el contenido de tu mensaje y, si comprás, los productos del pedido y el estado del pago que nos informa Mercado Pago. No hace falta crear una cuenta para usar el sitio.",
+        "Solo los que vos nos das de forma voluntaria. Si nos escribís: nombre, email, teléfono (opcional) y el contenido de tu mensaje.",
+        "Si comprás, necesitás ingresar con tu cuenta de Google (más adelante, también de Microsoft). De esa cuenta guardamos tu nombre, tu email y tu foto de perfil. Además guardamos el teléfono, la dirección de entrega y los datos de facturación (DNI o CUIT y nombre o razón social) que cargues, y el historial de tus pedidos: productos, montos, estado del pago que nos informa Mercado Pago y estado de la entrega.",
+        "No hace falta crear una cuenta para ver el sitio, usar las calculadoras o pedir una cotización por WhatsApp. Nunca recibimos tu contraseña de Google o Microsoft.",
       ] },
       { h: "2. Para qué los usamos", p: [
-        "Únicamente para responder tu consulta, preparar tu cotización o gestionar tu pedido (pago, envío, instalación y garantía). No los vendemos ni los usamos para publicidad de terceros.",
+        "Únicamente para responder tu consulta, preparar tu cotización o gestionar tu pedido (pago, envío, instalación, facturación y garantía). Tu cuenta sirve para identificarte, mostrarte tus pedidos en <a href=\"#mis-pedidos\">Mis pedidos</a> y, si lo elegís, completar el checkout con los datos guardados de tu última compra.",
+        "No los vendemos ni los usamos para publicidad de terceros. Podés ver y cambiar tu teléfono, tu dirección y tus datos de facturación en <a href=\"#mi-cuenta\">Mis datos</a>.",
       ] },
       { h: "3. Dónde se guardan", p: [
-        "Los mensajes del formulario de contacto y los pedidos se guardan en nuestra base de datos, alojada en un proveedor de servicios en la nube, con acceso restringido al equipo de Auryx. Los conservamos mientras sean necesarios para atender tu consulta o pedido y para cumplir obligaciones legales (por ejemplo, de facturación y garantía).",
+        "Los mensajes del formulario de contacto, los datos de tu cuenta y los pedidos se guardan en nuestra base de datos, alojada en un proveedor de servicios en la nube, con acceso restringido al equipo de Auryx. Los conservamos mientras sean necesarios para atender tu consulta o pedido y para cumplir obligaciones legales (por ejemplo, de facturación y garantía).",
         "Los pagos los procesa Mercado Pago, que trata los datos de pago según sus propias políticas; nosotros sólo recibimos el estado del pago y su número de operación.",
         `Si pedís la cotización por WhatsApp, se abre WhatsApp con el mensaje ya escrito y recién se envía cuando vos lo confirmás. WhatsApp pertenece a Meta y trata los datos según sus propias políticas. Lo mismo vale si nos escribís directamente al ${WHATSAPP_DISPLAY}.`,
       ] },
       { h: "4. Datos guardados en tu navegador", p: [
         "Para que el sitio funcione mejor, guardamos en tu dispositivo (almacenamiento local del navegador) tu carrito, la moneda elegida y el tema claro u oscuro. Esa información no se envía a ningún servidor y podés borrarla desde la configuración de tu navegador o vaciando el carrito.",
+        "Si ingresás con tu cuenta, también guardamos ahí la sesión (una clave que te identifica ante nuestro servidor durante 30 días) y una copia de tus datos para mostrarlos en el menú. Se borra al tocar \"Cerrar sesión\".",
         "No usamos cookies de seguimiento ni herramientas de analítica.",
       ] },
       { h: "5. Servicios de terceros", p: [
         "Para mostrar el sitio cargamos tipografías e íconos desde jsDelivr y algunas imágenes desde Unsplash. Al hacerlo, esos servicios pueden registrar tu dirección IP como en cualquier descarga de recursos web.",
+        "El botón \"Continuar con Google\" lo carga Google solo cuando vas a ingresar; Google trata esos datos según sus propias políticas y nos confirma tu nombre, email y foto.",
       ] },
       { h: "6. Tus derechos", p: [
         "Según la Ley 25.326 de Protección de los Datos Personales, podés pedir acceso, rectificación o supresión de tus datos escribiéndonos por WhatsApp o desde la página de <a href=\"#contact\">Contacto</a>.",

@@ -42,6 +42,16 @@ function takeAfterLogin() {
   return h === "ingresar" ? "" : h;
 }
 
+/* Aviso "Tu sesión venció" en #ingresar: lo marca apiRequest al recibir un 401 y lo
+   consume el router al mostrar #ingresar (una sola vez). */
+let sessionExpiredNotice = false;
+function markSessionExpired() { sessionExpiredNotice = true; }
+function takeSessionExpired() {
+  const was = sessionExpiredNotice;
+  sessionExpiredNotice = false;
+  return was;
+}
+
 /* Carga el script de Google Identity Services una sola vez. Rechaza si no carga
    (bloqueador, sin red) o si tarda más de 10 s; en ese caso se puede reintentar. */
 let googleScriptPromise = null;

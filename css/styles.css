@@ -1055,3 +1055,56 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .calc-warn-list i { color: var(--warn); margin-top: 2px; }
 .hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 .tone-text-ok { color: var(--ok); } .tone-text-warn { color: var(--warn); } .tone-text-bad { color: var(--bad); }
+
+/* ---------- Checkout con cuenta, Mis pedidos, detalle del pedido y Mis datos ---------- */
+.select[aria-invalid="true"] { border-color: var(--bad); }
+.tone-muted { background: var(--surface-2); color: var(--text-mid); }
+.checkout-login { display: grid; gap: 12px; margin-bottom: 16px; }
+.checkout-who { display: flex; align-items: center; gap: 10px; }
+.checkout-who p { min-width: 0; overflow-wrap: anywhere; }
+.link-btn { border: 0; padding: 0; background: none; font: inherit; color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.field legend { padding: 0; margin-bottom: 8px; }
+.choice-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.choice-group legend { grid-column: 1 / -1; }
+.choice {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; min-height: 44px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--bg-raised); cursor: pointer;
+}
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.choice input { margin-top: 3px; accent-color: var(--accent); }
+.choice span { display: grid; gap: 1px; }
+.choice strong { font-size: 0.9375rem; font-weight: 600; }
+.choice small { font-size: 0.8125rem; color: var(--text-dim); }
+.form-row-tight { gap: 12px; grid-template-columns: 1fr 1fr; }
+.checkout-billing summary { cursor: pointer; font-size: 0.875rem; color: var(--text-mid); padding-block: 4px; }
+.checkout-billing summary:hover { color: var(--text); }
+.checkout-billing-body { display: grid; gap: 12px; padding-top: 12px; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; cursor: pointer; min-height: 32px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+.order-code { font-size: clamp(1.75rem, 6vw, 2.75rem); letter-spacing: 0.04em; }
+.order-grid { display: grid; gap: 16px; }
+@media (min-width: 960px) { .order-grid { grid-template-columns: 1fr 1fr; } .order-grid .order-status { grid-column: 1 / -1; } }
+.order-status { display: grid; gap: 14px; justify-items: start; }
+.order-status .summary-title { display: flex; align-items: center; gap: 8px; margin: 0; }
+.order-facts { display: flex; flex-wrap: wrap; gap: 10px 24px; }
+.order-facts div { display: grid; gap: 4px; }
+.order-facts dt { font-size: 0.75rem; color: var(--text-dim); }
+.order-subtitle { font-size: 0.9375rem; font-weight: 650; margin-top: 16px; }
+.order-list { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
+.order-card { padding: 16px 18px; display: grid; gap: 10px; }
+.order-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.order-card-code { font-size: 1.125rem; font-weight: 700; color: var(--text); }
+.order-card-code:hover { text-decoration: underline; text-underline-offset: 3px; }
+.order-card-summary { color: var(--text-mid); font-size: 0.9375rem; overflow-wrap: anywhere; }
+.order-card-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.order-card-badges { gap: 6px 16px; }
+.order-card-pair { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.order-card-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.order-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.account-grid { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 960px) { .account-grid { grid-template-columns: 320px 1fr; } }
+.account-card { margin-inline: 0; }
+.account-form { max-width: 640px; }
+.account-fieldset { display: grid; gap: 14px; }
