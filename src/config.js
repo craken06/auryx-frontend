@@ -50,5 +50,5 @@ const DATA_FISCAL_IMG = "";    // la URL de la imagen del QR que da ARCA
 // Analítica (ver src/lib/analytics.js). Vacío = deshabilitada: no se carga ningún script de
 // terceros, no hay llamadas de red y el banner de cookies no aparece.
 // Solo se activan si el visitante acepta las cookies en el banner.
-const GA4_ID = "";             // Google Analytics 4: "G-XXXXXXXXXX" (Administrar > Flujos de datos)
+const GA4_ID = "G-HQRPL3Q8GY"; // Google Analytics 4: "G-XXXXXXXXXX" (Administrar > Flujos de datos)
 const CLARITY_ID = "";         // Microsoft Clarity: el ID del proyecto (Settings > Overview), ej. "abc123xyz"
