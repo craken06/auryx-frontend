@@ -390,7 +390,8 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .login-card { max-width: 520px; margin-inline: auto; display: grid; gap: 18px; }
 /* "Continuar con Google" (ver googleSlotHTML): el botón que se ve es nuestro y encima va el de Google,
    invisible y del mismo tamaño (44 px de alto, hasta 400 de ancho), que recibe el clic y el teclado.
-   Hover y foco se leen en el contenedor: el puntero y el foco están dentro del iframe de Google. */
+   Hover se lee en el contenedor; el foco de teclado no llega a :focus-within (queda dentro del iframe):
+   app.js pone .is-focused (ver "Foco del botón de Google"). */
 .google-signin { position: relative; width: 100%; max-width: 400px; margin-inline: auto; }
 .google-btn {
   width: 100%; gap: 12px; pointer-events: none;
@@ -400,10 +401,12 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .google-btn svg { flex: none; }
 .google-signin:hover .google-btn { border-color: var(--accent); background: var(--line); }
 :root[data-theme="light"] .google-signin:hover .google-btn { background: var(--surface-2); }
-.google-signin:focus-within .google-btn { outline: 2px solid var(--accent); outline-offset: 2px; }
+.google-signin.is-focused .google-btn { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* mientras carga el script de Google el botón todavía no responde: se ve apagado */
 .google-signin[aria-busy="true"] .google-btn { opacity: 0.55; }
-.google-signin .gsi-slot { position: absolute; inset: 0; opacity: 0; overflow: hidden; }
+/* 0.01 y no 0: con opacidad 0 Chrome deja de dibujar el iframe y no le pasa el clic (el teclado sí).
+   Al 1 % el botón blanco de Google sobre el nuestro no se percibe. */
+.google-signin .gsi-slot { position: absolute; inset: 0; opacity: 0.01; overflow: hidden; }
 /* el iframe de Google pinta un fondo opaco si su color-scheme no coincide con el de la página */
 .gsi-slot, .gsi-slot iframe { color-scheme: light; }
 .login-status { display: flex; align-items: center; gap: 10px; background: var(--surface-2); }

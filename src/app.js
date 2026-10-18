@@ -1437,6 +1437,18 @@ window.addEventListener("resize", () => {
   }, 250);
 });
 
+// Foco del botón de Google: el botón real va invisible encima del nuestro y, con el foco dentro de su
+// iframe, el navegador no marca :focus-within. Lo único que se ve desde acá es que la página pierde el
+// foco con el iframe como elemento activo. Con el mouse encima no se marca (como :focus-visible).
+window.addEventListener("blur", () => {
+  const active = document.activeElement;
+  const wrap = active && active.tagName === "IFRAME" ? active.closest(".google-signin") : null;
+  if (wrap && !wrap.matches(":hover")) wrap.classList.add("is-focused");
+});
+const clearGoogleFocus = () => document.querySelectorAll(".google-signin.is-focused").forEach((el) => el.classList.remove("is-focused"));
+window.addEventListener("focus", clearGoogleFocus);
+document.addEventListener("focusin", clearGoogleFocus);
+
 /* =========================================================================
    ROUTER
    Traduce el hash (#store/panel?marca=X, #product/db-1, #calculators/ahorro,
