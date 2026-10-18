@@ -1050,31 +1050,27 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 /* =========================================================================
    FOOTER
    ========================================================================= */
-.site-footer { border-top: 1px solid var(--line); padding-block: 48px 32px; margin-top: 24px; }
-
-/* Arriba: marca a la izquierda y los links en una fila a la derecha (en celular, uno debajo del otro) */
-.footer-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 48px; }
-.footer-brand p { color: var(--text-mid); font-size: 0.875rem; line-height: 1.55; max-width: 44ch; margin-top: 12px; }
-.footer-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 28px; }
-.footer-links a { color: var(--text-mid); font-size: 0.9375rem; padding-block: 4px; transition: color 0.18s var(--ease); }
-.footer-links a:hover { color: var(--text); }
-.footer-phone { color: var(--text-dim); font-size: 0.8125rem; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.site-footer { border-top: 1px solid var(--line); padding-block: 24px 32px; margin-top: 24px; }
 
 /* Franja de consumidor (Ley 24.240): arrepentimiento, reclamos y Data Fiscal; Instagram al final de la
    misma línea. En celular: arrepentimiento e Instagram arriba y el link de reclamos debajo. */
 .footer-consumer {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px;
-  margin-top: 32px; padding-block: 20px; border-block: 1px solid var(--line);
+  padding-bottom: 20px; border-bottom: 1px solid var(--line);
 }
+/* Instagram: fondo navy como los controles del sitio y el degradado de su marca en las líneas del ícono */
 .footer-ig {
   display: grid; place-items: center; width: 44px; height: 44px; margin-left: auto; flex: none;
-  border-radius: 12px; color: #fff;
-  /* degradado de la marca Instagram */
-  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
-  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
+  border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface-2);
+  transition: border-color 0.18s var(--ease), background-color 0.18s var(--ease), transform 0.18s var(--ease);
 }
-.footer-ig .ph { font-size: 26px; }
-.footer-ig:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(214, 36, 159, 0.3); }
+:root[data-theme="light"] .footer-ig { background: var(--surface); }
+.footer-ig .ph {
+  font-size: 30px;
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.footer-ig:hover { border-color: #d6249f; transform: translateY(-2px); }
 @media (max-width: 767px) {
   .footer-revocation { order: 1; }
   .footer-ig { order: 2; }
@@ -1097,6 +1093,8 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 /* Base: legales y © en una fila, datos del vendedor y notas abajo */
 .footer-bottom { display: grid; gap: 14px; padding-top: 20px; font-size: 0.8125rem; line-height: 1.6; color: var(--text-dim); }
 .footer-legal-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.footer-copy { display: inline-flex; align-items: center; gap: 12px; }
+.footer-copy .wordmark { font-size: 1.5rem; color: var(--text); }
 .footer-legal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
 .footer-legal a, .footer-legal .link-btn { color: var(--text-mid); text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
 .footer-legal a:hover, .footer-legal .link-btn:hover { color: var(--text); }
@@ -1269,8 +1267,7 @@ fieldset.field legend { padding: 0; margin-bottom: 8px; }
   .check { min-height: 44px; }
   .check input { width: 22px; height: 22px; }
   .link-btn { display: inline-flex; align-items: center; min-height: 44px; }
-  .footer-legal a, .footer-complaints, .footer-links a { display: inline-flex; align-items: center; min-height: 44px; }
-  .footer-links a { padding-block: 0; }
+  .footer-legal a, .footer-complaints { display: inline-flex; align-items: center; min-height: 44px; }
 }
 
 .order-code { font-size: clamp(1.75rem, 6vw, 2.75rem); letter-spacing: 0.04em; }

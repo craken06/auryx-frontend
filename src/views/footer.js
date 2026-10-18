@@ -1,5 +1,5 @@
 /* AURYX: pie de página. Depende de: utils/format.js, config.js (SELLER_*, CONTACT_EMAIL, DATA_FISCAL_*,
-   INSTAGRAM_URL, WHATSAPP_*), lib/analytics.js (botón "Configurar cookies"). */
+   INSTAGRAM_URL), lib/analytics.js (botón "Configurar cookies"). */
 
 const cfgStr = (v) => (typeof v === "string" ? v.trim() : "");
 
@@ -63,16 +63,6 @@ function renderFooter() {
 
   return `
   <div class="wrap">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <a href="#" class="wordmark" aria-label="AURYX, ir al inicio" translate="no">AURYX</a>
-        <p>Equipos solares para casas y PyMEs en Argentina, con la compatibilidad eléctrica verificada antes de comprar.</p>
-      </div>
-      <nav class="footer-links" aria-label="AURYX">
-        <a href="#info">Información</a><a href="#contact">Contacto</a>
-        <a href="${whatsappLink()}" target="_blank" rel="noopener" data-context="footer">WhatsApp <span class="footer-phone">${WHATSAPP_DISPLAY}</span></a>
-      </nav>
-    </div>
     <div class="footer-consumer">
       <a href="#arrepentimiento" class="footer-revocation">${icon("arrow-u-up-left")}Botón de arrepentimiento</a>
       <a href="${CONSUMER_COMPLAINTS_URL}" class="footer-complaints" target="_blank" rel="noopener">Defensa de las y los Consumidores. Para reclamos ingrese aquí</a>
@@ -82,7 +72,7 @@ function renderFooter() {
     <div class="footer-bottom">
       <div class="footer-legal-row">
         <p class="footer-legal"><a href="#terms">Términos y condiciones</a><a href="#privacy">Política de privacidad</a>${cookies}</p>
-        <p class="footer-copy" translate="no">© ${new Date().getFullYear()} AURYX</p>
+        <p class="footer-copy" translate="no"><a href="#" class="wordmark" aria-label="AURYX, ir al inicio">AURYX</a><span>© ${new Date().getFullYear()}</span></p>
       </div>
       ${seller ? `<p class="footer-seller">${seller}</p>` : ""}
       <div class="footer-notes">
