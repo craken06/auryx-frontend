@@ -102,6 +102,13 @@ const DEMO_PRODUCTS = [
 // Catálogo en uso: vacío hasta que responde la API (o DEMO_PRODUCTS en modo demo local).
 let PRODUCTS = [];
 
+/* Productos por categoría: del catálogo si ya cargó; si no, el resumen del último build
+   (data/catalog-summary.js), así la home y el pie no esperan a la API. */
+function categoryCounts() {
+  if (PRODUCTS.length) return PRODUCTS.reduce((acc, p) => { acc[p.category] = (acc[p.category] || 0) + 1; return acc; }, {});
+  return typeof CATALOG_SUMMARY !== "undefined" ? CATALOG_SUMMARY : {};
+}
+
 const CATEGORY_META = {
   panel: { label: "Paneles solares", icon: "solar-panel" },
   inversor: { label: "Inversores", icon: "lightning" },

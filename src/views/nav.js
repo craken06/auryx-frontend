@@ -40,7 +40,12 @@ function renderNav(state) {
   }).join("");
 
   const preview = cart.slice(0, 4);
-  const cartPanel = preview.length === 0
+  // el carrito guardado se arma con el catálogo, que solo cargan las páginas que lo usan: hasta entonces
+  // se sabe cuántas unidades hay, no cuáles
+  const cartPanel = preview.length === 0 && cartCount > 0
+    ? `<div class="cart-preview-list"><p class="small dim cart-preview-empty">Tenés ${cartCount === 1 ? "1 producto" : `${cartCount} productos`} en el carrito.</p></div>
+      <div class="cart-preview-foot"><a href="#cart" class="btn btn-primary btn-block">Ver carrito</a></div>`
+    : preview.length === 0
     ? `<div class="cart-preview-list"><p class="small dim cart-preview-empty">Tu carrito está vacío.</p></div>`
     : `<div class="cart-preview-list">
         ${preview.map((it) => `

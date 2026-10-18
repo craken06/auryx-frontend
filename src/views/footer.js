@@ -58,10 +58,11 @@ function socialLinksHTML() {
 }
 
 function renderFooter() {
-  // Solo categorías con productos (si el catálogo todavía no cargó, las cuatro principales)
-  const loaded = typeof PRODUCTS !== "undefined" && PRODUCTS.length > 0;
+  // Solo categorías con productos (sin datos de ninguna, las cuatro principales)
+  const counts = categoryCounts();
+  const known = Object.keys(counts).length > 0;
   const cats = ["panel", "inversor", "bateria", "regulador"]
-    .filter((k) => CATEGORY_META[k] && (!loaded || PRODUCTS.some((p) => p.category === k)))
+    .filter((k) => CATEGORY_META[k] && (!known || counts[k]))
     .map((k) => `<a href="#store/${k}">${CATEGORY_META[k].label}</a>`).join("");
   const seller = sellerLineHTML();
   const cookies = typeof Analytics !== "undefined" && Analytics.enabled()

@@ -236,6 +236,14 @@ fs.writeFileSync(path.join(ROOT, "404.html"), buildHTML({
   description: "La página que buscás no existe o cambió de dirección.",
 }).replace(/\n<link rel="canonical"[^\n]*/, "").replace(/\n<meta property="og:url"[^\n]*/, ""));
 
+/* ---------------------------------------------------------------- cantidades por categoría */
+/* La home y el pie muestran las categorías con productos sin esperar a la API: el catálogo se pide
+   recién en las páginas que lo usan (tienda, ficha, Diseñá tu sistema, carrito). */
+const summary = Object.fromEntries(categories.map((k) => [k, PRODUCTS.filter((p) => p.category === k).length]));
+fs.writeFileSync(path.join(ROOT, "src/data/catalog-summary.js"), `/* Lo genera scripts/build-seo-pages.mjs: no editar a mano. Productos por categoría al último build. */
+const CATALOG_SUMMARY = ${JSON.stringify(summary)};
+`);
+
 /* ---------------------------------------------------------------- sitemap */
 const lastmod = (list) => list.map((p) => (apiById.get(p.id)?.updatedAt || "").slice(0, 10)).filter(Boolean).sort().pop();
 const urls = [

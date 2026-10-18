@@ -53,8 +53,8 @@ function renderHome(state) {
       ${icon("arrow-right", "go")}
     </a>`).join("");
 
-  // Solo las categorías con productos (si el catálogo todavía no cargó, se muestran todas)
-  const counts = PRODUCTS.reduce((acc, p) => { acc[p.category] = (acc[p.category] || 0) + 1; return acc; }, {});
+  // Solo las categorías con productos (sin datos de ninguna, se muestran todas)
+  const counts = categoryCounts();
   const withProducts = Object.entries(CATEGORY_META).filter(([key]) => counts[key]);
   const catTiles = (withProducts.length ? withProducts : Object.entries(CATEGORY_META)).map(([key, meta]) => `
     <li><a href="#store/${key}" class="cat-tile">

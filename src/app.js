@@ -97,6 +97,13 @@ function restoreCart() {
   return cart;
 }
 
+/* Unidades del carrito guardado, sin el catálogo: el ícono del menú las muestra desde la home. */
+function storedCartCount() {
+  let saved = [];
+  try { saved = JSON.parse(storageGet(CART_KEY) || "[]"); } catch (e) { saved = []; }
+  return Array.isArray(saved) ? saved.reduce((s, it) => s + (it && it.id ? clampQty(it.qty) : 0), 0) : 0;
+}
+
 const App = {
   state: {
     view: "home",
@@ -131,7 +138,9 @@ const App = {
     revocation: { errors: {} },
     revocationSending: false, // el formulario de arrepentimiento se está enviando
     login: defaultLogin(), // estado de #ingresar
-    catalog: "loading", // "loading" | "slow" (tarda más de lo normal) | "ready" | "error"
+    // "idle" (todavía no se pidió: solo lo piden las páginas de CATALOG_VIEWS) | "loading" | "slow" (tarda
+    // más de lo normal) | "ready" | "error"
+    catalog: "idle",
   },
 
   cartReady: false, // hasta restaurar el carrito guardado no se escribe nada (evita pisarlo con uno vacío)
@@ -146,7 +155,7 @@ const App = {
   meFetchedToken: null, // GET /me se pide una vez por visita (y de nuevo si cambia la sesión)
   accountOwnerId: null, // id del cliente cuyos datos están en memoria (checkout, Mis datos, pedidos)
 
-  get cartCount() { return this.state.cart.reduce((s, it) => s + Number(it.qty), 0); },
+  get cartCount() { return this.cartReady ? this.state.cart.reduce((s, it) => s + Number(it.qty), 0) : storedCartCount(); },
 
   /* ---------------------------------------------------------------- render */
   render({ focusSelector } = {}) {
@@ -922,7 +931,9 @@ App.submitRevocation = async function () {
 /* Vistas que necesitan el catálogo (productos y precios). Mientras carga, o si no se pudo
    cargar, muestran un estado propio; el resto del sitio (legales, contacto, calculadoras,
    arrepentimiento, cuenta) funciona igual. Nunca se muestran productos inventados. */
-const CATALOG_VIEWS = ["home", "store", "product-detail", "configurator", "cart"];
+/* Páginas que usan el catálogo: lo piden al entrar (la primera vez, o de nuevo si falló). El resto,
+   la home incluida, se muestra sin esperar a la API. */
+const CATALOG_VIEWS = ["store", "product-detail", "configurator", "cart"];
 
 function catalogStatusHTML(status) {
   if (status === "error") {
@@ -1548,6 +1559,7 @@ function applyRoute({ keepScroll = false } = {}) {
   App.lastRouteKey = routeKey;
   App.routeTrackKey = `${s.view}/${param}`;
 
+  if (CATALOG_VIEWS.includes(s.view) && (s.catalog === "idle" || s.catalog === "error")) App.loadCatalog();
   App.render(pageChanged && !isFirst ? { focusSelector: "#main" } : focusSelector ? { focusSelector } : {});
   if (pageChanged) {
     if (s.view !== "home") App.homeRevealed = false;
@@ -1663,8 +1675,10 @@ document.addEventListener("DOMContentLoaded", () => {
     App.renderCookieBanner();
     redirectLegacyHash();
     setupLinkNavigation();
-    applyRoute();
-    App.loadCatalog();
+    applyRoute(); // si la página usa el catálogo, lo pide (ver CATALOG_VIEWS)
+    // en el resto, ya mostrada la página, un pedido chico despierta la API (Render free se duerme a los
+    // 15 min) para que la tienda no espere el arranque en frío; trae la cotización, que se usa igual
+    if (App.state.catalog === "idle" && !DEMO_MODE) setTimeout(() => { if (App.state.catalog === "idle") loadExchangeRate(45000); }, 1500);
   } catch (err) {
     document.getElementById("app-root").innerHTML = `
       <div class="wrap page">
