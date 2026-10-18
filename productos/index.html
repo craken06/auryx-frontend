@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Seguridad. GitHub Pages no deja configurar headers, así que la política va como <meta>.
+     Permite exactamente lo que usa el sitio: la API, Google (ingreso), jsDelivr (fuentes e íconos),
+     imágenes https (fotos de productos cargadas en el admin, Unsplash, Google), GA4 y Clarity.
+     Si agregás un servicio nuevo (otra API, Meta Pixel…), sumá su dominio acá o el navegador lo bloquea.
+     Los estilos en línea se permiten porque las vistas y el botón de Google los usan. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+
+<title>Productos | AURYX</title>
+<meta name="auryx-route" content="store" />
+<meta name="description" content="Paneles solares, inversores y baterías de BYD, Pylontech, Dyness, Sungrow y más. Precios en pesos y compatibilidad verificada antes de comprar." />
+<meta name="theme-color" content="#05080f" />
+<link rel="canonical" href="https://auryx.com.ar/productos/" />
+
+<!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
+     pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AURYX" />
+<meta property="og:locale" content="es_AR" />
+<meta property="og:url" content="https://auryx.com.ar/productos/" />
+<meta property="og:title" content="Productos | AURYX" />
+<meta property="og:description" content="Paneles solares, inversores y baterías de BYD, Pylontech, Dyness, Sungrow y más. Precios en pesos y compatibilidad verificada antes de comprar." />
+<meta property="og:image" content="https://auryx.com.ar/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Productos | AURYX" />
+<meta name="twitter:description" content="Paneles solares, inversores y baterías de BYD, Pylontech, Dyness, Sungrow y más. Precios en pesos y compatibilidad verificada antes de comprar." />
+<meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
+
+<!-- Íconos (pestaña, acceso directo en el celular) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<!-- Datos estructurados para buscadores (no se ejecutan: la CSP no los bloquea) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://auryx.com.ar/#organizacion",
+      "name": "AURYX",
+      "url": "https://auryx.com.ar/",
+      "logo": "https://auryx.com.ar/icon-512.png"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Productos",
+          "item": "https://auryx.com.ar/productos/"
+        }
+      ]
+    },
+    {
+      "@type": "CollectionPage",
+      "name": "Productos",
+      "url": "https://auryx.com.ar/productos/",
+      "mainEntity": {
+        "@type": "ItemList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "url": "https://auryx.com.ar/productos/byd-battery-box-premium-lvs-4-0/",
+            "name": "Battery-Box Premium LVS 4.0"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "url": "https://auryx.com.ar/productos/pylontech-us3000c/",
+            "name": "US3000C"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "url": "https://auryx.com.ar/productos/pylontech-us2000c/",
+            "name": "US2000C"
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "url": "https://auryx.com.ar/productos/dyness-a48100/",
+            "name": "A48100"
+          },
+          {
+            "@type": "ListItem",
+            "position": 5,
+            "url": "https://auryx.com.ar/productos/sungrow-sbr128/",
+            "name": "SBR128"
+          },
+          {
+            "@type": "ListItem",
+            "position": 6,
+            "url": "https://auryx.com.ar/productos/sungrow-sbr096/",
+            "name": "SBR096"
+          },
+          {
+            "@type": "ListItem",
+            "position": 7,
+            "url": "https://auryx.com.ar/productos/growatt-ark-lv-2-56l/",
+            "name": "ARK LV 2.56L"
+          },
+          {
+            "@type": "ListItem",
+            "position": 8,
+            "url": "https://auryx.com.ar/productos/lg-energy-solution-resu10h-prime/",
+            "name": "RESU10H Prime"
+          },
+          {
+            "@type": "ListItem",
+            "position": 9,
+            "url": "https://auryx.com.ar/productos/victron-energy-lithium-smart-12-8v-200ah/",
+            "name": "Lithium Smart 12.8V 200Ah"
+          },
+          {
+            "@type": "ListItem",
+            "position": 10,
+            "url": "https://auryx.com.ar/productos/pylontech-us5000/",
+            "name": "US5000"
+          },
+          {
+            "@type": "ListItem",
+            "position": 11,
+            "url": "https://auryx.com.ar/productos/byd-battery-box-premium-lvs-8-0/",
+            "name": "Battery-Box Premium LVS 8.0"
+          },
+          {
+            "@type": "ListItem",
+            "position": 12,
+            "url": "https://auryx.com.ar/productos/victron-energy-lithium-ng-25-6v-200ah/",
+            "name": "Lithium NG 25.6V 200Ah"
+          },
+          {
+            "@type": "ListItem",
+            "position": 13,
+            "url": "https://auryx.com.ar/productos/sok-48v-100ah-server-rack-battery/",
+            "name": "48V 100Ah Server Rack Battery"
+          },
+          {
+            "@type": "ListItem",
+            "position": 14,
+            "url": "https://auryx.com.ar/productos/alphaess-smile5-ess-10-1kwh/",
+            "name": "Smile5 ESS 10.1kWh"
+          },
+          {
+            "@type": "ListItem",
+            "position": 15,
+            "url": "https://auryx.com.ar/productos/huawei-sun2000-10ktl-m1/",
+            "name": "SUN2000-10KTL-M1"
+          },
+          {
+            "@type": "ListItem",
+            "position": 16,
+            "url": "https://auryx.com.ar/productos/sungrow-sg5-0rs/",
+            "name": "SG5.0RS"
+          },
+          {
+            "@type": "ListItem",
+            "position": 17,
+            "url": "https://auryx.com.ar/productos/sungrow-sg10rt/",
+            "name": "SG10RT"
+          },
+          {
+            "@type": "ListItem",
+            "position": 18,
+            "url": "https://auryx.com.ar/productos/fronius-primo-gen24-5-0-plus/",
+            "name": "Primo GEN24 5.0 Plus"
+          },
+          {
+            "@type": "ListItem",
+            "position": 19,
+            "url": "https://auryx.com.ar/productos/victron-energy-multiplus-ii-48-5000-70-50/",
+            "name": "MultiPlus-II 48/5000/70-50"
+          },
+          {
+            "@type": "ListItem",
+            "position": 20,
+            "url": "https://auryx.com.ar/productos/solaredge-se5000h-hd-wave/",
+            "name": "SE5000H HD-Wave"
+          },
+          {
+            "@type": "ListItem",
+            "position": 21,
+            "url": "https://auryx.com.ar/productos/growatt-mod-5000tl3-x/",
+            "name": "MOD 5000TL3-X"
+          },
+          {
+            "@type": "ListItem",
+            "position": 22,
+            "url": "https://auryx.com.ar/productos/growatt-sph-5000tl-bl-up/",
+            "name": "SPH 5000TL BL-UP"
+          },
+          {
+            "@type": "ListItem",
+            "position": 23,
+            "url": "https://auryx.com.ar/productos/goodwe-gw10kt-dt/",
+            "name": "GW10KT-DT"
+          },
+          {
+            "@type": "ListItem",
+            "position": 24,
+            "url": "https://auryx.com.ar/productos/enphase-iq8mc-microinverter/",
+            "name": "IQ8MC Microinverter"
+          },
+          {
+            "@type": "ListItem",
+            "position": 25,
+            "url": "https://auryx.com.ar/productos/huawei-sun2000-5ktl-l1/",
+            "name": "SUN2000-5KTL-L1"
+          },
+          {
+            "@type": "ListItem",
+            "position": 26,
+            "url": "https://auryx.com.ar/productos/fronius-symo-gen24-10-0-plus/",
+            "name": "Symo GEN24 10.0 Plus"
+          },
+          {
+            "@type": "ListItem",
+            "position": 27,
+            "url": "https://auryx.com.ar/productos/sma-sunny-boy-5-0/",
+            "name": "Sunny Boy 5.0"
+          },
+          {
+            "@type": "ListItem",
+            "position": 28,
+            "url": "https://auryx.com.ar/productos/sma-sunny-tripower-10-0-smart-energy/",
+            "name": "Sunny Tripower 10.0 Smart Energy"
+          },
+          {
+            "@type": "ListItem",
+            "position": 29,
+            "url": "https://auryx.com.ar/productos/goodwe-gw5000d-ns/",
+            "name": "GW5000D-NS"
+          },
+          {
+            "@type": "ListItem",
+            "position": 30,
+            "url": "https://auryx.com.ar/productos/risen-energy-titan-rsm132-8-700m/",
+            "name": "Titan RSM132-8-700M"
+          },
+          {
+            "@type": "ListItem",
+            "position": 31,
+            "url": "https://auryx.com.ar/productos/qcells-q-peak-duo-ml-g11-3-480w/",
+            "name": "Q.PEAK DUO ML-G11.3 480W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 32,
+            "url": "https://auryx.com.ar/productos/canadian-solar-tophiku6-cs6-1-72td-590w/",
+            "name": "TOPHiKu6 CS6.1-72TD 590W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 33,
+            "url": "https://auryx.com.ar/productos/canadian-solar-hiku6-cs6w-550ms/",
+            "name": "HiKu6 CS6W-550MS"
+          },
+          {
+            "@type": "ListItem",
+            "position": 34,
+            "url": "https://auryx.com.ar/productos/trina-solar-vertex-tsm-de18-550w/",
+            "name": "Vertex TSM-DE18 550W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 35,
+            "url": "https://auryx.com.ar/productos/longi-hi-mo-6-lr5-54hth-435w/",
+            "name": "Hi-MO 6 LR5-54HTH 435W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 36,
+            "url": "https://auryx.com.ar/productos/longi-hi-mo-5-lr5-72hph-550w/",
+            "name": "Hi-MO 5 LR5-72HPH 550W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 37,
+            "url": "https://auryx.com.ar/productos/ja-solar-deepblue-4-0-pro-jam72d40-590w/",
+            "name": "DeepBlue 4.0 Pro JAM72D40 590W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 38,
+            "url": "https://auryx.com.ar/productos/ja-solar-deepblue-3-0-jam72s30-545w/",
+            "name": "DeepBlue 3.0 JAM72S30 545W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 39,
+            "url": "https://auryx.com.ar/productos/jinko-solar-tiger-neo-72hl4-v-585w/",
+            "name": "Tiger Neo 72HL4-V 585W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 40,
+            "url": "https://auryx.com.ar/productos/tw-solar-twmnd-72hd590-590w/",
+            "name": "TWMND-72HD590 590W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 41,
+            "url": "https://auryx.com.ar/productos/sunpower-maxeon-6-440w/",
+            "name": "Maxeon 6 440W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 42,
+            "url": "https://auryx.com.ar/productos/trina-solar-vertex-s-tsm-neg9r-28-440w/",
+            "name": "Vertex S+ TSM-NEG9R.28 440W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 43,
+            "url": "https://auryx.com.ar/productos/jinko-solar-tiger-neo-72hl4-v-600w/",
+            "name": "Tiger Neo 72HL4-V 600W"
+          },
+          {
+            "@type": "ListItem",
+            "position": 44,
+            "url": "https://auryx.com.ar/productos/astronergy-astro-n5-chsm72n-dg-f-bh-580w/",
+            "name": "ASTRO N5 CHSM72N(DG)F-BH 580W"
+          }
+        ]
+      }
+    }
+  ]
+}
+</script>
+
+<!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
+<!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
+<script src="/src/lib/theme-init.js?v=20261023"></script>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://images.unsplash.com" />
+<!-- La fuente principal (latín) se pide ya, sin esperar a que llegue su CSS -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/files/archivo-latin-wdth-normal.woff2" />
+
+<!-- Tipografía vía Fontsource (font-display: swap). Versión exacta + integrity (SRI): si el CDN
+     sirviera otro archivo, el navegador no lo usa. Al cambiar de versión hay que recalcular el hash. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/wdth.css" integrity="sha384-vjcJagy/QG7TVWEpv/BSGwmn+C7DviTSwDEGbRW7XomYit1xRqvEa1tOvwsdZUqe" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/index.css" integrity="sha384-bNykZ+bGB4FclZiYvLmgUfE8clWCvZlLOJ3v63czgIEgamTe0EhkaLXIbptJkvmW" crossorigin="anonymous" />
+
+<!-- Íconos: Phosphor (regular + fill), versión fijada -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
+
+<link rel="stylesheet" href="/css/styles.css?v=20261023" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header id="nav-root" class="site-header"></header>
+  <main id="main" tabindex="-1">
+    <div id="app-root">
+      <div data-prerender>
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">Productos</h1>
+      <p class="page-lead">Componentes con especificaciones de fabricante. Entrá a cada uno para ver la ficha técnica completa. Todos los precios incluyen IVA.</p>
+    </div>
+    <nav class="cat-tabs" aria-label="Categorías"><a href="/productos/" class="cat-tab" aria-current="page">Todos</a><a href="/categorias/paneles-solares/" class="cat-tab"><i class="ph ph-solar-panel" aria-hidden="true"></i>Paneles solares</a><a href="/categorias/inversores/" class="cat-tab"><i class="ph ph-lightning" aria-hidden="true"></i>Inversores</a><a href="/#store/regulador" class="cat-tab"><i class="ph ph-cpu" aria-hidden="true"></i>Reguladores MPPT</a><a href="/categorias/baterias/" class="cat-tab"><i class="ph ph-battery-high" aria-hidden="true"></i>Baterías</a><a href="/#store/proteccion" class="cat-tab"><i class="ph ph-shield-check" aria-hidden="true"></i>Protecciones</a><a href="/#store/cable" class="cat-tab"><i class="ph ph-plugs-connected" aria-hidden="true"></i>Cables y conectores</a><a href="/#store/accesorio" class="cat-tab"><i class="ph ph-wrench" aria-hidden="true"></i>Accesorios</a><a href="/#store/soporte" class="cat-tab"><i class="ph ph-squares-four" aria-hidden="true"></i>Soportes y fijación</a></nav>
+    <div class="store-layout">
+      
+    <aside class="store-filters" aria-label="Filtros">
+      <details class="filters-disclosure"  data-bind="filters-open">
+        <summary><i class="ph ph-faders" aria-hidden="true"></i> Filtros <i class="ph ph-caret-down" aria-hidden="true"></i></summary>
+        
+    <fieldset class="filter-group">
+      <legend>Marca</legend>
+      <div class="chip-list">
+        
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="AlphaESS"
+            data-fid="f-brand-AlphaESS" aria-pressed="false">AlphaESS</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Astronergy"
+            data-fid="f-brand-Astronergy" aria-pressed="false">Astronergy</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="BYD"
+            data-fid="f-brand-BYD" aria-pressed="false">BYD</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Canadian Solar"
+            data-fid="f-brand-Canadian Solar" aria-pressed="false">Canadian Solar</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Dyness"
+            data-fid="f-brand-Dyness" aria-pressed="false">Dyness</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Enphase"
+            data-fid="f-brand-Enphase" aria-pressed="false">Enphase</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Fronius"
+            data-fid="f-brand-Fronius" aria-pressed="false">Fronius</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="GoodWe"
+            data-fid="f-brand-GoodWe" aria-pressed="false">GoodWe</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Growatt"
+            data-fid="f-brand-Growatt" aria-pressed="false">Growatt</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Huawei"
+            data-fid="f-brand-Huawei" aria-pressed="false">Huawei</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="JA Solar"
+            data-fid="f-brand-JA Solar" aria-pressed="false">JA Solar</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Jinko Solar"
+            data-fid="f-brand-Jinko Solar" aria-pressed="false">Jinko Solar</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="LG Energy Solution"
+            data-fid="f-brand-LG Energy Solution" aria-pressed="false">LG Energy Solution</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="LONGi"
+            data-fid="f-brand-LONGi" aria-pressed="false">LONGi</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Pylontech"
+            data-fid="f-brand-Pylontech" aria-pressed="false">Pylontech</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Qcells"
+            data-fid="f-brand-Qcells" aria-pressed="false">Qcells</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Risen Energy"
+            data-fid="f-brand-Risen Energy" aria-pressed="false">Risen Energy</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="SMA"
+            data-fid="f-brand-SMA" aria-pressed="false">SMA</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="SOK"
+            data-fid="f-brand-SOK" aria-pressed="false">SOK</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="SolarEdge"
+            data-fid="f-brand-SolarEdge" aria-pressed="false">SolarEdge</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="SunPower"
+            data-fid="f-brand-SunPower" aria-pressed="false">SunPower</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Sungrow"
+            data-fid="f-brand-Sungrow" aria-pressed="false">Sungrow</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="TW Solar"
+            data-fid="f-brand-TW Solar" aria-pressed="false">TW Solar</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Trina Solar"
+            data-fid="f-brand-Trina Solar" aria-pressed="false">Trina Solar</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="brand" data-value="Victron Energy"
+            data-fid="f-brand-Victron Energy" aria-pressed="false">Victron Energy</button>
+      </div>
+    </fieldset>
+    <fieldset class="filter-group">
+      <legend>Tecnología</legend>
+      <div class="chip-list">
+        
+          <button disabled type="button" class="chip" data-action="filter" data-key="tech" data-value="HPBC (back contact)"
+            data-fid="f-tech-HPBC (back contact)" aria-pressed="false">HPBC (back contact)</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="tech" data-value="IBC (back contact)"
+            data-fid="f-tech-IBC (back contact)" aria-pressed="false">IBC (back contact)</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="tech" data-value="Mono PERC"
+            data-fid="f-tech-Mono PERC" aria-pressed="false">Mono PERC</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="tech" data-value="N-type TOPCon"
+            data-fid="f-tech-N-type TOPCon" aria-pressed="false">N-type TOPCon</button>
+      </div>
+    </fieldset>
+    <fieldset class="filter-group">
+      <legend>Tipo de sistema</legend>
+      <div class="chip-list">
+        
+          <button disabled type="button" class="chip" data-action="filter" data-key="systemType" data-value="ongrid"
+            data-fid="f-systemType-ongrid" aria-pressed="false">On-grid</button>
+          <button disabled type="button" class="chip" data-action="filter" data-key="systemType" data-value="hybrid"
+            data-fid="f-systemType-hybrid" aria-pressed="false">Híbrido</button>
+      </div>
+    </fieldset>
+        
+      </details>
+    </aside>
+      <div>
+        <div class="results-bar">
+          <p class="small muted" aria-live="polite"><span class="num">44</span> productos</p>
+          <label class="field sort-field">
+            <span class="small muted">Ordenar por</span>
+            <select disabled class="select" data-bind="store-sort" name="sort">
+              <option value="none" selected>Relevancia</option><option value="price-asc" >Precio: menor a mayor</option><option value="price-desc" >Precio: mayor a menor</option><option value="stock" >Disponibilidad</option>
+            </select>
+          </label>
+        </div>
+        <div class="product-grid">
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">LONGi</p>
+      <h3><a href="/productos/longi-hi-mo-6-lr5-54hth-435w/" title="Hi-MO 6 LR5-54HTH 435W">Hi-MO 6 LR5-54HTH 435W</a></h3>
+      <p class="key-spec mono">435 W  /  39,33 V  /  14,02 A</p>
+      <div class="card-foot">
+        <span class="price">$ 225.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-14" data-fid="add-db-14"
+          aria-label="Agregar Hi-MO 6 LR5-54HTH 435W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Trina Solar</p>
+      <h3><a href="/productos/trina-solar-vertex-s-tsm-neg9r-28-440w/" title="Vertex S+ TSM-NEG9R.28 440W">Vertex S+ TSM-NEG9R.28 440W</a></h3>
+      <p class="key-spec mono">440 W  /  52,3 V  /  10,8 A</p>
+      <div class="card-foot">
+        <span class="price">$ 230.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-16" data-fid="add-db-16"
+          aria-label="Agregar Vertex S+ TSM-NEG9R.28 440W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Qcells</p>
+      <h3><a href="/productos/qcells-q-peak-duo-ml-g11-3-480w/" title="Q.PEAK DUO ML-G11.3 480W">Q.PEAK DUO ML-G11.3 480W</a></h3>
+      <p class="key-spec mono">480 W  /  45,2 V  /  13,65 A</p>
+      <div class="card-foot">
+        <span class="price">$ 245.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-19" data-fid="add-db-19"
+          aria-label="Agregar Q.PEAK DUO ML-G11.3 480W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">JA Solar</p>
+      <h3><a href="/productos/ja-solar-deepblue-3-0-jam72s30-545w/" title="DeepBlue 3.0 JAM72S30 545W">DeepBlue 3.0 JAM72S30 545W</a></h3>
+      <p class="key-spec mono">545 W  /  49,9 V  /  13,95 A</p>
+      <div class="card-foot">
+        <span class="price">$ 265.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-11" data-fid="add-db-11"
+          aria-label="Agregar DeepBlue 3.0 JAM72S30 545W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">LONGi</p>
+      <h3><a href="/productos/longi-hi-mo-5-lr5-72hph-550w/" title="Hi-MO 5 LR5-72HPH 550W">Hi-MO 5 LR5-72HPH 550W</a></h3>
+      <p class="key-spec mono">550 W  /  49,95 V  /  13,98 A</p>
+      <div class="card-foot">
+        <span class="price">$ 270.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-13" data-fid="add-db-13"
+          aria-label="Agregar Hi-MO 5 LR5-72HPH 550W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Canadian Solar</p>
+      <h3><a href="/productos/canadian-solar-hiku6-cs6w-550ms/" title="HiKu6 CS6W-550MS">HiKu6 CS6W-550MS</a></h3>
+      <p class="key-spec mono">550 W  /  49,6 V  /  13,9 A</p>
+      <div class="card-foot">
+        <span class="price">$ 272.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-17" data-fid="add-db-17"
+          aria-label="Agregar HiKu6 CS6W-550MS al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Trina Solar</p>
+      <h3><a href="/productos/trina-solar-vertex-tsm-de18-550w/" title="Vertex TSM-DE18 550W">Vertex TSM-DE18 550W</a></h3>
+      <p class="key-spec mono">550 W  /  49,9 V  /  13,96 A</p>
+      <div class="card-foot">
+        <span class="price">$ 275.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-15" data-fid="add-db-15"
+          aria-label="Agregar Vertex TSM-DE18 550W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Jinko Solar</p>
+      <h3><a href="/productos/jinko-solar-tiger-neo-72hl4-v-585w/" title="Tiger Neo 72HL4-V 585W">Tiger Neo 72HL4-V 585W</a></h3>
+      <p class="key-spec mono">585 W  /  52,47 V  /  14,07 A</p>
+      <div class="card-foot">
+        <span class="price">$ 285.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-9" data-fid="add-db-9"
+          aria-label="Agregar Tiger Neo 72HL4-V 585W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Jinko Solar</p>
+      <h3><a href="/productos/jinko-solar-tiger-neo-72hl4-v-600w/" title="Tiger Neo 72HL4-V 600W">Tiger Neo 72HL4-V 600W</a></h3>
+      <p class="key-spec mono">600 W  /  52,95 V  /  14,25 A</p>
+      <div class="card-foot">
+        <span class="price">$ 295.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-10" data-fid="add-db-10"
+          aria-label="Agregar Tiger Neo 72HL4-V 600W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Astronergy</p>
+      <h3><a href="/productos/astronergy-astro-n5-chsm72n-dg-f-bh-580w/" title="ASTRO N5 CHSM72N(DG)F-BH 580W">ASTRO N5 CHSM72N(DG)F-BH 580W</a></h3>
+      <p class="key-spec mono">580 W  /  52,3 V  /  14,05 A</p>
+      <div class="card-foot">
+        <span class="price">$ 300.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-21" data-fid="add-db-21"
+          aria-label="Agregar ASTRO N5 CHSM72N(DG)F-BH 580W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">TW Solar</p>
+      <h3><a href="/productos/tw-solar-twmnd-72hd590-590w/" title="TWMND-72HD590 590W">TWMND-72HD590 590W</a></h3>
+      <p class="key-spec mono">590 W  /  52,1 V  /  14,28 A</p>
+      <div class="card-foot">
+        <span class="price">$ 305.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-23" data-fid="add-db-23"
+          aria-label="Agregar TWMND-72HD590 590W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">JA Solar</p>
+      <h3><a href="/productos/ja-solar-deepblue-4-0-pro-jam72d40-590w/" title="DeepBlue 4.0 Pro JAM72D40 590W">DeepBlue 4.0 Pro JAM72D40 590W</a></h3>
+      <p class="key-spec mono">590 W  /  52,2 V  /  14,3 A</p>
+      <div class="card-foot">
+        <span class="price">$ 310.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-12" data-fid="add-db-12"
+          aria-label="Agregar DeepBlue 4.0 Pro JAM72D40 590W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Canadian Solar</p>
+      <h3><a href="/productos/canadian-solar-tophiku6-cs6-1-72td-590w/" title="TOPHiKu6 CS6.1-72TD 590W">TOPHiKu6 CS6.1-72TD 590W</a></h3>
+      <p class="key-spec mono">590 W  /  52,4 V  /  14,15 A</p>
+      <div class="card-foot">
+        <span class="price">$ 315.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-18" data-fid="add-db-18"
+          aria-label="Agregar TOPHiKu6 CS6.1-72TD 590W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Risen Energy</p>
+      <h3><a href="/productos/risen-energy-titan-rsm132-8-700m/" title="Titan RSM132-8-700M">Titan RSM132-8-700M</a></h3>
+      <p class="key-spec mono">700 W  /  50,9 V  /  17,3 A</p>
+      <div class="card-foot">
+        <span class="price">$ 365.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-20" data-fid="add-db-20"
+          aria-label="Agregar Titan RSM132-8-700M al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-solar-panel" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">SunPower</p>
+      <h3><a href="/productos/sunpower-maxeon-6-440w/" title="Maxeon 6 440W">Maxeon 6 440W</a></h3>
+      <p class="key-spec mono">440 W  /  69,5 V  /  6,5 A</p>
+      <div class="card-foot">
+        <span class="price">$ 420.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-22" data-fid="add-db-22"
+          aria-label="Agregar Maxeon 6 440W al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Enphase</p>
+      <h3><a href="/productos/enphase-iq8mc-microinverter/" title="IQ8MC Microinverter">IQ8MC Microinverter</a></h3>
+      <p class="key-spec mono">330 W  /  460 W  /  60 V</p>
+      <div class="card-foot">
+        <span class="price">$ 480.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-38" data-fid="add-db-38"
+          aria-label="Agregar IQ8MC Microinverter al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Growatt</p>
+      <h3><a href="/productos/growatt-mod-5000tl3-x/" title="MOD 5000TL3-X">MOD 5000TL3-X</a></h3>
+      <p class="key-spec mono">5.000 W  /  7.500 W  /  1.100 V</p>
+      <div class="card-foot">
+        <span class="price">$ 1.550.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-32" data-fid="add-db-32"
+          aria-label="Agregar MOD 5000TL3-X al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">GoodWe</p>
+      <h3><a href="/productos/goodwe-gw5000d-ns/" title="GW5000D-NS">GW5000D-NS</a></h3>
+      <p class="key-spec mono">5.000 W  /  6.500 W  /  600 V</p>
+      <div class="card-foot">
+        <span class="price">$ 1.600.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-34" data-fid="add-db-34"
+          aria-label="Agregar GW5000D-NS al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Sungrow</p>
+      <h3><a href="/productos/sungrow-sg5-0rs/" title="SG5.0RS">SG5.0RS</a></h3>
+      <p class="key-spec mono">5.000 W  /  7.500 W  /  600 V</p>
+      <div class="card-foot">
+        <span class="price">$ 1.700.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-26" data-fid="add-db-26"
+          aria-label="Agregar SG5.0RS al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Huawei</p>
+      <h3><a href="/productos/huawei-sun2000-5ktl-l1/" title="SUN2000-5KTL-L1">SUN2000-5KTL-L1</a></h3>
+      <p class="key-spec mono">5.000 W  /  7.500 W  /  600 V</p>
+      <div class="card-foot">
+        <span class="price">$ 1.850.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-24" data-fid="add-db-24"
+          aria-label="Agregar SUN2000-5KTL-L1 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Growatt</p>
+      <h3><a href="/productos/growatt-sph-5000tl-bl-up/" title="SPH 5000TL BL-UP">SPH 5000TL BL-UP</a></h3>
+      <p class="key-spec mono">5.000 W  /  8.600 W  /  550 V</p>
+      <div class="card-foot">
+        <span class="price">$ 2.200.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-33" data-fid="add-db-33"
+          aria-label="Agregar SPH 5000TL BL-UP al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">GoodWe</p>
+      <h3><a href="/productos/goodwe-gw10kt-dt/" title="GW10KT-DT">GW10KT-DT</a></h3>
+      <p class="key-spec mono">10.000 W  /  15.000 W  /  1.000 V</p>
+      <div class="card-foot">
+        <span class="price">$ 2.600.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-35" data-fid="add-db-35"
+          aria-label="Agregar GW10KT-DT al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Sungrow</p>
+      <h3><a href="/productos/sungrow-sg10rt/" title="SG10RT">SG10RT</a></h3>
+      <p class="key-spec mono">10.000 W  /  15.000 W  /  1.100 V</p>
+      <div class="card-foot">
+        <span class="price">$ 2.800.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-27" data-fid="add-db-27"
+          aria-label="Agregar SG10RT al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Huawei</p>
+      <h3><a href="/productos/huawei-sun2000-10ktl-m1/" title="SUN2000-10KTL-M1">SUN2000-10KTL-M1</a></h3>
+      <p class="key-spec mono">10.000 W  /  15.000 W  /  1.100 V</p>
+      <div class="card-foot">
+        <span class="price">$ 2.900.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-25" data-fid="add-db-25"
+          aria-label="Agregar SUN2000-10KTL-M1 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">SolarEdge</p>
+      <h3><a href="/productos/solaredge-se5000h-hd-wave/" title="SE5000H HD-Wave">SE5000H HD-Wave</a></h3>
+      <p class="key-spec mono">5.000 W  /  480 V  /  14 A</p>
+      <div class="card-foot">
+        <span class="price">$ 3.200.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-37" data-fid="add-db-37"
+          aria-label="Agregar SE5000H HD-Wave al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">SMA</p>
+      <h3><a href="/productos/sma-sunny-boy-5-0/" title="Sunny Boy 5.0">Sunny Boy 5.0</a></h3>
+      <p class="key-spec mono">5.000 W  /  7.500 W  /  600 V</p>
+      <div class="card-foot">
+        <span class="price">$ 3.500.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-30" data-fid="add-db-30"
+          aria-label="Agregar Sunny Boy 5.0 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Fronius</p>
+      <h3><a href="/productos/fronius-primo-gen24-5-0-plus/" title="Primo GEN24 5.0 Plus">Primo GEN24 5.0 Plus</a></h3>
+      <p class="key-spec mono">5.000 W  /  7.500 W  /  600 V</p>
+      <div class="card-foot">
+        <span class="price">$ 3.900.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-28" data-fid="add-db-28"
+          aria-label="Agregar Primo GEN24 5.0 Plus al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Victron Energy</p>
+      <h3><a href="/productos/victron-energy-multiplus-ii-48-5000-70-50/" title="MultiPlus-II 48/5000/70-50">MultiPlus-II 48/5000/70-50</a></h3>
+      <p class="key-spec mono">4.000 W  /  0 V  /  0 A</p>
+      <div class="card-foot">
+        <span class="price">$ 4.500.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-36" data-fid="add-db-36"
+          aria-label="Agregar MultiPlus-II 48/5000/70-50 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Fronius</p>
+      <h3><a href="/productos/fronius-symo-gen24-10-0-plus/" title="Symo GEN24 10.0 Plus">Symo GEN24 10.0 Plus</a></h3>
+      <p class="key-spec mono">10.000 W  /  15.000 W  /  1.000 V</p>
+      <div class="card-foot">
+        <span class="price">$ 5.500.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-29" data-fid="add-db-29"
+          aria-label="Agregar Symo GEN24 10.0 Plus al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-lightning" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">SMA</p>
+      <h3><a href="/productos/sma-sunny-tripower-10-0-smart-energy/" title="Sunny Tripower 10.0 Smart Energy">Sunny Tripower 10.0 Smart Energy</a></h3>
+      <p class="key-spec mono">10.000 W  /  15.000 W  /  1.000 V</p>
+      <div class="card-foot">
+        <span class="price">$ 5.800.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-31" data-fid="add-db-31"
+          aria-label="Agregar Sunny Tripower 10.0 Smart Energy al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Pylontech</p>
+      <h3><a href="/productos/pylontech-us2000c/" title="US2000C">US2000C</a></h3>
+      <p class="key-spec mono">2.400 Wh  /  48 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 1.450.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-39" data-fid="add-db-39"
+          aria-label="Agregar US2000C al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Pylontech</p>
+      <h3><a href="/productos/pylontech-us3000c/" title="US3000C">US3000C</a></h3>
+      <p class="key-spec mono">3.552 Wh  /  48 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 2.050.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-40" data-fid="add-db-40"
+          aria-label="Agregar US3000C al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Growatt</p>
+      <h3><a href="/productos/growatt-ark-lv-2-56l/" title="ARK LV 2.56L">ARK LV 2.56L</a></h3>
+      <p class="key-spec mono">2.560 Wh  /  51,2 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 2.100.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-49" data-fid="add-db-49"
+          aria-label="Agregar ARK LV 2.56L al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Dyness</p>
+      <h3><a href="/productos/dyness-a48100/" title="A48100">A48100</a></h3>
+      <p class="key-spec mono">4.800 Wh  /  48 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 2.500.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-42" data-fid="add-db-42"
+          aria-label="Agregar A48100 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Pylontech</p>
+      <h3><a href="/productos/pylontech-us5000/" title="US5000">US5000</a></h3>
+      <p class="key-spec mono">4.800 Wh  /  48 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 2.700.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-41" data-fid="add-db-41"
+          aria-label="Agregar US5000 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">SOK</p>
+      <h3><a href="/productos/sok-48v-100ah-server-rack-battery/" title="48V 100Ah Server Rack Battery">48V 100Ah Server Rack Battery</a></h3>
+      <p class="key-spec mono">5.120 Wh  /  51,2 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 2.800.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-53" data-fid="add-db-53"
+          aria-label="Agregar 48V 100Ah Server Rack Battery al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Victron Energy</p>
+      <h3><a href="/productos/victron-energy-lithium-smart-12-8v-200ah/" title="Lithium Smart 12.8V 200Ah">Lithium Smart 12.8V 200Ah</a></h3>
+      <p class="key-spec mono">2.560 Wh  /  12,8 V  /  5.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 3.100.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-46" data-fid="add-db-46"
+          aria-label="Agregar Lithium Smart 12.8V 200Ah al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">BYD</p>
+      <h3><a href="/productos/byd-battery-box-premium-lvs-4-0/" title="Battery-Box Premium LVS 4.0">Battery-Box Premium LVS 4.0</a></h3>
+      <p class="key-spec mono">4.000 Wh  /  51,2 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 4.100.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-44" data-fid="add-db-44"
+          aria-label="Agregar Battery-Box Premium LVS 4.0 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Victron Energy</p>
+      <h3><a href="/productos/victron-energy-lithium-ng-25-6v-200ah/" title="Lithium NG 25.6V 200Ah">Lithium NG 25.6V 200Ah</a></h3>
+      <p class="key-spec mono">5.120 Wh  /  25,6 V  /  5.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 5.900.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-47" data-fid="add-db-47"
+          aria-label="Agregar Lithium NG 25.6V 200Ah al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">BYD</p>
+      <h3><a href="/productos/byd-battery-box-premium-lvs-8-0/" title="Battery-Box Premium LVS 8.0">Battery-Box Premium LVS 8.0</a></h3>
+      <p class="key-spec mono">8.000 Wh  /  51,2 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 7.200.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-45" data-fid="add-db-45"
+          aria-label="Agregar Battery-Box Premium LVS 8.0 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Sungrow</p>
+      <h3><a href="/productos/sungrow-sbr096/" title="SBR096">SBR096</a></h3>
+      <p class="key-spec mono">9.600 Wh  /  192 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 7.500.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-50" data-fid="add-db-50"
+          aria-label="Agregar SBR096 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">LG Energy Solution</p>
+      <h3><a href="/productos/lg-energy-solution-resu10h-prime/" title="RESU10H Prime">RESU10H Prime</a></h3>
+      <p class="key-spec mono">9.600 Wh  /  350 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 8.500.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-48" data-fid="add-db-48"
+          aria-label="Agregar RESU10H Prime al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">AlphaESS</p>
+      <h3><a href="/productos/alphaess-smile5-ess-10-1kwh/" title="Smile5 ESS 10.1kWh">Smile5 ESS 10.1kWh</a></h3>
+      <p class="key-spec mono">10.100 Wh  /  48 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 9.000.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-52" data-fid="add-db-52"
+          aria-label="Agregar Smile5 ESS 10.1kWh al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">Sungrow</p>
+      <h3><a href="/productos/sungrow-sbr128/" title="SBR128">SBR128</a></h3>
+      <p class="key-spec mono">12.800 Wh  /  256 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 9.800.000</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-51" data-fid="add-db-51"
+          aria-label="Agregar SBR128 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article></div>
+      </div>
+    </div>
+  </div></div>
+      <noscript>
+        <div class="wrap page">
+          <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
+          <p>También podés consultarnos por WhatsApp: <a href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta.">+54 9 11 6685-8516</a>.</p>
+        </div>
+      </noscript>
+    </div>
+  </main>
+  <footer id="footer-root" class="site-footer"></footer>
+
+  <div id="toast-root" class="toast-region" role="status" aria-live="polite"></div>
+  <!-- Banner de cookies (views/cookies.js). Vacío si la analítica está deshabilitada o ya se decidió. -->
+  <div id="cookie-root"></div>
+  <!-- Región viva estable para anunciar resultados que se recalculan al tipear (dimensionador) -->
+  <div id="sr-live" class="visually-hidden" aria-live="polite"></div>
+
+  <button id="back-to-top" class="back-to-top" type="button" data-action="scroll-top" aria-label="Volver arriba">
+    <i class="ph ph-arrow-up" aria-hidden="true"></i>
+  </button>
+
+  <!-- El link funciona aun sin JavaScript; app.js le suma el código de origen ("Ref:") al mensaje -->
+  <a id="wa-fab" class="wa-fab" href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta." target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp (se abre en una pestaña nueva)" data-context="boton-flotante">
+    <i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i>
+  </a>
+
+  <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
+  <script src="/src/config.js?v=20261023"></script>
+  <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
+  <script src="/src/lib/analytics.js?v=20261023"></script>
+
+  <!-- Datos y lógica de negocio -->
+  <script src="/src/data/products.js?v=20261023"></script>
+  <script src="/src/lib/compatibilityEngine.js?v=20261023"></script>
+  <script src="/src/utils/format.js?v=20261023"></script>
+  <script src="/src/utils/calculatorHelpers.js?v=20261023"></script>
+
+  <!-- Vistas -->
+  <script src="/src/views/nav.js?v=20261023"></script>
+  <script src="/src/views/footer.js?v=20261023"></script>
+  <script src="/src/views/sizer.js?v=20261023"></script>
+  <script src="/src/views/home.js?v=20261023"></script>
+  <script src="/src/views/store.js?v=20261023"></script>
+  <script src="/src/views/productDetail.js?v=20261023"></script>
+  <script src="/src/views/configurator.js?v=20261023"></script>
+  <script src="/src/views/calculators/consumption.js?v=20261023"></script>
+  <script src="/src/views/calculators/cost.js?v=20261023"></script>
+  <script src="/src/views/calculators/savings.js?v=20261023"></script>
+  <script src="/src/views/calculators/orientation.js?v=20261023"></script>
+  <script src="/src/views/calculators/index.js?v=20261023"></script>
+  <script src="/src/views/cart.js?v=20261023"></script>
+  <script src="/src/views/infoContact.js?v=20261023"></script>
+  <script src="/src/views/legal.js?v=20261023"></script>
+  <script src="/src/views/account.js?v=20261023"></script>
+  <script src="/src/views/cookies.js?v=20261023"></script>
+
+  <!-- Sesión del cliente y cliente de la API -->
+  <script src="/src/lib/session.js?v=20261023"></script>
+  <script src="/src/lib/api.js?v=20261023"></script>
+
+  <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
+  <script src="/src/app.js?v=20261023"></script>
+</body>
+</html>

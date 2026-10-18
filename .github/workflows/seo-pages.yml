@@ -1,0 +1,50 @@
+# Regenera las páginas para buscadores (/productos/, /categorias/, sitemap.xml) con el
+# catálogo actual de la API. Corre todos los días, en cada push a main y a mano desde la
+# pestaña Actions ("Run workflow"), por ejemplo después de cargar productos en el admin.
+name: Páginas para buscadores
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 06:00 de Argentina
+  push:
+    branches: [main]
+    paths: ["index.html", "src/**", "scripts/**", ".github/workflows/seo-pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: seo-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generar páginas
+        run: node scripts/build-seo-pages.mjs
+
+      - name: Publicar si cambió algo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A productos categorias sitemap.xml
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el catálogo."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Páginas para buscadores: catálogo actualizado"
+          git push
+          # los push hechos con el token de Actions no siempre disparan la publicación de Pages
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" || true

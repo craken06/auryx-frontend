@@ -162,7 +162,8 @@ const App = {
 
     let body = "";
     const waitingCatalog = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
-    if (waitingCatalog) body = catalogStatusHTML(s.catalog);
+    // en una página estática (/productos/…) se deja el contenido ya dibujado mientras llega el catálogo
+    if (waitingCatalog) body = s.catalog !== "error" && onStaticRoute() ? PRERENDER_HTML : catalogStatusHTML(s.catalog);
     else switch (s.view) {
       case "home": body = renderHome(s); break;
       case "store": body = renderStore(s); break;
@@ -419,7 +420,7 @@ const App = {
         if (!s.login.busy) s.login = { ...defaultLogin(), error: "Tu sesión venció. Ingresá de nuevo." };
         this.render();
       } else if (s.view === "my-account" && viewFor === "my-account") {
-        rememberAfterLogin(location.hash); // Mis datos necesita sesión
+        rememberAfterLogin(location.hash || STATIC_ROUTE); // Mis datos necesita sesión
         navigateHash("ingresar");
       } else {
         takeSessionExpired(); // el usuario ya está en otra página: solo se actualiza el header
@@ -1021,10 +1022,10 @@ function trackPurchase(order, id) {
    página muestra su contenido real (no mientras espera el catálogo). */
 function updateRouteMeta() {
   const s = App.state;
-  document.title = pageTitle(s);
+  const waiting = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
+  if (!(waiting && onStaticRoute())) document.title = pageTitle(s); // la página estática ya trae el título del producto
   const waFab = document.getElementById("wa-fab");
   if (waFab) waFab.href = whatsappLink("Hola, quiero hacer una consulta.");
-  const waiting = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
   if (waiting || !App.routeTrackKey || App.routeTrackKey === App.lastTrackedKey) return;
   App.lastTrackedKey = App.routeTrackKey;
   Track.pageView();
@@ -1116,7 +1117,7 @@ const ACTIONS = {
   "toast-dismiss": () => App.dismissToast(),
   "toast-action": () => { const a = App.toastAction; App.dismissToast(); if (a && a.run) a.run(); },
   // link "Ingresar": recuerda la página actual para volver después (el link navega solo)
-  "login-start": () => rememberAfterLogin(location.hash),
+  "login-start": () => rememberAfterLogin(location.hash || STATIC_ROUTE),
   "logout": (d) => App.logout({ stay: d.stay === "1" }),
   "my-orders-retry": () => { App.loadMyOrders(); App.render(); },
   "toggle-account-menu": (d, el) => {
@@ -1344,7 +1345,7 @@ window.addEventListener("storage", (e) => {
     App.forgetAccountData();
     App.accountOwnerId = null;
     if (accountPage) {
-      rememberAfterLogin(location.hash);
+      rememberAfterLogin(location.hash || STATIC_ROUTE);
       navigateHash("ingresar");
       return;
     }
@@ -1425,8 +1426,15 @@ window.addEventListener("resize", () => {
    Traduce el hash (#store/panel?marca=X, #product/db-1, #calculators/ahorro,
    #configurator?tipo=hybrid…) en estado + render.
    ========================================================================= */
+/* Páginas estáticas para buscadores (/productos/<slug>/, /categorias/<slug>/; las genera
+   scripts/build-seo-pages.mjs): traen su ruta en <meta name="auryx-route"> y el contenido ya
+   dibujado. Mientras la URL no tenga "#", la ruta es la de la página. */
+const STATIC_ROUTE = document.querySelector('meta[name="auryx-route"]')?.content || "";
+const PRERENDER_HTML = document.querySelector("[data-prerender]")?.outerHTML || "";
+const onStaticRoute = () => !!STATIC_ROUTE && !location.hash.replace(/^#/, "");
+
 function applyRouteFromHash({ keepScroll = false } = {}) {
-  const raw = location.hash.replace(/^#/, "");
+  const raw = location.hash.replace(/^#/, "") || STATIC_ROUTE;
   const [path, query] = raw.split("?");
   const [view, rawParam] = path.split("/");
   let param = "";
