@@ -1033,20 +1033,27 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 /* =========================================================================
    FOOTER
    ========================================================================= */
-.site-footer { border-top: 1px solid var(--line); padding-block: 56px 40px; margin-top: 24px; }
-.footer-grid { display: grid; gap: 36px; }
-@media (min-width: 768px) { .footer-grid { grid-template-columns: 1.4fr repeat(3, 1fr); } }
-.footer-grid p { color: var(--text-mid); font-size: 0.9375rem; max-width: 34ch; margin-top: 16px; }
-.footer-social { display: flex; gap: 8px; }
-.footer-col h2 { font-size: 0.875rem; font-weight: 650; margin-bottom: 12px; }
-.footer-col a { display: block; padding: 6px 0; color: var(--text-mid); font-size: 0.9375rem; }
+.site-footer { border-top: 1px solid var(--line); padding-block: 72px 40px; margin-top: 24px; }
+
+/* Arriba: marca a la izquierda, links a la derecha (en celular: marca y debajo los links en 2 columnas) */
+.footer-top { display: grid; gap: 48px; }
+@media (min-width: 900px) { .footer-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 64px; } }
+.footer-brand p { color: var(--text-mid); font-size: 0.9375rem; line-height: 1.6; max-width: 34ch; margin-top: 20px; }
+.footer-social { display: flex; gap: 10px; margin-top: 24px; }
+.footer-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 24px; }
+/* en celular, Tienda (la más larga) ocupa la columna izquierda; Herramientas y Auryx van a la derecha */
+@media (max-width: 639px) { .footer-nav .footer-col:first-child { grid-row: span 2; } }
+@media (min-width: 640px) { .footer-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.footer-col h2 { font-size: 0.875rem; font-weight: 650; margin-bottom: 14px; }
+.footer-col a { display: block; padding: 7px 0; color: var(--text-mid); font-size: 0.9375rem; }
 .footer-col a:hover { color: var(--text); }
-.footer-base {
-  display: grid; gap: 8px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
-  font-size: 0.8125rem; color: var(--text-dim);
+.footer-phone { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+/* Franja de consumidor (Ley 24.240): arrepentimiento, reclamos y Data Fiscal, con aire propio */
+.footer-consumer {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px;
+  margin-top: 56px; padding-block: 28px; border-block: 1px solid var(--line);
 }
-.footer-base strong { color: var(--text-mid); font-weight: 600; }
-.footer-consumer { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 8px; }
 .footer-revocation {
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px;
   border: 1px solid var(--accent); border-radius: var(--r-control); background: var(--accent-soft);
@@ -1055,14 +1062,20 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 }
 .footer-revocation .ph { color: var(--accent-ink); font-size: 18px; }
 .footer-revocation:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
-.footer-complaints { color: var(--text-mid); text-decoration: underline; text-underline-offset: 3px; }
+.footer-complaints { color: var(--text-mid); font-size: 0.875rem; line-height: 1.5; text-decoration: underline; text-underline-offset: 3px; }
 .footer-complaints:hover { color: var(--text); }
-.data-fiscal { display: inline-flex; align-items: center; gap: 8px; color: var(--text-mid); }
+.data-fiscal { display: inline-flex; align-items: center; gap: 8px; color: var(--text-mid); font-size: 0.875rem; }
 .data-fiscal img { width: 48px; height: auto; border-radius: 4px; }
-.footer-legal { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+
+/* Base: legales y © en una fila, datos del vendedor y notas abajo */
+.footer-bottom { display: grid; gap: 20px; padding-top: 28px; font-size: 0.8125rem; line-height: 1.6; color: var(--text-dim); }
+.footer-legal-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.footer-legal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
 .footer-legal a, .footer-legal .link-btn { color: var(--text-mid); text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
 .footer-legal a:hover, .footer-legal .link-btn:hover { color: var(--text); }
+.footer-seller { display: flex; flex-wrap: wrap; gap: 4px 24px; color: var(--text-mid); }
 .footer-seller a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.footer-notes { display: grid; gap: 6px; max-width: 78ch; }
 
 /* =========================================================================
    FLOTANTES: toast + volver arriba
@@ -1230,7 +1243,7 @@ fieldset.field legend { padding: 0; margin-bottom: 8px; }
   .check input { width: 22px; height: 22px; }
   .link-btn { display: inline-flex; align-items: center; min-height: 44px; }
   .footer-legal a, .footer-complaints, .footer-col a { display: inline-flex; align-items: center; min-height: 44px; }
-  .footer-col a { display: flex; padding-block: 0; }
+  .footer-col a { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding-block: 0; }
 }
 
 .order-code { font-size: clamp(1.75rem, 6vw, 2.75rem); letter-spacing: 0.04em; }
