@@ -1677,8 +1677,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setupLinkNavigation();
     applyRoute(); // si la página usa el catálogo, lo pide (ver CATALOG_VIEWS)
     // en el resto, ya mostrada la página, un pedido chico despierta la API (Render free se duerme a los
-    // 15 min) para que la tienda no espere el arranque en frío; trae la cotización, que se usa igual
-    if (App.state.catalog === "idle" && !DEMO_MODE) setTimeout(() => { if (App.state.catalog === "idle") loadExchangeRate(45000); }, 1500);
+    // 15 min; además la mantiene despierta un monitor de UptimeRobot) para que la tienda no espere el
+    // arranque en frío. /health no toca la base.
+    if (App.state.catalog === "idle" && !DEMO_MODE) setTimeout(() => { if (App.state.catalog === "idle") apiRequest("/health", { timeoutMs: 45000 }).catch(() => {}); }, 1500);
   } catch (err) {
     document.getElementById("app-root").innerHTML = `
       <div class="wrap page">
