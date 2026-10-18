@@ -6,12 +6,12 @@
 <meta name="robots" content="noindex" />
 <title>Página no encontrada | AURYX</title>
 <!-- GitHub Pages muestra este archivo para cualquier dirección que no existe. Redirige al sitio
-     pasando la ruta al router por "#": /auryx-frontend/store/panel → /auryx-frontend/#store/panel
+     pasando la ruta al router por "#": /store/panel → /#store/panel
      (si no es una ruta conocida, el sitio muestra su propia página "No encontramos esa página").
-     Con dominio propio, cambiar BASE a "/". -->
+     El sitio está en la raíz del dominio (auryx.com.ar); en craken06.github.io/auryx-frontend/ sería "/auryx-frontend/". -->
 <script>
   (function () {
-    var BASE = "/auryx-frontend/";
+    var BASE = "/";
     var path = location.pathname.indexOf(BASE) === 0 ? location.pathname.slice(BASE.length) : "";
     path = path.replace(/\/+$/, "").replace(/^index\.html$/, "");
     location.replace(BASE + (path ? "#" + path + location.search : location.hash));
@@ -19,6 +19,6 @@
 </script>
 </head>
 <body style="font-family:system-ui,sans-serif;background:#05080f;color:#eef1f7;padding:32px">
-  <p>Te llevamos a <a href="/auryx-frontend/" style="color:#f5b301">AURYX</a>…</p>
+  <p>Te llevamos a <a href="/" style="color:#f5b301">AURYX</a>…</p>
 </body>
 </html>

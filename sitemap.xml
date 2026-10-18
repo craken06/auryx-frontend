@@ -2,7 +2,7 @@
 <!-- Por ahora solo la home: las demás páginas viven detrás de "#" y los buscadores no las indexan por separado. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://craken06.github.io/auryx-frontend/</loc>
+    <loc>https://auryx.com.ar/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>

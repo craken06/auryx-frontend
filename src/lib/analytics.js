@@ -8,7 +8,7 @@
    - Consent Mode v2 de Google: todo denegado por defecto; al aceptar se habilita solo la medición
      (analytics_storage). Los permisos de anuncios (ad_*) quedan denegados: el banner no los pide.
    - El router manda un page_view por cada página con una URL "virtual" sin "#"
-     (#product/db-12 → /auryx-frontend/product/db-12), así GA4 muestra cada pantalla por separado.
+     (#product/db-12 → /product/db-12), así GA4 muestra cada pantalla por separado.
      En GA4 hay que desactivar "Cambios de página basados en el historial" (Medición mejorada).
    - El origen de la visita (utm_source/medium/campaign, o el sitio que la mandó) se guarda en el
      navegador para el código "Ref:" de los mensajes de WhatsApp. No sale del navegador salvo en ese
