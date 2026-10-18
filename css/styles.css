@@ -388,10 +388,24 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 
 /* #ingresar */
 .login-card { max-width: 520px; margin-inline: auto; display: grid; gap: 18px; }
-/* El iframe de Google pinta un fondo blanco si su color-scheme no coincide con el de la página:
-   con "light" fijo el botón oscuro queda sin el recuadro blanco en el tema oscuro. */
-.gsi-slot { min-height: 44px; display: flex; align-items: center; max-width: 100%; overflow: hidden; color-scheme: light; background: transparent; }
-.gsi-slot iframe { color-scheme: light; max-width: 100%; }
+/* "Continuar con Google" (ver googleSlotHTML): el botón que se ve es nuestro y encima va el de Google,
+   invisible y del mismo tamaño (44 px de alto, hasta 400 de ancho), que recibe el clic y el teclado.
+   Hover y foco se leen en el contenedor: el puntero y el foco están dentro del iframe de Google. */
+.google-signin { position: relative; width: 100%; max-width: 400px; margin-inline: auto; }
+.google-btn {
+  width: 100%; gap: 12px; pointer-events: none;
+  background: var(--surface-2); border-color: var(--line-strong); color: var(--text);
+}
+:root[data-theme="light"] .google-btn { background: var(--surface); }
+.google-btn svg { flex: none; }
+.google-signin:hover .google-btn { border-color: var(--accent); background: var(--line); }
+:root[data-theme="light"] .google-signin:hover .google-btn { background: var(--surface-2); }
+.google-signin:focus-within .google-btn { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* mientras carga el script de Google el botón todavía no responde: se ve apagado */
+.google-signin[aria-busy="true"] .google-btn { opacity: 0.55; }
+.google-signin .gsi-slot { position: absolute; inset: 0; opacity: 0; overflow: hidden; }
+/* el iframe de Google pinta un fondo opaco si su color-scheme no coincide con el de la página */
+.gsi-slot, .gsi-slot iframe { color-scheme: light; }
 .login-status { display: flex; align-items: center; gap: 10px; background: var(--surface-2); }
 .login-status.tone-bad { background: var(--bad-bg); }
 .login-who { display: flex; align-items: center; gap: 14px; }
@@ -411,8 +425,6 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
   font-weight: 750; font-stretch: 82%; letter-spacing: -0.015em;
 }
 .auth-google { display: grid; gap: 12px; }
-.auth-google .gsi-slot { justify-content: center; min-height: 44px; }
-.auth-google .gsi-slot > div { width: 100%; display: flex; justify-content: center; }
 .auth-benefits { display: grid; gap: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
 .auth-benefits li { display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center; }
 .auth-benefits .ph {
@@ -428,8 +440,10 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .auth-who-text p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .auth-actions { display: grid; gap: 12px; }
 @media (min-width: 480px) { .auth-actions { grid-template-columns: 1fr 1fr; } }
-.auth-link { display: inline-flex; align-items: center; gap: 6px; justify-self: start; transition: gap 0.18s var(--ease), color 0.18s var(--ease); }
-.auth-link:hover { gap: 10px; color: var(--text); }
+.auth-link { display: inline-flex; align-items: center; gap: 6px; justify-self: start; transition: color 0.18s var(--ease); }
+.auth-link .ph { transition: transform 0.18s var(--ease); }
+.auth-link:hover { color: var(--text); }
+.auth-link:hover .ph { transform: translateX(4px); }
 .auth-media { display: none; position: relative; overflow: hidden; border-radius: var(--r-surface); background: var(--surface-2); }
 @media (min-width: 900px) { .auth-media { display: block; } }
 .auth-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
