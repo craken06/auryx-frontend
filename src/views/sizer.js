@@ -3,7 +3,9 @@
    baterías, y verifica la compatibilidad entre cada par de componentes.
    Usa los equipos del catálogo de la tienda (PRODUCTS) que tienen los datos que pide el cálculo; si para
    un tipo no hay ninguno, cae a los equipos de referencia de abajo. Precios en USD.
-   Depende de: data/products.js, utils/format.js. */
+   El resultado que vale es el de la API (POST /sizer, src/sizer/sizer.ts de compragamer-api); este cálculo
+   es la copia que se muestra al instante y queda de respaldo: los cambios de cálculo van en los dos lados.
+   Depende de: data/products.js, lib/api.js, utils/format.js. */
 
 /* ---------------------------------------------------------------------- */
 /* Equipos de referencia (respaldo si el catálogo no cubre un caso)        */
@@ -860,9 +862,43 @@ function sizerQuoteMessage(kind, inputs, r, currency) {
 
 const SIZER_MODE_LABEL = { quick: "automático rápido", custom: "automático personalizado" };
 
+/* ---------------------------------------------------------------------- */
+/* Cálculo en el servidor                                                  */
+/* ---------------------------------------------------------------------- */
+/* El resultado vale el de la API (POST /sizer, con el catálogo de la base). Mientras llega, o si la API
+   no responde, se muestra el cálculo local de arriba, que es el mismo. Se pide al dejar de tipear y una
+   respuesta vieja (el usuario ya cambió algo) se descarta. Si coincide con el local no se redibuja. */
+const SIZER_SERVER = { key: null, data: null, pendingKey: null, timer: null };
+
+function sizerResult(kind, st) {
+  const local = kind === "quick" ? sizerQuickResult(st) : sizerCustomResult(st);
+  if ((typeof DEMO_MODE !== "undefined" && DEMO_MODE) || !PRODUCTS.some((p) => p._fromApi)) return local;
+  const body = { mode: kind, inputs: { ...st } };
+  const key = JSON.stringify(body);
+  if (SIZER_SERVER.key === key) return SIZER_SERVER.data || local;
+  if (SIZER_SERVER.pendingKey !== key) {
+    SIZER_SERVER.pendingKey = key;
+    clearTimeout(SIZER_SERVER.timer);
+    SIZER_SERVER.timer = setTimeout(() => {
+      apiRequest("/sizer", { method: "POST", body, timeoutMs: 8000 })
+        .then((data) => {
+          if (SIZER_SERVER.pendingKey !== key) return;
+          SIZER_SERVER.key = key;
+          SIZER_SERVER.data = data;
+          if (JSON.stringify(data) !== JSON.stringify(local)) App.renderSizerOutput();
+        })
+        .catch((err) => {
+          console.warn("Dimensionador: se usa el cálculo local.", err.message);
+          if (SIZER_SERVER.pendingKey === key) { SIZER_SERVER.key = key; SIZER_SERVER.data = null; }
+        });
+    }, 400);
+  }
+  return local;
+}
+
 function sizerOutputHTML(sz, currency) {
   const kind = sz.mode;
-  const r = kind === "quick" ? sizerQuickResult(sz.quick) : sizerCustomResult(sz.custom);
+  const r = sizerResult(kind, sz[kind]);
   if (r.empty) {
     return `<div class="sz-empty">${icon("solar-panel")}<p>${r.empty}</p></div>`;
   }
