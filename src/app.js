@@ -317,11 +317,13 @@ const App = {
       }
       const el = document.getElementById("gsi-button");
       if (!el) return;
-      // ancho del contenedor (Google acepta de 200 a 400 px). "outline" en los dos temas: el botón
-      // negro de Google quedaba dentro de un recuadro blanco (el fondo de su iframe) en el tema oscuro
+      // ancho del contenedor (Google acepta de 200 a 400 px). Tema oscuro del sitio: el botón oscuro de
+      // Google (filled_black, G a color); claro: el blanco (outline). Al cambiar el tema se redibuja con el
+      // render. El recuadro blanco que dejaba su iframe en el tema oscuro lo evita color-scheme: light en
+      // .gsi-slot (ver styles.css).
       const width = Math.max(200, Math.min(400, Math.floor(el.clientWidth || 320)));
       el.replaceChildren();
-      google.accounts.id.renderButton(el, { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", width, locale: "es" });
+      google.accounts.id.renderButton(el, { theme: s.theme === "dark" ? "filled_black" : "outline", size: "large", text: "continue_with", shape: "rectangular", width, locale: "es" });
     }).catch(() => {
       s.login.gsiError = true;
       if (s.view === "login" || s.view === "cart") this.render();
