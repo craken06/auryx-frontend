@@ -49,6 +49,14 @@ function dataFiscalHTML() {
     ? `<img src="${esc(img)}" alt="Data Fiscal" width="48" height="66" loading="lazy" decoding="async" />` : ""}<span>Data Fiscal</span></a>`;
 }
 
+/* Íconos de las redes (config.js); sin ninguna cargada no se dibuja nada. */
+function socialLinksHTML() {
+  const links = [[INSTAGRAM_URL, "instagram-logo", "Instagram"], [LINKEDIN_URL, "linkedin-logo", "LinkedIn"]].filter(([url]) => url);
+  if (!links.length) return "";
+  return `<p class="footer-social">${links.map(([url, ic, name]) =>
+    `<a href="${esc(url)}" class="icon-btn" target="_blank" rel="noopener me" aria-label="AURYX en ${name} (se abre en una pestaña nueva)" data-context="footer-${name.toLowerCase()}">${icon(ic)}</a>`).join("")}</p>`;
+}
+
 function renderFooter() {
   // Solo categorías con productos (si el catálogo todavía no cargó, las cuatro principales)
   const loaded = typeof PRODUCTS !== "undefined" && PRODUCTS.length > 0;
@@ -65,6 +73,7 @@ function renderFooter() {
       <div>
         <a href="#" class="wordmark" aria-label="AURYX, ir al inicio" translate="no">AURYX</a>
         <p>Sistemas fotovoltaicos para casas y PyMEs en Argentina. Componentes con datos de fabricante y compatibilidad verificada.</p>
+        ${socialLinksHTML()}
       </div>
       <nav class="footer-col" aria-labelledby="ft-tienda"><h2 id="ft-tienda">Tienda</h2>${cats}<a href="#store">Ver todo</a></nav>
       <nav class="footer-col" aria-labelledby="ft-herr"><h2 id="ft-herr">Herramientas</h2>

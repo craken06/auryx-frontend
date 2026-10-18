@@ -36,6 +36,12 @@ const CONTACT_EMAIL = "";
 // un secreto. Vacío = el ingreso de clientes queda deshabilitado y #ingresar lo avisa.
 const GOOGLE_CLIENT_ID = "22309348641-70prap97ugr2a30af2fjrtphruia4q4g.apps.googleusercontent.com";
 
+// Redes de AURYX: íconos en el pie y "sameAs" de los datos para buscadores (le dicen a Google que
+// esos perfiles son de esta empresa). Vacío = no se muestra. Si cambian, cambiá también "sameAs"
+// en index.html (las demás páginas lo toman de acá al regenerarse).
+const INSTAGRAM_URL = "https://www.instagram.com/auryxfv/";
+const LINKEDIN_URL = "https://www.linkedin.com/in/auryx-fv";
+
 // Datos del vendedor (Ley 24.240, comercio electrónico). Se muestran en el pie y en Términos.
 // Vacío = no se muestra esa línea (nunca se publican datos de relleno).
 const SELLER_NAME = "";        // nombre y apellido o razón social, ej. "Juan Pérez" o "AURYX S.A.S."

@@ -117,7 +117,8 @@ function writePage(urlPath, html) {
 }
 const page = (opts) => writePage(opts.urlPath, buildHTML(opts));
 
-const ORG = { "@type": "Organization", "@id": `${SITE}/#organizacion`, name: "AURYX", url: `${SITE}/`, logo: `${SITE}/icon-512.png` };
+const SAME_AS = [run("INSTAGRAM_URL"), run("LINKEDIN_URL")].filter(Boolean);
+const ORG = { "@type": "Organization", "@id": `${SITE}/#organizacion`, name: "AURYX", url: `${SITE}/`, logo: `${SITE}/icon-512.png`, ...(SAME_AS.length ? { sameAs: SAME_AS } : {}) };
 const crumbs = (items) => ({
   "@type": "BreadcrumbList",
   itemListElement: items.map(([name, u], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE + u })),
