@@ -171,13 +171,15 @@ const SIZER_INSTALL = 0.25;       // instalación, cableado y protecciones sobre
 const SIZER_YEARS = 25;           // vida útil de los paneles
 const SIZER_DEGRADATION = 0.005;  // pérdida anual de generación
 const SIZER_REPLACE_YEAR = 12;    // año en que se reponen inversor y baterías
+// ahorro por kWh generado sin batería (para dimensionar según el ahorro que se pide)
+const SIZER_SAVE_PER_KWH = SIZER_SELF_USE.red + (1 - SIZER_SELF_USE.red) * SIZER_INJECT_VALUE;
 
 function defaultSizer() {
   return {
     mode: "quick",
-    quick: { cons: "450", hsp: "4.4", goal: "red", cover: "70", hours: "4", days: "2" },
+    quick: { cons: "450", hsp: "4.4", goal: "red", save: "70", hours: "4", days: "2" },
     custom: {
-      cons: "650", hsp: "4.4", goal: "resp", cover: "80", hours: "4", days: "2", phase: "mono", crit: "2.5",
+      cons: "650", hsp: "4.4", goal: "resp", save: "70", hours: "4", days: "2", phase: "mono", crit: "2.5",
       area: "40", est: "e1", ori: "1", tmin: "-5", tmax: "40", pan: "auto", inv: "auto", bat: "auto",
     },
   };
@@ -238,9 +240,16 @@ function sizerNormalizeCustom(cu) {
   if (cu.bat !== "auto" && !bats.some((b) => b.id === cu.bat)) cu.bat = "auto";
 }
 
-function sizerGoalFraction(goal, cover, backupFraction) {
-  if (goal === "red") return Math.min(100, Math.max(0, cover)) / 100;
-  return goal === "resp" ? backupFraction : 1.2;
+/* Fracción del consumo que tiene que generar el sistema. Para bajar la factura el usuario elige qué parte
+   de la factura quiere ahorrar ("save", %): cada kWh generado ahorra SIZER_SAVE_PER_KWH de factura (lo que se
+   consume en el momento vale entero, lo inyectado a precio mayorista), así que se genera ahorro / SIZER_SAVE_PER_KWH.
+   Sin "save" se toma "cover" (% de cobertura del consumo), el campo del formulario anterior. */
+function sizerGoalFraction(st, backupFraction) {
+  if (st.goal === "red") {
+    if (st.save === undefined) return Math.min(100, Math.max(0, sizerNum(st.cover))) / 100;
+    return Math.min(100, Math.max(0, sizerNum(st.save))) / 100 / SIZER_SAVE_PER_KWH;
+  }
+  return st.goal === "resp" ? backupFraction : 1.2;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -490,8 +499,8 @@ function sizerQuickResult(q) {
   const cons = sizerNum(q.cons);
   const hsp = sizerNum(q.hsp);
   if (cons <= 0) return { empty: "Ingresá tu consumo mensual para ver el sistema sugerido." };
-  const frac = sizerGoalFraction(q.goal, sizerNum(q.cover), 0.8);
-  if (frac <= 0) return { empty: "Indicá qué porcentaje del consumo querés cubrir." };
+  const frac = sizerGoalFraction(q, 0.8);
+  if (frac <= 0) return { empty: "Indicá qué porcentaje de tu factura querés ahorrar." };
 
   const loc = sizerLocation(q.hsp);
   const env = sizerEnv(loc.tmin, loc.tmax);
@@ -532,7 +541,7 @@ function sizerQuickResult(q) {
 /* Paneles objetivo del personalizado: lo que pide el consumo, recortado por la superficie. */
 function sizerCustomTargets(cu, pan) {
   const cons = sizerNum(cu.cons);
-  const frac = sizerGoalFraction(cu.goal, sizerNum(cu.cover), 0.85);
+  const frac = sizerGoalFraction(cu, 0.85);
   const ori = sizerNum(cu.ori) || 1;
   const hsp = sizerNum(cu.hsp) || 1;
   const kwpReq = (cons * frac) / (30 * hsp * SIZER_PR * ori);
@@ -603,7 +612,7 @@ function sizerCustomResult(cu) {
   const cons = sizerNum(cu.cons);
   const hsp = sizerNum(cu.hsp);
   if (cons <= 0) return { empty: "Ingresá tu consumo mensual para calcular las cantidades." };
-  if (sizerGoalFraction(cu.goal, sizerNum(cu.cover), 0.85) <= 0) return { empty: "Indicá qué porcentaje del consumo querés cubrir." };
+  if (sizerGoalFraction(cu, 0.85) <= 0) return { empty: "Indicá qué porcentaje de tu factura querés ahorrar." };
   const { inv, nInv, plan, pan, env, t, crit, backup } = sizerCustomSizing(cu);
   if (!inv) return { empty: "No hay inversores en el catálogo para esa combinación. Cambiá el objetivo o la conexión." };
   if (t.nArea < 1) return { empty: "Con esa superficie no entra ni un panel. Revisá los m² libres." };
@@ -666,7 +675,7 @@ function sizerRoi(r, cons, goal) {
     net += monthly * 12 * (1 - SIZER_DEGRADATION) ** (y - 1) - (y === SIZER_REPLACE_YEAR ? replace : 0);
     if (payback === null && net >= 0) payback = y - 1 + -prev / (net - prev);
   }
-  return { level: level + 1, tariff, monthly, invest, replace, withBat: !!r.config.bat, nInv: r.config.nInv, payback, net, roi: (net / invest) * 100 };
+  return { level: level + 1, tariff, monthly, billPct: (monthly / (cons * price)) * 100, invest, replace, withBat: !!r.config.bat, nInv: r.config.nInv, payback, net, roi: (net / invest) * 100 };
 }
 
 /* ---------------------------------------------------------------------- */
@@ -714,7 +723,7 @@ function sizerSegHTML({ label, action, scope, field, value, options, wide = fals
 
 /* Campos que dependen del objetivo: % de cobertura, horas de respaldo o días de autonomía. */
 function sizerGoalFieldHTML(scope, st) {
-  if (st.goal === "red") return sizerNumberHTML({ scope, field: "cover", label: "Cobertura del consumo", unit: "%", value: st.cover, min: 10, max: 100, hint: "Qué parte de la factura querés cubrir con el sol." });
+  if (st.goal === "red") return sizerNumberHTML({ scope, field: "save", label: "Ahorro en la factura", unit: "%", value: st.save, min: 10, max: 100, hint: "Qué parte de tu factura de luz querés ahorrar." });
   if (st.goal === "resp") return sizerNumberHTML({ scope, field: "hours", label: "Horas de respaldo", unit: "h", value: st.hours, min: 1, hint: "Cuánto tiempo querés cubrir un corte de luz." });
   return sizerNumberHTML({ scope, field: "days", label: "Días de autonomía", unit: "días", value: st.days, min: 1, hint: "Días sin sol que tiene que aguantar la batería." });
 }
@@ -868,6 +877,7 @@ function sizerRoiHTML(roi, goal, currency) {
   const years = roi.payback === null ? `Más de ${SIZER_YEARS} años` : `${fmtNum(roi.payback, 1)} años`;
   const stats = [
     { label: "Ahorro mensual", value: sizerMoney(roi.monthly, currency) },
+    { label: "De tu factura", value: `${fmtNum(roi.billPct)} %` },
     { label: "Recupero", value: years },
     { label: `Retorno a ${SIZER_YEARS} años`, value: `${roi.roi > 0 ? "+" : ""}${fmtNum(roi.roi)} %` },
   ];
@@ -891,7 +901,7 @@ function sizerInputsSummary(kind, st) {
     ["Consumo mensual", `${num(st.cons)} kWh/mes`],
     ["Ubicación", sizerLocation(st.hsp).label],
   ];
-  if (st.goal === "red") rows.push(["Cobertura del consumo", `${num(st.cover)} %`]);
+  if (st.goal === "red") rows.push(["Ahorro buscado en la factura", `${num(st.save)} %`]);
   else if (st.goal === "resp") rows.push(["Horas de respaldo", `${num(st.hours, 1)} h`]);
   else rows.push(["Días de autonomía", `${num(st.days, 1)} días`]);
   if (kind === "custom") {
