@@ -1,5 +1,5 @@
-/* AURYX: pie de página. Depende de: data/products.js, utils/format.js, config.js (SELLER_*, CONTACT_EMAIL,
-   DATA_FISCAL_*), lib/analytics.js (botón "Configurar cookies"). */
+/* AURYX: pie de página. Depende de: utils/format.js, config.js (SELLER_*, CONTACT_EMAIL, DATA_FISCAL_*,
+   INSTAGRAM_URL, WHATSAPP_*), lib/analytics.js (botón "Configurar cookies"). */
 
 const cfgStr = (v) => (typeof v === "string" ? v.trim() : "");
 
@@ -49,21 +49,14 @@ function dataFiscalHTML() {
     ? `<img src="${esc(img)}" alt="Data Fiscal" width="48" height="66" loading="lazy" decoding="async" />` : ""}<span>Data Fiscal</span></a>`;
 }
 
-/* Íconos de las redes (config.js); sin ninguna cargada no se dibuja nada. */
-function socialLinksHTML() {
-  const links = [[INSTAGRAM_URL, "instagram-logo", "Instagram"], [LINKEDIN_URL, "linkedin-logo", "LinkedIn"]].filter(([url]) => url);
-  if (!links.length) return "";
-  return `<p class="footer-social">${links.map(([url, ic, name]) =>
-    `<a href="${esc(url)}" class="icon-btn" target="_blank" rel="noopener me" aria-label="AURYX en ${name} (se abre en una pestaña nueva)" data-context="footer-${name.toLowerCase()}">${icon(ic)}</a>`).join("")}</p>`;
+/* Instagram (config.js) con los colores de su marca; sin URL no se dibuja. LinkedIn queda solo en los
+   datos para buscadores (sameAs), no en el pie. */
+function instagramLinkHTML() {
+  if (!INSTAGRAM_URL) return "";
+  return `<a href="${esc(INSTAGRAM_URL)}" class="footer-ig" target="_blank" rel="noopener me" aria-label="AURYX en Instagram (se abre en una pestaña nueva)" data-context="footer-instagram">${icon("instagram-logo")}</a>`;
 }
 
 function renderFooter() {
-  // Solo categorías con productos (sin datos de ninguna, las cuatro principales)
-  const counts = categoryCounts();
-  const known = Object.keys(counts).length > 0;
-  const cats = ["panel", "inversor", "bateria", "regulador"]
-    .filter((k) => CATEGORY_META[k] && (!known || counts[k]))
-    .map((k) => `<a href="#store/${k}">${CATEGORY_META[k].label}</a>`).join("");
   const seller = sellerLineHTML();
   const cookies = typeof Analytics !== "undefined" && Analytics.enabled()
     ? `<button type="button" class="link-btn" data-action="cookie-settings">Configurar cookies</button>` : "";
@@ -74,23 +67,17 @@ function renderFooter() {
       <div class="footer-brand">
         <a href="#" class="wordmark" aria-label="AURYX, ir al inicio" translate="no">AURYX</a>
         <p>Equipos solares para casas y PyMEs en Argentina, con la compatibilidad eléctrica verificada antes de comprar.</p>
-        ${socialLinksHTML()}
       </div>
-      <div class="footer-nav">
-        <nav class="footer-col" aria-labelledby="ft-tienda"><h2 id="ft-tienda">Tienda</h2>${cats}<a href="#store">Ver todo</a></nav>
-        <nav class="footer-col" aria-labelledby="ft-herr"><h2 id="ft-herr">Herramientas</h2>
-          <a href="#configurator">Diseñá tu sistema</a><a href="#calculators">Calculadoras</a>
-        </nav>
-        <nav class="footer-col" aria-labelledby="ft-auryx"><h2 id="ft-auryx">Auryx</h2>
-          <a href="#info">Información</a><a href="#contact">Contacto</a>
-          <a href="${whatsappLink()}" target="_blank" rel="noopener" data-context="footer">WhatsApp<span class="footer-phone">${WHATSAPP_DISPLAY}</span></a>
-        </nav>
-      </div>
+      <nav class="footer-links" aria-label="AURYX">
+        <a href="#info">Información</a><a href="#contact">Contacto</a>
+        <a href="${whatsappLink()}" target="_blank" rel="noopener" data-context="footer">WhatsApp <span class="footer-phone">${WHATSAPP_DISPLAY}</span></a>
+      </nav>
     </div>
     <div class="footer-consumer">
       <a href="#arrepentimiento" class="footer-revocation">${icon("arrow-u-up-left")}Botón de arrepentimiento</a>
       <a href="${CONSUMER_COMPLAINTS_URL}" class="footer-complaints" target="_blank" rel="noopener">Defensa de las y los Consumidores. Para reclamos ingrese aquí</a>
       ${dataFiscalHTML()}
+      ${instagramLinkHTML()}
     </div>
     <div class="footer-bottom">
       <div class="footer-legal-row">
