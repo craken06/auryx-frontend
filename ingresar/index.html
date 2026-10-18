@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Seguridad. GitHub Pages no deja configurar headers, así que la política va como <meta>.
+     Permite exactamente lo que usa el sitio: la API, Google (ingreso), jsDelivr (fuentes e íconos),
+     imágenes https (fotos de productos cargadas en el admin, Unsplash, Google), GA4 y Clarity.
+     Si agregás un servicio nuevo (otra API, Meta Pixel…), sumá su dominio acá o el navegador lo bloquea.
+     Los estilos en línea se permiten porque las vistas y el botón de Google los usan. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+
+<title>Ingresar | AURYX</title>
+<meta name="robots" content="noindex" />
+<meta name="description" content="Ingresá a tu cuenta de AURYX." />
+<meta name="theme-color" content="#05080f" />
+<link rel="canonical" href="https://auryx.com.ar/ingresar/" />
+
+<!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
+     pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AURYX" />
+<meta property="og:locale" content="es_AR" />
+<meta property="og:url" content="https://auryx.com.ar/ingresar/" />
+<meta property="og:title" content="Ingresar | AURYX" />
+<meta property="og:description" content="Ingresá a tu cuenta de AURYX." />
+<meta property="og:image" content="https://auryx.com.ar/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Ingresar | AURYX" />
+<meta name="twitter:description" content="Ingresá a tu cuenta de AURYX." />
+<meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
+
+<!-- Íconos (pestaña, acceso directo en el celular) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<!-- Datos estructurados para buscadores (no se ejecutan: la CSP no los bloquea) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://auryx.com.ar/#organizacion",
+      "name": "AURYX",
+      "url": "https://auryx.com.ar/",
+      "logo": "https://auryx.com.ar/icon-512.png"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Ingresar",
+          "item": "https://auryx.com.ar/ingresar/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
+<!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
+<script src="/src/lib/theme-init.js?v=20261024"></script>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://images.unsplash.com" />
+<!-- La fuente principal (latín) se pide ya, sin esperar a que llegue su CSS -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/files/archivo-latin-wdth-normal.woff2" />
+
+<!-- Tipografía vía Fontsource (font-display: swap). Versión exacta + integrity (SRI): si el CDN
+     sirviera otro archivo, el navegador no lo usa. Al cambiar de versión hay que recalcular el hash. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/wdth.css" integrity="sha384-vjcJagy/QG7TVWEpv/BSGwmn+C7DviTSwDEGbRW7XomYit1xRqvEa1tOvwsdZUqe" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/index.css" integrity="sha384-bNykZ+bGB4FclZiYvLmgUfE8clWCvZlLOJ3v63czgIEgamTe0EhkaLXIbptJkvmW" crossorigin="anonymous" />
+
+<!-- Íconos: Phosphor (regular + fill), versión fijada -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
+
+<link rel="stylesheet" href="/css/styles.css?v=20261024" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header id="nav-root" class="site-header"></header>
+  <main id="main" tabindex="-1">
+    <div id="app-root">
+      <div class="wrap boot" aria-busy="true">
+        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span id="boot-text">Cargando…</span></p>
+        <div class="skeleton" style="height:48px;max-width:420px"></div>
+        <div class="skeleton" style="height:20px;max-width:560px"></div>
+        <div class="skeleton" style="height:320px"></div>
+      </div>
+      <noscript>
+        <div class="wrap page">
+          <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
+          <p>También podés consultarnos por WhatsApp: <a href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta.">+54 9 11 6685-8516</a>.</p>
+        </div>
+      </noscript>
+    </div>
+  </main>
+  <footer id="footer-root" class="site-footer"></footer>
+
+  <div id="toast-root" class="toast-region" role="status" aria-live="polite"></div>
+  <!-- Banner de cookies (views/cookies.js). Vacío si la analítica está deshabilitada o ya se decidió. -->
+  <div id="cookie-root"></div>
+  <!-- Región viva estable para anunciar resultados que se recalculan al tipear (dimensionador) -->
+  <div id="sr-live" class="visually-hidden" aria-live="polite"></div>
+
+  <button id="back-to-top" class="back-to-top" type="button" data-action="scroll-top" aria-label="Volver arriba">
+    <i class="ph ph-arrow-up" aria-hidden="true"></i>
+  </button>
+
+  <!-- El link funciona aun sin JavaScript; app.js le suma el código de origen ("Ref:") al mensaje -->
+  <a id="wa-fab" class="wa-fab" href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta." target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp (se abre en una pestaña nueva)" data-context="boton-flotante">
+    <i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i>
+  </a>
+
+  <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
+  <script src="/src/config.js?v=20261024"></script>
+  <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
+  <script src="/src/lib/analytics.js?v=20261024"></script>
+
+  <!-- Datos y lógica de negocio -->
+  <script src="/src/data/products.js?v=20261024"></script>
+  <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
+  <script src="/src/lib/routes.js?v=20261024"></script>
+  <script src="/src/lib/compatibilityEngine.js?v=20261024"></script>
+  <script src="/src/utils/format.js?v=20261024"></script>
+  <script src="/src/utils/calculatorHelpers.js?v=20261024"></script>
+
+  <!-- Vistas -->
+  <script src="/src/views/nav.js?v=20261024"></script>
+  <script src="/src/views/footer.js?v=20261024"></script>
+  <script src="/src/views/sizer.js?v=20261024"></script>
+  <script src="/src/views/home.js?v=20261024"></script>
+  <script src="/src/views/store.js?v=20261024"></script>
+  <script src="/src/views/productDetail.js?v=20261024"></script>
+  <script src="/src/views/configurator.js?v=20261024"></script>
+  <script src="/src/views/calculators/consumption.js?v=20261024"></script>
+  <script src="/src/views/calculators/cost.js?v=20261024"></script>
+  <script src="/src/views/calculators/savings.js?v=20261024"></script>
+  <script src="/src/views/calculators/orientation.js?v=20261024"></script>
+  <script src="/src/views/calculators/index.js?v=20261024"></script>
+  <script src="/src/views/cart.js?v=20261024"></script>
+  <script src="/src/views/infoContact.js?v=20261024"></script>
+  <script src="/src/views/legal.js?v=20261024"></script>
+  <script src="/src/views/account.js?v=20261024"></script>
+  <script src="/src/views/cookies.js?v=20261024"></script>
+
+  <!-- Sesión del cliente y cliente de la API -->
+  <script src="/src/lib/session.js?v=20261024"></script>
+  <script src="/src/lib/api.js?v=20261024"></script>
+
+  <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
+  <script src="/src/app.js?v=20261024"></script>
+</body>
+</html>

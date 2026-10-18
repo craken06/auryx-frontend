@@ -194,6 +194,7 @@ const App = {
     if (this.cartReady) persistCart(s.cart);
     if (s.view === "calculators") this.calcFetchWarnings();
     if ((s.view === "login" || s.view === "cart") && !waitingCatalog) this.mountGoogleButton();
+    linkifyRoutes();
     updateRouteMeta(); // título, link del botón de WhatsApp y page_view
 
     // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
@@ -346,7 +347,7 @@ const App = {
       this.state.login = defaultLogin();
       const after = takeAfterLogin();
       // desde el carrito se sigue en el carrito, ya con el formulario de compra
-      navigateHash(this.state.view === "cart" ? "cart" : after);
+      navigate(this.state.view === "cart" ? "cart" : after);
       Track.event("login", { method: "google" });
       this.toast(`Hola, ${customerFirstName(data.customer)}. Ya ingresaste.`);
     } catch (err) {
@@ -367,7 +368,7 @@ const App = {
     this.accountOwnerId = null;
     this.state.mobileNavOpen = false;
     if (stay) this.render();
-    else navigateHash("");
+    else navigate("");
     this.toast("Cerraste sesión.");
   },
 
@@ -420,8 +421,8 @@ const App = {
         if (!s.login.busy) s.login = { ...defaultLogin(), error: "Tu sesión venció. Ingresá de nuevo." };
         this.render();
       } else if (s.view === "my-account" && viewFor === "my-account") {
-        rememberAfterLogin(location.hash || STATIC_ROUTE); // Mis datos necesita sesión
-        navigateHash("ingresar");
+        rememberAfterLogin(currentRoute()); // Mis datos necesita sesión
+        navigate("ingresar");
       } else {
         takeSessionExpired(); // el usuario ya está en otra página: solo se actualiza el header
         this.render();
@@ -520,12 +521,12 @@ const App = {
   },
   setStoreFilter(key, value) {
     const current = this.state.storeFilters[key];
-    navigateHash(this.storeHash({ filters: { [key]: current === value ? null : value } }));
+    navigate(this.storeHash({ filters: { [key]: current === value ? null : value } }));
   },
   clearStoreFilters() {
-    navigateHash(this.storeHash({ filters: { brand: null, tech: null, systemType: null } }));
+    navigate(this.storeHash({ filters: { brand: null, tech: null, systemType: null } }));
   },
-  setStoreSort(value) { navigateHash(this.storeHash({ sort: value })); },
+  setStoreSort(value) { navigate(this.storeHash({ sort: value })); },
 
   /* ---------------------------------------------------------------- carrito */
   addToCart(productId, qty) {
@@ -548,7 +549,7 @@ const App = {
     lines.forEach((it) => this.state.cart.push({ ...it, systemId }));
     Track.event("add_to_cart", gaItemsParams(lines));
     this.state.configurator = defaultConfigurator();
-    navigateHash("cart");
+    navigate("cart");
     this.toast("Agregaste el sistema completo al carrito.");
   },
   cartQtyStep(idx, delta) {
@@ -601,7 +602,7 @@ const App = {
       const payUrl = safePaymentUrl(order.paymentUrl);
       if (payUrl) { window.location.href = payUrl; return; } // sigue en Mercado Pago
       Object.assign(c, { sending: false, slow: false });
-      navigateHash(`pedido/${order.code}`);
+      navigate(`pedido/${order.code}`);
     } catch (err) {
       Object.assign(c, { sending: false, slow: false });
       if (err.status === 401) return; // ya se fue a #ingresar; lo tipeado queda en sessionStorage
@@ -651,7 +652,7 @@ const App = {
     const s = this.state;
     s.contactDraft = { ...s.contactDraft, message: quoteMessage(s) };
     s.contactStatus = null;
-    navigateHash("contact");
+    navigate("contact");
   },
 
   /* ---------------------------------------------------------------- configurador */
@@ -662,7 +663,7 @@ const App = {
     const c = this.state.configurator;
     const n = Math.max(0, Math.min(step, configuratorSteps(c).length - 1));
     if (n > c.step) Track.event("configurator_step", { step: n + 1, system_type: c.systemTypeId || "" });
-    navigateHash(n > 0 ? `configurator/paso-a-paso?paso=${n + 1}` : "configurator/paso-a-paso");
+    navigate(n > 0 ? `configurator/paso-a-paso?paso=${n + 1}` : "configurator/paso-a-paso");
   },
   cfgSelectSystemType(id) {
     this.state.configurator = defaultConfigurator();
@@ -971,7 +972,7 @@ function pageTitle(s) {
     case "home": return "AURYX | Equipos de energía solar";
     case "store": return named(CATEGORY_META[s.storeCategory] ? CATEGORY_META[s.storeCategory].label : "Productos");
     case "product-detail": {
-      const p = PRODUCTS.find((x) => x.id === s.selectedProductId);
+      const p = findProduct(s.selectedProductId);
       return named(p ? `${p.name}${p.brand ? ` · ${p.brand}` : ""}` : "Producto");
     }
     case "configurator": return named(s.cfgTool === "steps" ? "Configurador paso a paso" : "Diseñá tu sistema");
@@ -1030,7 +1031,7 @@ function updateRouteMeta() {
   App.lastTrackedKey = App.routeTrackKey;
   Track.pageView();
   if (s.view === "product-detail") {
-    const p = PRODUCTS.find((x) => x.id === s.selectedProductId);
+    const p = findProduct(s.selectedProductId);
     if (p) Track.event("view_item", gaItemsParams([{ product: p, qty: 1 }]));
   } else if (s.view === "store") {
     Track.event("view_item_list", { item_list_id: s.storeCategory, item_list_name: CATEGORY_META[s.storeCategory] ? CATEGORY_META[s.storeCategory].label : "Productos" });
@@ -1065,7 +1066,10 @@ App.loadCatalog = async function () {
       }
       if (!DEMO_MODE) loadCompatibilityParams(); // la API ya está despierta: responde enseguida
       // la ruta se vuelve a aplicar: la tienda, la ficha y el configurador validan contra el catálogo
-      applyRouteFromHash({ keepScroll: true });
+      applyRoute({ keepScroll: true });
+      // /productos/db-44/ (link viejo) → /productos/<slug>/
+      const canonical = routeToPath(currentRoute());
+      if (s.view !== "not-found" && canonical !== location.pathname + location.search) history.replaceState(history.state, "", canonical);
     } else {
       s.catalog = "error";
       this.render(waitingHere() ? { focusSelector: '[data-action="catalog-retry"]' } : {});
@@ -1117,7 +1121,7 @@ const ACTIONS = {
   "toast-dismiss": () => App.dismissToast(),
   "toast-action": () => { const a = App.toastAction; App.dismissToast(); if (a && a.run) a.run(); },
   // link "Ingresar": recuerda la página actual para volver después (el link navega solo)
-  "login-start": () => rememberAfterLogin(location.hash || STATIC_ROUTE),
+  "login-start": () => rememberAfterLogin(currentRoute()),
   "logout": (d) => App.logout({ stay: d.stay === "1" }),
   "my-orders-retry": () => { App.loadMyOrders(); App.render(); },
   "toggle-account-menu": (d, el) => {
@@ -1198,7 +1202,7 @@ const ACTIONS = {
   // el modo del dimensionador queda en la URL (al recargar se mantiene), sin sumar una entrada al historial
   "sizer-mode": (d) => {
     App.state.sizer.mode = d.mode === "custom" ? "custom" : "quick";
-    history.replaceState(null, "", App.state.sizer.mode === "custom" ? "#configurator?modo=personalizado" : "#configurator");
+    history.replaceState(null, "", routeToPath(App.state.sizer.mode === "custom" ? "configurator?modo=personalizado" : "configurator"));
     App.renderSizer();
   },
   "sizer-pick": (d) => { App.sizerSet(d.scope, d.field, d.value); App.renderSizer(); },
@@ -1345,8 +1349,8 @@ window.addEventListener("storage", (e) => {
     App.forgetAccountData();
     App.accountOwnerId = null;
     if (accountPage) {
-      rememberAfterLogin(location.hash || STATIC_ROUTE);
-      navigateHash("ingresar");
+      rememberAfterLogin(currentRoute());
+      navigate("ingresar");
       return;
     }
   } else {
@@ -1427,14 +1431,14 @@ window.addEventListener("resize", () => {
    #configurator?tipo=hybrid…) en estado + render.
    ========================================================================= */
 /* Páginas estáticas para buscadores (/productos/<slug>/, /categorias/<slug>/; las genera
-   scripts/build-seo-pages.mjs): traen su ruta en <meta name="auryx-route"> y el contenido ya
-   dibujado. Mientras la URL no tenga "#", la ruta es la de la página. */
-const STATIC_ROUTE = document.querySelector('meta[name="auryx-route"]')?.content || "";
+   scripts/build-seo-pages.mjs): traen el contenido ya dibujado, que se deja a la vista
+   mientras carga el catálogo y no se navegó a otra página. */
+const INITIAL_PATH = location.pathname;
 const PRERENDER_HTML = document.querySelector("[data-prerender]")?.outerHTML || "";
-const onStaticRoute = () => !!STATIC_ROUTE && !location.hash.replace(/^#/, "");
+const onStaticRoute = () => !!PRERENDER_HTML && location.pathname === INITIAL_PATH;
 
-function applyRouteFromHash({ keepScroll = false } = {}) {
-  const raw = location.hash.replace(/^#/, "") || STATIC_ROUTE;
+function applyRoute({ keepScroll = false } = {}) {
+  const raw = currentRoute();
   const [path, query] = raw.split("?");
   const [view, rawParam] = path.split("/");
   let param = "";
@@ -1452,7 +1456,7 @@ function applyRouteFromHash({ keepScroll = false } = {}) {
     s.storeCategory = param || "all";
     if (param && !CATEGORY_META[param]) { // categoría inexistente: la tienda completa
       s.storeCategory = "all";
-      history.replaceState(history.state, "", `#store${query ? `?${query}` : ""}`);
+      history.replaceState(history.state, "", routeToPath(`store${query ? `?${query}` : ""}`));
     }
     s.storeFilters = {
       brand: params.get("marca") || null,
@@ -1477,7 +1481,7 @@ function applyRouteFromHash({ keepScroll = false } = {}) {
       s.configurator = defaultConfigurator();
       s.configurator.systemTypeId = tipo;
       s.configurator.step = 1;
-      history.replaceState(null, "", "#configurator/paso-a-paso?paso=2"); // el preseleccionado no queda pegado a la URL
+      history.replaceState(null, "", routeToPath("configurator/paso-a-paso?paso=2")); // el preseleccionado no queda pegado a la URL
     } else if (s.cfgTool === "steps" && s.catalog === "ready") {
       // ?paso=N (1 = tipo de sistema): solo se avanza hasta donde lo permiten las elecciones hechas
       const c = s.configurator;
@@ -1485,7 +1489,7 @@ function applyRouteFromHash({ keepScroll = false } = {}) {
       const target = Math.max(0, Math.min((Number(params.get("paso")) || 1) - 1, configuratorSteps(c).length - 1));
       if (target < c.step) c.step = target;
       else while (c.step < target && cfgCanAdvance(c)) c.step++;
-      if (c.step !== target) history.replaceState(null, "", c.step ? `#configurator/paso-a-paso?paso=${c.step + 1}` : "#configurator/paso-a-paso");
+      if (c.step !== target) history.replaceState(null, "", routeToPath(c.step ? `configurator/paso-a-paso?paso=${c.step + 1}` : "configurator/paso-a-paso"));
       if (c.step !== before) focusSelector = "#cfg-step-title";
     }
   } else if (view === "calculators") {
@@ -1557,20 +1561,60 @@ function applyRouteFromHash({ keepScroll = false } = {}) {
 function routeToLogin(raw) {
   const s = App.state;
   rememberAfterLogin(raw);
-  history.replaceState(null, "", "#ingresar");
+  history.replaceState(null, "", routeToPath("ingresar"));
   if (s.view !== "login" && !s.login.busy) s.login = defaultLogin();
   s.view = "login";
 }
 
-/* Único punto de entrada para navegar desde código: siempre pasa por el hash,
-   así "Atrás" del navegador y los links quedan consistentes. */
-function navigateHash(newHash) {
-  const current = location.hash.replace(/^#/, "");
-  if (current === newHash) applyRouteFromHash();
-  else location.hash = newHash;
+/* Único punto de entrada para navegar desde código: suma una entrada al historial con la
+   dirección limpia (ver lib/routes.js), así "Atrás" del navegador y los links quedan consistentes. */
+function navigate(route) {
+  const url = routeToPath(route);
+  if (url === location.pathname + location.search) { applyRoute(); return; }
+  clearTimeout(scrollMemoryTimer); // la posición pendiente es de la página que se deja
+  history.pushState(null, "", url);
+  applyRoute();
 }
 
-window.addEventListener("hashchange", () => applyRouteFromHash());
+window.addEventListener("popstate", () => applyRoute());
+
+/* Links viejos con "#" (#store/panel, #pedido/AX-123 de Mercado Pago, favoritos guardados):
+   se pasan a la dirección limpia sin recargar. */
+function redirectLegacyHash() {
+  const h = location.hash.replace(/^#/, "");
+  if (!h || !isRoute(h)) return false;
+  history.replaceState(null, "", routeToPath(h));
+  return true;
+}
+window.addEventListener("hashchange", () => { if (redirectLegacyHash()) applyRoute(); });
+
+/* Los links de las vistas se escriben como href="#store/panel": después de cada render se
+   reescriben a la dirección limpia (sirve para abrir en otra pestaña, copiar el link y para Google). */
+function linkifyRoutes() {
+  document.querySelectorAll('a[href^="#"]').forEach((a) => {
+    const route = a.getAttribute("href").slice(1);
+    if (isRoute(route)) a.setAttribute("href", routeToPath(route));
+  });
+}
+
+/* Clic en un link interno: se navega sin recargar la página. Se registra al iniciar, después
+   de la delegación de acciones (que puede cancelar el clic). */
+function setupLinkNavigation() {
+  document.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest("a[href]");
+    if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+    const href = a.getAttribute("href");
+    if (href.startsWith("#")) {
+      if (isRoute(href.slice(1))) { e.preventDefault(); navigate(href.slice(1)); }
+      return; // ancla dentro de la página ("Saltar al contenido")
+    }
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin || !isAppPath(url.pathname)) return;
+    e.preventDefault();
+    navigate(pathToRoute(url.pathname, url.search));
+  });
+}
 
 /* Memoria del scroll: la posición de cada página se guarda en su entrada del historial
    (history.state.scrollY), así al volver con "Atrás" de una ficha a la tienda se vuelve
@@ -1580,7 +1624,7 @@ function setupScrollMemory() {
   if ("scrollRestoration" in history) history.scrollRestoration = "manual";
   // al cambiar de página se descarta lo pendiente: si no, la posición de la página anterior
   // se guardaría en la entrada nueva
-  window.addEventListener("hashchange", () => clearTimeout(scrollMemoryTimer), true);
+  window.addEventListener("popstate", () => clearTimeout(scrollMemoryTimer), true);
   window.addEventListener("scroll", () => {
     clearTimeout(scrollMemoryTimer);
     scrollMemoryTimer = setTimeout(() => {
@@ -1617,7 +1661,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const bootSession = getSession();
     App.accountOwnerId = bootSession ? bootSession.customer.id : null;
     App.renderCookieBanner();
-    applyRouteFromHash();
+    redirectLegacyHash();
+    setupLinkNavigation();
+    applyRoute();
     App.loadCatalog();
   } catch (err) {
     document.getElementById("app-root").innerHTML = `

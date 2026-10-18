@@ -105,11 +105,9 @@ const Analytics = (function () {
     rerenderBanner();
   }
 
-  /* URL virtual de la ruta actual: #store/panel?marca=X → <origen>/<ruta del sitio>/store/panel?marca=X */
+  /* Dirección de la página actual (el sitio navega sin recargar, así que se manda en cada page_view) */
   function virtualLocation() {
-    const route = location.hash.replace(/^#/, "") || "home";
-    const [path, query] = route.split("?");
-    return `${location.origin}${location.pathname.replace(/\/(index\.html)?$/, "")}/${path}${query ? `?${query}` : ""}`;
+    return `${location.origin}${location.pathname}${location.search}`;
   }
 
   function pageView() {
@@ -136,7 +134,7 @@ const Analytics = (function () {
     [/(^|\.)(whatsapp\.com|wa\.me)$/, "whatsapp"], [/(^|\.)(t\.co|twitter\.com|x\.com)$/, "x"],
   ];
 
-  /* utm_* de la URL (antes o después del "#"); si no hay, el sitio que mandó la visita. */
+  /* utm_* de la URL (también después del "#", por links viejos); si no hay, el sitio que mandó la visita. */
   function detectOrigin() {
     const params = new URLSearchParams(location.search);
     const hashQuery = location.hash.split("?")[1];
@@ -157,7 +155,7 @@ const Analytics = (function () {
       }
     }
     if (!source) return null;
-    return { source, medium, campaign, landing: location.hash || "#", at: new Date().toISOString() };
+    return { source, medium, campaign, landing: `${location.pathname}${location.hash}`, at: new Date().toISOString() };
   }
 
   (function captureOrigin() {

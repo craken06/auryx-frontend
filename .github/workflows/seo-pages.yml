@@ -1,4 +1,4 @@
-# Regenera las páginas para buscadores (/productos/, /categorias/, sitemap.xml) con el
+# Regenera las páginas estáticas (/productos/, /categorias/, /calculadoras/…, 404.html, sitemap.xml) con el
 # catálogo actual de la API. Corre todos los días, en cada push a main y a mano desde la
 # pestaña Actions ("Run workflow"), por ejemplo después de cargar productos en el admin.
 name: Páginas para buscadores
@@ -37,7 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git add -A productos categorias sitemap.xml
+          git add -A
           if git diff --cached --quiet; then
             echo "Sin cambios en el catálogo."
             exit 0

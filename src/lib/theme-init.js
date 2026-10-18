@@ -18,7 +18,8 @@
    llega el catálogo. Se pide ya, con el mismo srcset/sizes que usa views/home.js (si cambian
    allá, cambiarlos acá; si no coinciden, el celular baja dos imágenes). Solo en la home. */
 (function () {
-  if (location.hash && location.hash !== "#" && location.hash !== "#home") return;
+  if (location.pathname !== "/" && location.pathname !== "/index.html") return;
+  if (location.hash && location.hash !== "#" && location.hash !== "#home") return; // link viejo con "#"
   var url = function (w) { return "https://images.unsplash.com/photo-1592833159155-c62df1b65634?w=" + w + "&q=75&auto=format&fit=crop"; };
   var link = document.createElement("link");
   link.rel = "preload";

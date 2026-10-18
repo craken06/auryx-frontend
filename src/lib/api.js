@@ -102,7 +102,7 @@ async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth =
         markSessionExpired();
         window.dispatchEvent(new CustomEvent("auryx:session-expired"));
         if (redirectOn401) {
-          rememberAfterLogin(location.hash);
+          rememberAfterLogin(currentRoute());
           navigateHash("ingresar");
         }
       }

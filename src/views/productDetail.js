@@ -28,7 +28,7 @@ function detailSpecValueHTML(k, v) {
 }
 
 function renderProductDetail(state) {
-  const p = PRODUCTS.find((pr) => pr.id === state.selectedProductId);
+  const p = findProduct(state.selectedProductId); // id o slug de la dirección
   if (!p) {
     return `
     <div class="wrap page">

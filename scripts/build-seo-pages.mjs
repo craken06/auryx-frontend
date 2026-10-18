@@ -1,12 +1,17 @@
 /* =========================================================================
    AURYX: páginas estáticas para buscadores.
-   El sitio navega con "#" (#product/db-44) y Google trata todo lo que va
-   después del "#" como la misma página. Este script genera una página real
-   por producto (/productos/<slug>/) y por categoría (/categorias/<slug>/),
-   más /productos/ con el catálogo completo, cada una con su título,
-   descripción, Open Graph, datos estructurados y el contenido ya dibujado
-   (con las mismas vistas del sitio). Al cargar, app.js lee la ruta de
-   <meta name="auryx-route"> y sigue funcionando como siempre.
+   El sitio es una sola app (index.html) que navega sin recargar con direcciones
+   limpias (/productos/…, /calculadoras/…, ver src/lib/routes.js). GitHub Pages
+   solo sirve archivos que existen, así que este script genera una copia de
+   index.html por cada dirección, con su título, descripción, Open Graph y datos
+   estructurados:
+   - una página por producto (/productos/<slug>/) y por categoría (/categorias/<slug>/),
+     más /productos/, con el contenido ya dibujado con las mismas vistas del sitio;
+   - las páginas fijas (/disena-tu-sistema/, /calculadoras/, /contacto/…);
+   - 404.html: la app entera, para direcciones que no existen como archivo
+     (/pedido/AX-123/, un producto cargado después del último build). La app
+     lee la dirección y muestra la página o "No encontramos esa página".
+   Además arma sitemap.xml.
 
    Uso:  node scripts/build-seo-pages.mjs
    Lo corre GitHub Actions todos los días y en cada push (.github/workflows/seo-pages.yml).
@@ -26,11 +31,14 @@ const ctx = vm.createContext({
   window: { matchMedia: () => ({ matches: false }) }, // tienda: filtros cerrados (Google indexa la versión móvil)
   console, Intl, URLSearchParams,
 });
-for (const f of ["src/config.js", "src/data/products.js", "src/utils/format.js", "src/lib/api.js", "src/views/store.js", "src/views/productDetail.js"]) {
+for (const f of ["src/config.js", "src/data/products.js", "src/lib/routes.js", "src/utils/format.js", "src/lib/api.js",
+  "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js"]) {
   vm.runInContext(read(f), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
 const API = run("API_BASE_URL");
+const routeToPath = run("routeToPath");
+const isRoute = run("isRoute");
 
 /* ---------------------------------------------------------------- datos (solo GET) */
 async function getJSON(p) {
@@ -52,21 +60,12 @@ ctx.__api = apiProducts;
 run(`USD_ARS_RATE = ${Number(rate.usdArs)}; PRODUCTS = __api.map(adaptApiProduct);`);
 const PRODUCTS = run("PRODUCTS");
 const CATEGORY_META = run("CATEGORY_META");
+const CALCULATOR_LINKS = run("CALCULATOR_LINKS");
 const apiById = new Map(apiProducts.map((p) => [`db-${p.id}`, p]));
-
-/* ---------------------------------------------------------------- slugs */
-const slugify = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
-  .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80).replace(/-+$/, "");
-const productSlug = new Map();
-const used = new Set();
-for (const p of [...PRODUCTS].sort((a, b) => Number(a.id.slice(3)) - Number(b.id.slice(3)))) {
-  let slug = slugify(`${p.brand} ${p.name}`) || p.id;
-  if (used.has(slug)) slug = `${slug}-${p.id.slice(3)}`;
-  used.add(slug);
-  productSlug.set(p.id, slug);
-}
-const categorySlug = Object.fromEntries(Object.entries(CATEGORY_META).map(([k, m]) => [k, slugify(m.label)]));
 const categories = Object.keys(CATEGORY_META).filter((k) => PRODUCTS.some((p) => p.category === k));
+
+const productUrl = (p) => routeToPath(`product/${p.id}`);
+const categoryUrl = (k) => routeToPath(`store/${k}`);
 
 /* Nombre en singular de cada categoría, para la descripción de la ficha */
 const CATEGORY_SINGULAR = {
@@ -74,37 +73,25 @@ const CATEGORY_SINGULAR = {
   proteccion: "Protección eléctrica", cable: "Cable", accesorio: "Accesorio", soporte: "Soporte",
 };
 
-const productUrl = (p) => `/productos/${productSlug.get(p.id)}/`;
-const categoryUrl = (k) => `/categorias/${categorySlug[k]}/`;
-
 /* ---------------------------------------------------------------- HTML */
 const TEMPLATE = read("index.html");
 const escAttr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const clip = (s, n) => (s.length <= n ? s : `${s.slice(0, n - 1).replace(/\s+\S*$/, "")}…`);
 const jsonLd = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
 
-/* Links de la vista: a las páginas reales cuando existen, al resto del sitio con "/#". */
-function rewriteLinks(html) {
-  return html.replace(/href="#([^"]*)"/g, (m, h) => {
-    const [route] = h.split("?");
-    const [view, param] = route.split("/");
-    if (view === "product" && productSlug.has(param)) return `href="/productos/${productSlug.get(param)}/"`;
-    if (view === "store" && !param && !h.includes("?")) return 'href="/productos/"';
-    if (view === "store" && categories.includes(param) && !h.includes("?")) return `href="${categoryUrl(param)}"`;
-    return `href="/#${h}"`;
-  });
-}
+/* Links de las vistas (href="#store/panel") → direcciones limpias, igual que hace app.js. */
+const rewriteLinks = (html) => html.replace(/href="#([^"]*)"/g, (m, route) => (isRoute(route) ? `href="${routeToPath(route)}"` : m));
 /* Mientras no cargó la app, los controles no hacen nada: se muestran deshabilitados. */
 const disableControls = (html) => html.replace(/<(button|select|input)\b(?![^>]*\sdisabled\b)/g, "<$1 disabled");
 
-function page({ urlPath, route, title, description, image, ogType = "website", graph, body }) {
+function buildHTML({ urlPath, title, description, image, ogType = "website", graph, body, noindex = false }) {
   const url = SITE + urlPath;
   let html = TEMPLATE;
   const set = (re, value) => {
     if (!re.test(html)) throw new Error(`index.html cambió: no se encontró ${re}`);
     html = html.replace(re, value);
   };
-  set(/<title>[^<]*<\/title>/, `<title>${escAttr(title)}</title>\n<meta name="auryx-route" content="${escAttr(route)}" />`);
+  set(/<title>[^<]*<\/title>/, `<title>${escAttr(title)}</title>${noindex ? '\n<meta name="robots" content="noindex" />' : ""}`);
   set(/(<meta name="description" content=")[^"]*/, `$1${escAttr(description)}`);
   set(/(<link rel="canonical" href=")[^"]*/, `$1${url}`);
   set(/(<meta property="og:type" content=")[^"]*/, `$1${ogType}`);
@@ -119,14 +106,16 @@ function page({ urlPath, route, title, description, image, ogType = "website", g
     html = html.replace(/\n<meta property="og:image:(width|height)"[^\n]*/g, "");
     set(/(<meta property="og:image:alt" content=")[^"]*/, `$1${escAttr(title)}`);
   }
-  set(/(<script type="application\/ld\+json">)[\s\S]*?(<\/script>)/, `$1\n${jsonLd({ "@context": "https://schema.org", "@graph": graph })}\n$2`);
-  // rutas relativas → absolutas (la página vive en una subcarpeta)
-  html = html.replace(/\b(href|src)="(?!https?:|\/|#|data:|mailto:)([^"]+)"/g, '$1="/$2"');
-  set(/<div class="wrap boot"[\s\S]*?<\/div>\s*(?=<noscript>)/, `<div data-prerender>${disableControls(rewriteLinks(body))}</div>\n      `);
+  if (graph) set(/(<script type="application\/ld\+json">)[\s\S]*?(<\/script>)/, `$1\n${jsonLd({ "@context": "https://schema.org", "@graph": graph })}\n$2`);
+  if (body) set(/<div class="wrap boot"[\s\S]*?<\/div>\s*(?=<noscript>)/, `<div data-prerender>${disableControls(rewriteLinks(body))}</div>\n      `);
+  return html;
+}
+function writePage(urlPath, html) {
   const file = path.join(ROOT, urlPath, "index.html");
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
 }
+const page = (opts) => writePage(opts.urlPath, buildHTML(opts));
 
 const ORG = { "@type": "Organization", "@id": `${SITE}/#organizacion`, name: "AURYX", url: `${SITE}/`, logo: `${SITE}/icon-512.png` };
 const crumbs = (items) => ({
@@ -138,7 +127,27 @@ const storeState = (cat) => ({ storeCategory: cat, storeFilters: { brand: null, 
 const renderStore = (cat) => { ctx.__s = storeState(cat); return run("renderStore(__s)"); };
 
 /* ---------------------------------------------------------------- limpiar lo generado antes */
-for (const dir of ["productos", "categorias"]) fs.rmSync(path.join(ROOT, dir), { recursive: true, force: true });
+const STATIC_PAGES = [
+  // [ruta, título, descripción, en el sitemap, contenido ya dibujado]
+  ["configurator", "Diseñá tu sistema solar", "Calculá en minutos qué sistema solar necesitás: paneles, inversor y baterías según tu consumo y tu zona, con productos reales y precios en pesos.", true],
+  ["configurator/paso-a-paso", "Configurador paso a paso", "Armá tu sistema fotovoltaico paso a paso: elegí paneles, inversor y baterías y verificá la compatibilidad eléctrica antes de comprar.", true],
+  ["calculators", "Calculadoras solares", "Calculadoras gratis de consumo eléctrico, costo de la energía, ahorro con paneles solares y orientación e inclinación de los paneles.", true],
+  ...CALCULATOR_LINKS.map((c) => [`calculators/${c.id}`, `Calculadora de ${c.name.toLowerCase()}`, `${c.text} Calculadora solar gratis de AURYX.`, false]),
+  ["info", "Información", "Cómo comprar en AURYX: envíos, retiro, garantía, medios de pago y qué pasa después de armar tu sistema solar.", true, () => run("renderInfo()")],
+  ["contact", "Contacto", "Escribinos por WhatsApp o con el formulario: te ayudamos a elegir los equipos y a dimensionar tu sistema solar.", true],
+  ["terms", "Términos y condiciones", "Términos y condiciones de compra en AURYX: precios, envíos, garantía y derecho de arrepentimiento.", true, () => run("renderTerms()")],
+  ["privacy", "Política de privacidad", "Qué datos personales usa AURYX, para qué y cómo ejercer tus derechos de acceso, rectificación y supresión.", true, () => run("renderPrivacy()")],
+  ["arrepentimiento", "Botón de arrepentimiento", "Pedí la cancelación de tu compra dentro de los 10 días corridos de recibida, sin dar motivos (Ley 24.240).", true],
+  ["cart", "Carrito", "Tu carrito de compras en AURYX.", false],
+  ["ingresar", "Ingresar", "Ingresá a tu cuenta de AURYX.", false],
+  ["mis-pedidos", "Mis pedidos", "Tus pedidos en AURYX.", false],
+  ["mi-cuenta", "Mis datos", "Tus datos en AURYX.", false],
+];
+const GENERATED_DIRS = ["productos", "categorias", ...new Set(STATIC_PAGES.map(([route]) => routeToPath(route).split("/")[1]))];
+for (const dir of GENERATED_DIRS) {
+  if (["admin", "src", "css", "scripts", ".github", ""].includes(dir)) throw new Error(`Carpeta protegida: ${dir}`);
+  fs.rmSync(path.join(ROOT, dir), { recursive: true, force: true });
+}
 
 /* ---------------------------------------------------------------- productos */
 for (const p of PRODUCTS) {
@@ -154,7 +163,7 @@ for (const p of PRODUCTS) {
   const urlPath = productUrl(p);
   const crumbItems = [["Productos", "/productos/"], ...(cat ? [[cat.label, categoryUrl(p.category)]] : []), [p.name, urlPath]];
   page({
-    urlPath, route: `product/${p.id}`, ogType: "product",
+    urlPath, ogType: "product",
     title: `${p.name}${p.brand ? ` · ${p.brand}` : ""} | AURYX`,
     description, image: p.image || null,
     graph: [ORG, crumbs(crumbItems), {
@@ -192,7 +201,7 @@ for (const k of categories) {
   const brands = [...new Set(list.map((p) => p.brand))].sort();
   const urlPath = categoryUrl(k);
   page({
-    urlPath, route: `store/${k}`,
+    urlPath,
     title: `${meta.label} | AURYX`,
     description: clip(`${meta.label} ${brands.slice(0, 4).join(", ")}${brands.length > 4 ? " y más" : ""}: ${list.length} modelos con precio en pesos y compatibilidad verificada. Comprá online.`, 160),
     graph: [ORG, crumbs([["Productos", "/productos/"], [meta.label, urlPath]]), listGraph(meta.label, urlPath, list)],
@@ -200,12 +209,31 @@ for (const k of categories) {
   });
 }
 page({
-  urlPath: "/productos/", route: "store",
+  urlPath: "/productos/",
   title: "Productos | AURYX",
   description: clip(`Paneles solares, inversores y baterías de ${[...new Set(PRODUCTS.map((p) => p.brand))].slice(0, 4).join(", ")} y más. Precios en pesos y compatibilidad verificada antes de comprar.`, 160),
   graph: [ORG, crumbs([["Productos", "/productos/"]]), listGraph("Productos", "/productos/", PRODUCTS)],
   body: renderStore("all"),
 });
+
+/* ---------------------------------------------------------------- páginas fijas */
+for (const [route, name, description, indexable, prerender] of STATIC_PAGES) {
+  const urlPath = routeToPath(route);
+  // cada calculadora es una sección de /calculadoras/: esa es la página que se indexa
+  const canonicalPath = route.startsWith("calculators/") ? routeToPath("calculators") : urlPath;
+  let html = buildHTML({
+    urlPath: canonicalPath, title: `${name} | AURYX`, description, noindex: !indexable && canonicalPath === urlPath,
+    graph: [ORG, crumbs([[name, canonicalPath]])],
+    body: prerender ? prerender() : null,
+  });
+  writePage(urlPath, html);
+}
+
+/* ---------------------------------------------------------------- 404.html: la app para cualquier otra dirección */
+fs.writeFileSync(path.join(ROOT, "404.html"), buildHTML({
+  urlPath: "/", title: "Página no encontrada | AURYX", noindex: true,
+  description: "La página que buscás no existe o cambió de dirección.",
+}).replace(/\n<link rel="canonical"[^\n]*/, "").replace(/\n<meta property="og:url"[^\n]*/, ""));
 
 /* ---------------------------------------------------------------- sitemap */
 const lastmod = (list) => list.map((p) => (apiById.get(p.id)?.updatedAt || "").slice(0, 10)).filter(Boolean).sort().pop();
@@ -214,6 +242,7 @@ const urls = [
   { loc: "/productos/", priority: "0.9", changefreq: "daily", lastmod: lastmod(PRODUCTS) },
   ...categories.map((k) => ({ loc: categoryUrl(k), priority: "0.8", changefreq: "daily", lastmod: lastmod(PRODUCTS.filter((p) => p.category === k)) })),
   ...[...PRODUCTS].sort((a, b) => productUrl(a).localeCompare(productUrl(b))).map((p) => ({ loc: productUrl(p), priority: "0.7", changefreq: "weekly", lastmod: lastmod([p]) })),
+  ...STATIC_PAGES.filter(([, , , indexable]) => indexable).map(([route]) => ({ loc: routeToPath(route), priority: route.startsWith("configurator") || route === "calculators" ? "0.8" : "0.4", changefreq: "monthly" })),
 ];
 fs.writeFileSync(path.join(ROOT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Lo genera scripts/build-seo-pages.mjs: no editar a mano. -->
@@ -226,4 +255,4 @@ ${urls.map((u) => `  <url>
 </urlset>
 `);
 
-console.log(`Listo: ${PRODUCTS.length} productos, ${categories.length} categorías, ${urls.length} URLs en sitemap.xml.`);
+console.log(`Listo: ${PRODUCTS.length} productos, ${categories.length} categorías, ${STATIC_PAGES.length} páginas fijas, ${urls.length} URLs en sitemap.xml.`);
