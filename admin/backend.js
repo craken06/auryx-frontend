@@ -131,12 +131,7 @@ const ROUTES = [
     const product = await apiFetch(c.t, `/products/${enc(c.p.id)}`, { method: 'DELETE' });
     return { success: true, id: product.id };
   }],
-  // Borrar TODO: la API exige ?confirm=yes; acá además hay que escribir la frase exacta.
-  ['DELETE', '/api/products', async (c) => {
-    if (c.b?.confirm !== 'BORRAR TODO') throw new ApiError('Para borrar todo hay que escribir BORRAR TODO', 400);
-    await apiFetch(c.t, '/products/all?confirm=yes', { method: 'DELETE' });
-    return { success: true };
-  }],
+  // Borrar todo el catálogo no está en el panel publicado (ya hubo un borrado accidental): solo por script.
 
   ['POST', '/api/products/:id/images', (c) => apiFetch(c.t, `/products/${enc(c.p.id)}/images`,
     json('POST', { url: c.b.url, altText: c.b.alt_text, order: Number(c.b.order) || 0 }))],

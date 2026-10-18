@@ -25,6 +25,13 @@ function defaultConfigurator() {
    gsiError = no cargó el script de Google. */
 function defaultLogin() { return { busy: false, slow: false, error: null, gsiError: false }; }
 
+/* Analítica (lib/analytics.js). Si ese archivo no cargó (un bloqueador, un error de red), el
+   sitio tiene que funcionar igual: se usa un reemplazo que no hace nada. */
+const Track = typeof Analytics !== "undefined" ? Analytics : {
+  enabled: () => false, consent: () => null, setConsent() {}, resetConsent() {},
+  pageView() {}, event: () => false, attribution: () => ({ first: null, session: null }), refCode: () => "",
+};
+
 const prefersReducedMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
@@ -59,9 +66,13 @@ function takeCheckoutDraft() {
 }
 
 /* Carrito persistente: se guardan solo id + cantidad (los precios se toman siempre del catálogo
-   actual). Las líneas cuyo producto todavía no está en el catálogo cargado (por ejemplo, la API
-   no respondió y se usa el catálogo de demo) se conservan aparte para no perderlas. */
+   actual). Las líneas cuyo producto ya no está en el catálogo (se despublicó) se conservan
+   aparte para no perderlas si vuelve. */
 const CART_KEY = "auryx-cart";
+
+/* Tope de unidades por línea (ficha, carrito, configurador): evita totales absurdos por un tipeo. */
+const MAX_QTY = typeof DETAIL_QTY_MAX === "number" ? DETAIL_QTY_MAX : 999; // el mismo tope que muestra la ficha
+const clampQty = (n, min = 1) => Math.max(min, Math.min(MAX_QTY, Math.round(Number(n)) || min));
 let unresolvedCart = [];
 
 function persistCart(cart) {
@@ -76,7 +87,7 @@ function restoreCart() {
   const cart = [];
   unresolvedCart = [];
   saved.forEach((it) => {
-    const qty = Math.max(1, Math.round(Number(it && it.qty)) || 1);
+    const qty = clampQty(it && it.qty);
     const product = it && PRODUCTS.find((p) => p.id === it.id);
     if (!product) { if (it && it.id) unresolvedCart.push({ id: it.id, qty, systemId: it.systemId || null }); return; }
     const line = { product, qty };
@@ -118,7 +129,9 @@ const App = {
     myOrders: null, // { data, error, slow } de #mis-pedidos
     account: defaultAccountForm(), // formulario de #mi-cuenta
     revocation: { errors: {} },
+    revocationSending: false, // el formulario de arrepentimiento se está enviando
     login: defaultLogin(), // estado de #ingresar
+    catalog: "loading", // "loading" | "slow" (tarda más de lo normal) | "ready" | "error"
   },
 
   cartReady: false, // hasta restaurar el carrito guardado no se escribe nada (evita pisarlo con uno vacío)
@@ -127,6 +140,9 @@ const App = {
   toastTimer: null,
   toastAction: null,
   gsiInitialized: false, // google.accounts.id.initialize se llama una sola vez
+  gsiMount: 0, // número de montaje del botón de Google: solo dibuja el último pedido
+  scrollByRoute: {}, // posición de scroll de cada página, para restaurarla con "Atrás"
+  renderPending: false, // render diferido hasta que termine el clic en curso (ver deferRender)
   meFetchedToken: null, // GET /me se pide una vez por visita (y de nuevo si cambia la sesión)
   accountOwnerId: null, // id del cliente cuyos datos están en memoria (checkout, Mis datos, pedidos)
 
@@ -142,9 +158,12 @@ const App = {
       view: s.view, currency: s.currency, cart: s.cart, cartCount: this.cartCount, mobileNavOpen: s.mobileNavOpen, theme: s.theme,
       session: getSession(),
     });
+    if (this.accountMenuOpen) setAccountMenu(document.querySelector('#nav-root [data-action="toggle-account-menu"]')?.closest(".dropdown"), true);
 
     let body = "";
-    switch (s.view) {
+    const waitingCatalog = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
+    if (waitingCatalog) body = catalogStatusHTML(s.catalog);
+    else switch (s.view) {
       case "home": body = renderHome(s); break;
       case "store": body = renderStore(s); break;
       case "product-detail": body = renderProductDetail(s); break;
@@ -160,17 +179,21 @@ const App = {
       case "login": body = renderLogin(s); break;
       case "my-orders": body = renderMyOrders(s); break;
       case "my-account": body = renderMyAccount(s); break;
+      case "not-found": body = notFoundHTML(); break;
       default: body = renderHome(s);
     }
     document.getElementById("app-root").innerHTML = body;
 
+    // el pie se dibuja una vez por estado del catálogo (muestra la cotización cuando llega)
     const footer = document.getElementById("footer-root");
-    if (!footer.dataset.ready) { footer.innerHTML = renderFooter(); footer.dataset.ready = "1"; }
+    if (footer.dataset.ready !== s.catalog) { footer.innerHTML = renderFooter(); footer.dataset.ready = s.catalog; }
+    this.renderPending = false;
 
     this.setupReveal();
     if (this.cartReady) persistCart(s.cart);
     if (s.view === "calculators") this.calcFetchWarnings();
-    if (s.view === "login" || s.view === "cart") this.mountGoogleButton();
+    if ((s.view === "login" || s.view === "cart") && !waitingCatalog) this.mountGoogleButton();
+    updateRouteMeta(); // título, link del botón de WhatsApp y page_view
 
     // devolver el foco al mismo control después del re-render (teclado / lectores de pantalla)
     const target = focusSelector
@@ -201,25 +224,48 @@ const App = {
   },
 
   /* ---------------------------------------------------------------- toast */
+  /* message y action.label son texto plano: se escapan acá (quien llama no escapa).
+     Se cierra solo (4 s, o 10 s si tiene una acción como "Deshacer"), pero el tiempo se
+     pausa mientras el puntero o el foco están sobre el aviso (WCAG 2.2.1). */
   toast(message, action) {
     const root = document.getElementById("toast-root");
     clearTimeout(this.toastTimer);
     this.toastAction = action || null;
+    this.toastDelay = action ? 10000 : 4000;
     root.innerHTML = `
       <div class="toast">
         ${icon("check-circle", "", "fill")}
-        <span class="msg">${message}</span>
+        <span class="msg">${esc(message)}</span>
         ${action ? (action.href
-          ? `<a class="btn btn-secondary btn-sm" href="${action.href}" data-action="toast-dismiss">${action.label}</a>`
-          : `<button type="button" class="btn btn-secondary btn-sm" data-action="toast-action">${action.label}</button>`) : ""}
-        <button type="button" class="icon-btn" style="border:0;color:inherit" data-action="toast-dismiss" aria-label="Cerrar aviso">${icon("x")}</button>
+          ? `<a class="btn btn-secondary btn-sm" href="${esc(action.href)}" data-action="toast-dismiss">${esc(action.label)}</a>`
+          : `<button type="button" class="btn btn-secondary btn-sm" data-action="toast-action">${esc(action.label)}</button>`) : ""}
+        <button type="button" class="icon-btn toast-close" data-action="toast-dismiss" aria-label="Cerrar aviso">${icon("x")}</button>
       </div>`;
-    this.toastTimer = setTimeout(() => this.dismissToast(), action ? 7000 : 4000);
+    this.toastTimer = setTimeout(() => this.dismissToast(), this.toastDelay);
+  },
+  pauseToast() { clearTimeout(this.toastTimer); },
+  resumeToast() {
+    const root = document.getElementById("toast-root");
+    if (!root.firstElementChild || root.matches(":hover") || root.contains(document.activeElement)) return;
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => this.dismissToast(), this.toastDelay || 4000);
   },
   dismissToast() {
     clearTimeout(this.toastTimer);
     this.toastAction = null;
     document.getElementById("toast-root").innerHTML = "";
+  },
+
+  /* ---------------------------------------------------------------- cookies */
+  /* El banner vive en #cookie-root (fuera de #app-root): se dibuja al iniciar y cuando cambia
+     la decisión, no en cada render (así no le roba el foco a nadie). */
+  renderCookieBanner() {
+    const root = document.getElementById("cookie-root");
+    if (!root) return;
+    const html = typeof cookieBannerHTML === "function" ? cookieBannerHTML() : "";
+    const hadFocus = root.contains(document.activeElement);
+    root.innerHTML = html;
+    if (hadFocus && !html) document.getElementById("main")?.focus({ preventScroll: true });
   },
 
   /* ---------------------------------------------------------------- header */
@@ -249,17 +295,22 @@ const App = {
   mountGoogleButton() {
     const s = this.state;
     if (!GOOGLE_CLIENT_ID || s.login.gsiError || getSession() || !document.getElementById("gsi-button")) return;
+    // cada render pide un montaje nuevo; si varios esperan al script, solo dibuja el último
+    // (antes, cada uno agregaba otro botón al mismo contenedor)
+    const mount = ++this.gsiMount;
     loadGoogleScript().then(() => {
+      if (mount !== this.gsiMount) return;
       if (!this.gsiInitialized) {
         google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (resp) => App.loginWithGoogle(resp.credential) });
         this.gsiInitialized = true;
       }
       const el = document.getElementById("gsi-button");
       if (!el) return;
-      // ancho del contenedor (Google acepta de 200 a 400 px) y colores según el tema del sitio
+      // ancho del contenedor (Google acepta de 200 a 400 px). "outline" en los dos temas: el botón
+      // negro de Google quedaba dentro de un recuadro blanco (el fondo de su iframe) en el tema oscuro
       const width = Math.max(200, Math.min(400, Math.floor(el.clientWidth || 320)));
-      const theme = this.state.theme === "light" ? "outline" : "filled_black";
-      google.accounts.id.renderButton(el, { theme, size: "large", text: "continue_with", shape: "rectangular", width, locale: "es" });
+      el.replaceChildren();
+      google.accounts.id.renderButton(el, { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", width, locale: "es" });
     }).catch(() => {
       s.login.gsiError = true;
       if (s.view === "login" || s.view === "cart") this.render();
@@ -295,7 +346,8 @@ const App = {
       const after = takeAfterLogin();
       // desde el carrito se sigue en el carrito, ya con el formulario de compra
       navigateHash(this.state.view === "cart" ? "cart" : after);
-      this.toast(`Hola, ${esc(customerFirstName(data.customer))}. Ya ingresaste.`);
+      Track.event("login", { method: "google" });
+      this.toast(`Hola, ${customerFirstName(data.customer)}. Ya ingresaste.`);
     } catch (err) {
       // sin respuesta de la API (red caída): mensaje propio en vez del "Failed to fetch" del navegador
       const error = err.status === 0 ? err.message : apiErrorText(err);
@@ -478,16 +530,22 @@ const App = {
   addToCart(productId, qty) {
     const product = PRODUCTS.find((p) => p.id === productId);
     if (!product) return;
-    const n = Math.max(1, Math.round(Number(qty)) || 1);
+    const n = clampQty(qty);
     const existing = this.state.cart.find((it) => !it.systemId && it.product.id === productId);
-    if (existing) existing.qty += n;
+    const before = existing ? existing.qty : 0;
+    if (existing) existing.qty = clampQty(existing.qty + n);
     else this.state.cart.push({ product, qty: n });
+    const added = (existing ? existing.qty : n) - before;
+    if (added > 0) Track.event("add_to_cart", gaItemsParams([{ product, qty: added }]));
     this.render();
-    this.toast(`Agregaste ${esc(product.name)} al carrito.`, { label: "Ver carrito", href: "#cart" });
+    if (added < n) this.toast(`Podés comprar hasta ${MAX_QTY} unidades por producto. Si necesitás más, escribinos.`, { label: "Ver carrito", href: "#cart" });
+    else this.toast(`Agregaste ${product.name} al carrito.`, { label: "Ver carrito", href: "#cart" });
   },
   addSystemToCart(items) {
     const systemId = `sys-${Date.now()}`;
-    items.forEach((it) => this.state.cart.push({ product: it.product, qty: it.qty, systemId }));
+    const lines = items.map((it) => ({ product: it.product, qty: clampQty(it.qty) }));
+    lines.forEach((it) => this.state.cart.push({ ...it, systemId }));
+    Track.event("add_to_cart", gaItemsParams(lines));
     this.state.configurator = defaultConfigurator();
     navigateHash("cart");
     this.toast("Agregaste el sistema completo al carrito.");
@@ -495,14 +553,22 @@ const App = {
   cartQtyStep(idx, delta) {
     const item = this.state.cart[idx];
     if (!item) return;
-    item.qty = Math.max(1, Number(item.qty) + delta);
+    const next = clampQty(Number(item.qty) + delta);
+    if (next === item.qty) {
+      if (delta > 0) this.toast(`Podés comprar hasta ${MAX_QTY} unidades por producto. Si necesitás más, escribinos.`);
+      return;
+    }
+    if (next > item.qty) Track.event("add_to_cart", gaItemsParams([{ product: item.product, qty: next - item.qty }]));
+    else Track.event("remove_from_cart", gaItemsParams([{ product: item.product, qty: item.qty - next }]));
+    item.qty = next;
     this.render();
   },
   cartRemove(idx) {
     const [removed] = this.state.cart.splice(idx, 1);
     if (!removed) return;
+    Track.event("remove_from_cart", gaItemsParams([removed]));
     this.render({ focusSelector: "#main" });
-    this.toast(`Quitaste ${esc(removed.product.name)}.`, {
+    this.toast(`Quitaste ${removed.product.name}.`, {
       label: "Deshacer",
       run: () => { this.state.cart.splice(Math.min(idx, this.state.cart.length), 0, removed); this.render(); },
     });
@@ -515,6 +581,7 @@ const App = {
     const firstError = firstErrorField(c.errors);
     if (firstError) { c.status = null; this.render({ focusSelector: `#checkout-${firstError}` }); return; }
 
+    Track.event("begin_checkout", gaItemsParams(s.cart));
     // antes de llamar: si la sesión venció (401), apiRequest lleva a #ingresar y al volver se recupera
     const owner = getSession();
     saveCheckoutDraft(c, owner ? owner.customer.id : null);
@@ -552,6 +619,7 @@ const App = {
      Con UUID (pedidos viejos, sin cuenta) se consulta como siempre, sin sesión. */
   async loadOrder(id, attempt = 0) {
     const s = this.state;
+    if (attempt > 0 && (!s.order || s.order.id !== id || s.view !== "order")) return; // ya se fue de la página
     const byCode = isOrderCode(id);
     if (attempt === 0) s.order = { id, data: null, error: null, notMine: false };
     try {
@@ -563,14 +631,17 @@ const App = {
         s.cart = []; // pedido pagado: se vacía el carrito que lo originó
         storageSet("auryx-last-order", "");
       }
+      if (data.status === "pagado") trackPurchase(data, id);
       if (s.view === "order") this.render();
-      if (data.status === "pendiente_pago" && attempt < 6) setTimeout(() => this.loadOrder(id, attempt + 1), 4000);
+      // pago pendiente: cada 4 s al principio (el aviso de MP suele llegar enseguida) y después
+      // cada 30 s hasta unos 10 minutos (pagos en efectivo o por transferencia)
+      if (data.status === "pendiente_pago" && attempt < 25) setTimeout(() => this.loadOrder(id, attempt + 1), attempt < 6 ? 4000 : 30000);
     } catch (err) {
       if (!s.order || s.order.id !== id) return;
       if (byCode && err.status === 401) { s.order = null; return; } // apiRequest ya pidió ingresar; al volver se consulta de nuevo
       if (byCode && err.status === 404) s.order.notMine = true;
       else if (byCode) s.order.error = apiErrorText(err);
-      else s.order.error = /no encontrado|Validation|uuid/i.test(err.message) ? "El número de pedido no es válido." : err.message;
+      else s.order.error = /no encontrado|Validation|uuid/i.test(err.message) ? "El número de pedido no es válido." : apiErrorText(err);
       if (s.view === "order") this.render();
     }
   },
@@ -584,6 +655,14 @@ const App = {
 
   /* ---------------------------------------------------------------- configurador */
   cfgRender() { this.render({ focusSelector: "#cfg-step-title" }); },
+  /* El paso va en la URL (#configurator/paso-a-paso?paso=N): "Atrás" del navegador vuelve un
+     paso y el link se puede compartir. El router valida que se pueda llegar a ese paso. */
+  cfgGoStep(step) {
+    const c = this.state.configurator;
+    const n = Math.max(0, Math.min(step, configuratorSteps(c).length - 1));
+    if (n > c.step) Track.event("configurator_step", { step: n + 1, system_type: c.systemTypeId || "" });
+    navigateHash(n > 0 ? `configurator/paso-a-paso?paso=${n + 1}` : "configurator/paso-a-paso");
+  },
   cfgSelectSystemType(id) {
     this.state.configurator = defaultConfigurator();
     this.state.configurator.systemTypeId = id;
@@ -592,6 +671,8 @@ const App = {
   cfgAddSystemToCart() {
     const cfg = this.state.configurator;
     const { lines } = cfgTotals(cfg);
+    const value = lines.reduce((sum, l) => sum + l.product.priceARS * l.qty, 0);
+    Track.event("configurator_complete", { value, currency: "ARS", system_type: cfg.systemTypeId || "" });
     this.addSystemToCart(lines.map((l) => ({ product: l.product, qty: l.qty })));
   },
 
@@ -626,7 +707,15 @@ const App = {
     }, 400);
   },
 
+  /* calculator_use: una vez por calculadora y visita, cuando muestra un resultado (al tipear). */
+  calcUsed: {},
+  calcTrackUse(calc) {
+    if (this.calcUsed[calc]) return;
+    this.calcUsed[calc] = true;
+    Track.event("calculator_use", { calc });
+  },
   calcConsumptionRecompute() {
+    this.calcTrackUse("consumo");
     const t = consumptionTotals(this.state.calc.consumption);
     this.setText("consumption-daily", t.daily);
     this.setText("consumption-monthly", t.monthly);
@@ -634,11 +723,13 @@ const App = {
     this.calcFetchWarnings();
   },
   calcCostRecompute() {
+    this.calcTrackUse("costo");
     const { kwh, pricePerKwh } = this.state.calc.cost;
-    this.setText("cost-total", fmtMoney(kwh * pricePerKwh));
+    this.setText("cost-total", fmtARS(kwh * pricePerKwh));
     this.calcFetchWarnings();
   },
   calcSavingsRecompute() {
+    this.calcTrackUse("ahorro");
     const t = savingsTotals(this.state.calc.savings);
     this.setText("sav-monthly", t.monthly);
     this.setText("sav-yearly", t.yearly);
@@ -646,6 +737,7 @@ const App = {
     this.calcFetchWarnings();
   },
   calcOrientationRecompute() {
+    this.calcTrackUse("orientacion");
     const t = orientationTotals(this.state.calc.orientation);
     this.setText("orient-azimuth", t.azimuth);
     this.setText("orient-angle", `≈ ${t.angle}°`);
@@ -702,8 +794,23 @@ const App = {
   renderSizerOutput() {
     const out = document.getElementById("sizer-out");
     if (out) out.innerHTML = sizerOutputHTML(this.state.sizer, this.state.currency);
+    this.announceSizer();
+  },
+  /* El resultado se reemplaza entero en cada tecla: en vez de anunciarlo todo, un resumen breve
+     ("Sistema sugerido Compatible: 3,30 kWp, 410 kWh/mes generados") cuando se deja de tipear. */
+  announceSizer() {
+    clearTimeout(this.sizerLiveTimer);
+    this.sizerLiveTimer = setTimeout(() => {
+      const live = document.getElementById("sr-live");
+      const out = document.getElementById("sizer-out");
+      if (!live || !out) return;
+      const part = (sel) => (out.querySelector(sel)?.textContent || "").replace(/\s+/g, " ").trim();
+      const text = [part(".sz-out-head"), part(".sz-figure").replace(/(\d)kWp/, "$1 kWp")].filter(Boolean).join(": ") || part("p");
+      if (text && live.textContent !== text) live.textContent = text;
+    }, 900);
   },
   sizerSet(scope, field, value) {
+    this.calcTrackUse("dimensionador");
     const sz = this.state.sizer;
     sz[scope][field] = value;
     if (scope === "custom") sizerNormalizeCustom(sz.custom);
@@ -731,6 +838,7 @@ const App = {
     this.render();
     try {
       await apiRequest("/contact", { method: "POST", body: { name: d.name, email: d.email, phone: d.phone || undefined, message: d.message, website: d.website || undefined } });
+      Track.event("generate_lead", { method: "form", context: "contacto" });
       s.contactSending = false;
       s.contactDraft = {};
       s.contactStatus = { tone: "ok", text: "¡Gracias! Recibimos tu mensaje y te respondemos dentro de las 48 h hábiles." };
@@ -751,34 +859,246 @@ const App = {
       window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Consulta web: ${d.name}`)}&body=${encodeURIComponent(body)}`;
       s.contactStatus = { tone: "ok", text: "Abrimos tu programa de correo con el mensaje listo. Solo falta que lo envíes." };
     } else {
-      // Sin backend ni email configurado, el canal es WhatsApp con el mensaje armado.
-      window.open(whatsappLink(body), "_blank", "noopener");
-      s.contactStatus = { tone: "ok", text: "No pudimos conectar con el servidor: abrimos WhatsApp con tu mensaje listo. Solo falta que lo envíes." };
+      // Sin backend ni email configurado, el canal es WhatsApp con el mensaje armado. Después de
+      // un await el navegador bloquea window.open (popup): la vista muestra un botón (status.action).
+      s.contactStatus = {
+        tone: "bad",
+        text: "No pudimos conectar con el servidor. Probá de nuevo en un rato o escribinos por WhatsApp con el botón de esta página.",
+        action: { href: whatsappLink(body), label: "Abrir WhatsApp con el mensaje" },
+      };
     }
     this.render({ focusSelector: ".form-status" });
   },
 };
 
 App.submitRevocation = async function () {
-  const r = this.state.revocation;
+  const s = this.state;
+  const r = s.revocation;
+  if (s.revocationSending) return; // evita el doble envío
+  const email = (r.email || "").trim();
+  const phone = (r.phone || "").trim();
   const errors = {};
-  if ((r.name || "").trim().length < 2) errors.name = "Escribí tu nombre.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((r.email || "").trim())) errors.email = "Revisá el email.";
-  if (!(r.orderId || "").trim()) errors.orderId = "Indicá el número de pedido (está en el mail o en la página del pedido).";
+  if (!(r.orderId || "").trim()) errors.orderId = "Indicá el código de pedido (está en el mail o en la página del pedido).";
+  if ((r.name || "").trim().length < 2) errors.name = "Escribí tu nombre y apellido.";
+  if (!email && !phone) errors.email = "Completá el email o el WhatsApp para poder responderte.";
+  else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Revisá el email: tiene que tener la forma nombre@dominio.com.";
+  if (phone && phone.replace(/\D/g, "").length < 8) errors.phone = "Revisá el WhatsApp: escribilo con código de área, por ejemplo 11 2345-6789.";
   r.errors = errors;
-  const first = ["name", "email", "orderId"].find((k) => errors[k]);
+  const first = ["orderId", "name", "email", "phone"].find((k) => errors[k]);
   if (first) { r.status = null; this.render({ focusSelector: `#rev-${first}` }); return; }
-  try {
-    await apiRequest("/contact", { method: "POST", body: {
-      name: r.name, email: r.email, phone: r.phone || undefined,
-      message: `[BOTÓN DE ARREPENTIMIENTO] Pedido: ${r.orderId.trim()}\n\n${(r.reason || "").trim() || "(sin comentarios)"}`,
-    } });
-    this.state.revocation = { errors: {}, done: true };
-  } catch (err) {
-    r.status = { tone: "bad", text: `${err.message} También podés pedirlo por WhatsApp.` };
+
+  const message = `[BOTÓN DE ARREPENTIMIENTO] Pedido: ${r.orderId.trim()}${phone ? `\nWhatsApp: ${phone}` : ""}\n\n${(r.reason || "").trim() || "(sin comentarios)"}`;
+  // Sin email la API no puede registrar la solicitud (pide un email para responder): se manda por
+  // WhatsApp. Se abre acá, antes de cualquier await, para que el navegador no lo bloquee como popup.
+  if (!email) {
+    window.open(whatsappLink(`Hola, quiero arrepentirme de mi compra.\nPedido: ${r.orderId.trim()}\nNombre: ${r.name.trim()}${(r.reason || "").trim() ? `\nMotivo: ${r.reason.trim()}` : ""}`), "_blank", "noopener");
+    r.status = { tone: "ok", text: "Abrimos WhatsApp con tu solicitud escrita: solo falta que la envíes. Te respondemos por ahí dentro de las 24 h. Si no se abrió, usá el botón “Pedirlo por WhatsApp”." };
+    this.render({ focusSelector: ".form-status" });
+    return;
   }
-  this.render({ focusSelector: ".form-status" });
+  s.revocationSending = true;
+  r.status = null;
+  this.render();
+  try {
+    await apiRequest("/contact", { method: "POST", timeoutMs: 70000, body: { name: r.name, email, phone: phone || undefined, message } });
+    s.revocationSending = false;
+    s.revocation = { errors: {}, done: true };
+  } catch (err) {
+    s.revocationSending = false;
+    // validación (4xx): el mensaje de la API tal cual; sin respuesta o error del servidor: texto propio
+    const text = err.status && err.status < 500 && err.status !== 404 ? err.message
+      : err.status ? "Tuvimos un problema al recibir tu solicitud. Probá de nuevo en un rato." : apiErrorText(err);
+    r.status = { tone: "bad", text: `${text} También podés pedirlo por WhatsApp.` };
+  }
+  if (s.view === "revocation") this.render({ focusSelector: ".form-status" });
 };
+
+/* =========================================================================
+   CATÁLOGO, 404 Y DATOS PARA ANALÍTICA
+   ========================================================================= */
+
+/* Vistas que necesitan el catálogo (productos y precios). Mientras carga, o si no se pudo
+   cargar, muestran un estado propio; el resto del sitio (legales, contacto, calculadoras,
+   arrepentimiento, cuenta) funciona igual. Nunca se muestran productos inventados. */
+const CATALOG_VIEWS = ["home", "store", "product-detail", "configurator", "cart"];
+
+function catalogStatusHTML(status) {
+  if (status === "error") {
+    return `
+      <div class="wrap page">
+        <div class="empty">
+          ${icon("cloud-slash")}
+          <h1 class="page-title page-title-sm">No pudimos cargar el catálogo</h1>
+          <p>Puede ser un problema de conexión o un corte momentáneo de nuestro lado. Probá de nuevo en unos segundos; si sigue pasando, escribinos por WhatsApp y te pasamos precios y stock.</p>
+          <div class="hero-ctas hero-ctas-center">
+            <button type="button" class="btn btn-primary" data-action="catalog-retry">Reintentar</button>
+            <a class="btn btn-secondary" href="${whatsappLink("Hola, quiero consultar precios y stock.")}" target="_blank" rel="noopener" data-context="catalogo-error">${icon("whatsapp-logo", "", "fill")} Escribinos por WhatsApp</a>
+          </div>
+        </div>
+      </div>`;
+  }
+  const text = status === "slow" ? "Está tardando más de lo normal. Seguimos intentando…" : "Estamos cargando el catálogo…";
+  return `
+      <div class="wrap boot" aria-busy="true">
+        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span>${text}</span></p>
+        <div class="skeleton" style="height:48px;max-width:420px"></div>
+        <div class="skeleton" style="height:20px;max-width:560px"></div>
+        <div class="skeleton" style="height:320px"></div>
+      </div>`;
+}
+
+/* Hash desconocido o incompleto (#zzz, #product sin id, un link viejo mal copiado). */
+function notFoundHTML() {
+  return `
+    <div class="wrap page">
+      <div class="empty">
+        ${icon("compass")}
+        <h1 class="page-title page-title-sm">No encontramos esa página</h1>
+        <p>Puede que el link esté mal copiado o que la página ya no exista.</p>
+        <div class="hero-ctas hero-ctas-center">
+          <a href="#" class="btn btn-primary">Ir al inicio</a>
+          <a href="#store" class="btn btn-secondary">Ver productos</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* Título de la pestaña por página: "<página> | AURYX". */
+function pageTitle(s) {
+  const named = (t) => `${t} | AURYX`;
+  switch (s.view) {
+    case "home": return "AURYX | Equipos de energía solar";
+    case "store": return named(CATEGORY_META[s.storeCategory] ? CATEGORY_META[s.storeCategory].label : "Productos");
+    case "product-detail": {
+      const p = PRODUCTS.find((x) => x.id === s.selectedProductId);
+      return named(p ? `${p.name}${p.brand ? ` · ${p.brand}` : ""}` : "Producto");
+    }
+    case "configurator": return named(s.cfgTool === "steps" ? "Configurador paso a paso" : "Diseñá tu sistema");
+    case "calculators": {
+      const c = CALCULATOR_LINKS.find((x) => x.id === s.calcSection);
+      return named(c ? `Calculadora de ${c.name.toLowerCase()}` : "Calculadoras");
+    }
+    case "cart": return named("Carrito");
+    case "order": return named("Tu pedido");
+    case "revocation": return named("Botón de arrepentimiento");
+    case "login": return named("Ingresar");
+    case "my-orders": return named("Mis pedidos");
+    case "my-account": return named("Mis datos");
+    case "info": return named("Información");
+    case "contact": return named("Contacto");
+    case "terms": return named("Términos y condiciones");
+    case "privacy": return named("Política de privacidad");
+    case "not-found": return named("Página no encontrada");
+    default: return "AURYX | Equipos de energía solar";
+  }
+}
+
+/* Parámetros de e-commerce de GA4 para una lista de líneas { product, qty }. */
+function gaItemsParams(lines) {
+  const items = lines.map((l) => ({
+    item_id: l.product.id, item_name: l.product.name, item_brand: l.product.brand || "",
+    item_category: l.product.category, price: l.product.priceARS, quantity: Number(l.qty) || 1,
+  }));
+  return { currency: "ARS", value: items.reduce((sum, i) => sum + i.price * i.quantity, 0), items };
+}
+
+/* purchase: una sola vez por pedido aprobado (localStorage), aunque recargue la página.
+   Si todavía no aceptó las cookies no se marca como enviada (se manda si acepta y vuelve). */
+function trackPurchase(order, id) {
+  const code = String(order.code || order.publicId || id);
+  const key = `auryx-purchase-sent-${code}`;
+  if (storageGet(key)) return;
+  const items = (order.items || []).map((i) => ({
+    item_id: i.productId != null ? `db-${i.productId}` : i.productName, item_name: i.productName,
+    price: Number(i.unitPriceArs) || 0, quantity: Number(i.quantity) || 1,
+  }));
+  const sent = Track.event("purchase", { transaction_id: code, value: Number(order.totalArs) || 0, currency: "ARS", items });
+  if (sent) storageSet(key, "1");
+}
+
+/* Título, link del botón flotante de WhatsApp (su "Ref:" depende de la página) y eventos de
+   página. Corre después de cada render; el page_view sale una vez por página, recién cuando la
+   página muestra su contenido real (no mientras espera el catálogo). */
+function updateRouteMeta() {
+  const s = App.state;
+  document.title = pageTitle(s);
+  const waFab = document.getElementById("wa-fab");
+  if (waFab) waFab.href = whatsappLink("Hola, quiero hacer una consulta.");
+  const waiting = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
+  if (waiting || !App.routeTrackKey || App.routeTrackKey === App.lastTrackedKey) return;
+  App.lastTrackedKey = App.routeTrackKey;
+  Track.pageView();
+  if (s.view === "product-detail") {
+    const p = PRODUCTS.find((x) => x.id === s.selectedProductId);
+    if (p) Track.event("view_item", gaItemsParams([{ product: p, qty: 1 }]));
+  } else if (s.view === "store") {
+    Track.event("view_item_list", { item_list_id: s.storeCategory, item_list_name: CATEGORY_META[s.storeCategory] ? CATEGORY_META[s.storeCategory].label : "Productos" });
+  } else if (s.view === "cart" && s.cart.length) {
+    Track.event("view_cart", gaItemsParams(s.cart));
+  }
+}
+
+/* Carga (o reintenta) el catálogo. Mientras tanto las vistas de catálogo muestran "Estamos
+   cargando el catálogo…"; si después de ~70 s no hubo respuesta, "No pudimos cargar el catálogo"
+   con "Reintentar". El carrito guardado se restaura recién con el catálogo (precios actuales). */
+App.loadCatalog = async function () {
+  const s = this.state;
+  if (this.catalogLoading) return this.catalogLoading;
+  const waitingHere = () => CATALOG_VIEWS.includes(s.view);
+  s.catalog = "loading";
+  if (waitingHere()) this.render();
+  this.catalogLoading = (async () => {
+    const products = await loadCatalog({
+      onSlow: () => {
+        if (s.catalog !== "loading") return;
+        s.catalog = "slow";
+        if (waitingHere()) this.render();
+      },
+    });
+    if (products) {
+      PRODUCTS = products;
+      s.catalog = "ready";
+      if (!this.cartReady) {
+        s.cart = restoreCart();
+        this.cartReady = true;
+      }
+      if (!DEMO_MODE) loadCompatibilityParams(); // la API ya está despierta: responde enseguida
+      // la ruta se vuelve a aplicar: la tienda, la ficha y el configurador validan contra el catálogo
+      applyRouteFromHash({ keepScroll: true });
+    } else {
+      s.catalog = "error";
+      this.render(waitingHere() ? { focusSelector: '[data-action="catalog-retry"]' } : {});
+    }
+  })();
+  try { await this.catalogLoading; } finally { this.catalogLoading = null; }
+};
+
+/* Re-render diferido: si el usuario está en medio de un clic (puntero apretado), se espera a que
+   termine. Antes, el "change" de un campo de cantidad re-renderizaba al perder el foco y el botón
+   que recibía el clic ("Agregar al carrito", "Siguiente") desaparecía: el primer clic se perdía. */
+let pointerIsDown = false;
+App.deferRender = function () {
+  if (pointerIsDown) this.renderPending = true;
+  else this.render();
+};
+document.addEventListener("pointerdown", () => { pointerIsDown = true; }, true);
+["pointerup", "pointercancel"].forEach((type) => document.addEventListener(type, () => {
+  pointerIsDown = false;
+  // después del clic: si la acción ya re-renderizó, renderPending quedó en false
+  if (App.renderPending) setTimeout(() => { if (App.renderPending) App.render(); }, 0);
+}, true));
+
+/* Menú de la cuenta (nav): se abre con clic (también en táctiles, donde no hay hover). */
+function setAccountMenu(dropdown, open) {
+  if (!dropdown) return;
+  App.accountMenuOpen = open; // el header se redibuja en cada render: App.render lo vuelve a aplicar
+  dropdown.classList.toggle("is-open", open);
+  const btn = dropdown.querySelector('[data-action="toggle-account-menu"]');
+  if (btn) btn.setAttribute("aria-expanded", String(open));
+}
+function closeAccountMenus(except) {
+  document.querySelectorAll(".dropdown.is-open").forEach((d) => { if (d !== except) setAccountMenu(d, false); });
+}
 
 /* =========================================================================
    DELEGACIÓN DE EVENTOS
@@ -792,12 +1112,27 @@ const ACTIONS = {
     document.querySelector(".wordmark")?.focus({ preventScroll: true });
   },
   "reload": () => location.reload(),
+  "catalog-retry": () => App.loadCatalog(),
   "toast-dismiss": () => App.dismissToast(),
   "toast-action": () => { const a = App.toastAction; App.dismissToast(); if (a && a.run) a.run(); },
   // link "Ingresar": recuerda la página actual para volver después (el link navega solo)
   "login-start": () => rememberAfterLogin(location.hash),
   "logout": (d) => App.logout({ stay: d.stay === "1" }),
   "my-orders-retry": () => { App.loadMyOrders(); App.render(); },
+  "toggle-account-menu": (d, el) => {
+    const dropdown = el.closest(".dropdown");
+    const open = !(dropdown && dropdown.classList.contains("is-open"));
+    closeAccountMenus(dropdown);
+    setAccountMenu(dropdown, open);
+  },
+
+  // cookies (banner de views/cookies.js y "Configurar cookies" del pie)
+  "consent-all": () => Track.setConsent("all"),
+  "consent-essential": () => Track.setConsent("essential"),
+  "cookie-settings": () => {
+    Track.resetConsent();
+    document.querySelector("#cookie-root button")?.focus();
+  },
 
   "filter": (d) => App.setStoreFilter(d.key, d.value),
   "filters-clear": () => App.clearStoreFilters(),
@@ -810,7 +1145,7 @@ const ACTIONS = {
   "cart-remove": (d) => App.cartRemove(Number(d.idx)),
   "cart-quote": () => App.requestQuote(),
   "detail-step": (d) => {
-    App.state.productDetailQty = Math.max(1, (Number(App.state.productDetailQty) || 1) + Number(d.delta));
+    App.state.productDetailQty = clampQty((Number(App.state.productDetailQty) || 1) + Number(d.delta));
     App.render();
   },
 
@@ -818,21 +1153,20 @@ const ACTIONS = {
   "cfg-panel": (d) => { App.state.configurator.panelId = d.id; App.render(); },
   "cfg-converter": (d) => { App.state.configurator.converterId = d.id; App.render(); },
   "cfg-battery": (d) => { App.state.configurator.batteryId = d.id; App.render(); },
-  "cfg-panel-step": (d) => { const c = App.state.configurator; c.panelQty = Math.max(1, c.panelQty + Number(d.delta)); App.render(); },
-  "cfg-battery-step": (d) => { const c = App.state.configurator; c.batteryQty = Math.max(1, c.batteryQty + Number(d.delta)); App.render(); },
+  "cfg-panel-step": (d) => { const c = App.state.configurator; c.panelQty = clampQty(c.panelQty + Number(d.delta)); App.render(); },
+  "cfg-battery-step": (d) => { const c = App.state.configurator; c.batteryQty = clampQty(c.batteryQty + Number(d.delta)); App.render(); },
   "cfg-extra-step": (d) => {
     const c = App.state.configurator;
-    c.extras[d.id] = Math.max(0, (c.extras[d.id] || 0) + Number(d.delta));
+    c.extras[d.id] = clampQty((c.extras[d.id] || 0) + Number(d.delta), 0);
     App.render();
   },
   "cfg-next": () => {
     const c = App.state.configurator;
     if (!cfgCanAdvance(c)) return;
-    c.step = Math.min(c.step + 1, configuratorSteps(c).length - 1);
-    App.cfgRender();
+    App.cfgGoStep(c.step + 1);
   },
-  "cfg-back": () => { const c = App.state.configurator; c.step = Math.max(c.step - 1, 0); App.cfgRender(); },
-  "cfg-goto": (d) => { App.state.configurator.step = Number(d.step); App.cfgRender(); },
+  "cfg-back": () => App.cfgGoStep(App.state.configurator.step - 1),
+  "cfg-goto": (d) => App.cfgGoStep(Number(d.step)),
   "cfg-add-system": () => App.cfgAddSystemToCart(),
 
   "calc-consumption-add": () => {
@@ -860,7 +1194,12 @@ const ACTIONS = {
     }, () => { if (status) status.textContent = " No pudimos obtener tu ubicación: ingresá la latitud a mano."; });
   },
 
-  "sizer-mode": (d) => { App.state.sizer.mode = d.mode; App.renderSizer(); },
+  // el modo del dimensionador queda en la URL (al recargar se mantiene), sin sumar una entrada al historial
+  "sizer-mode": (d) => {
+    App.state.sizer.mode = d.mode === "custom" ? "custom" : "quick";
+    history.replaceState(null, "", App.state.sizer.mode === "custom" ? "#configurator?modo=personalizado" : "#configurator");
+    App.renderSizer();
+  },
   "sizer-pick": (d) => { App.sizerSet(d.scope, d.field, d.value); App.renderSizer(); },
 };
 
@@ -872,28 +1211,33 @@ function setFormField(form, el) {
   form.touched = true;
 }
 
+/* Número no negativo de un campo (los precios o consumos negativos no tienen sentido). */
+const nonNegative = (el) => Math.max(0, Number(el.value) || 0);
+
 const INPUT_BINDINGS = {
-  "detail-qty": (el) => { App.state.productDetailQty = Math.max(1, Number(el.value) || 1); },
+  "detail-qty": (el) => { App.state.productDetailQty = clampQty(el.value); },
   "cfg-panel-qty": (el) => {
     const cfg = App.state.configurator;
-    cfg.panelQty = Math.max(1, Math.round(Number(el.value)) || 1);
+    cfg.panelQty = clampQty(el.value);
     const panel = PRODUCTS.find((p) => p.id === cfg.panelId);
     if (panel) App.setText("panel-total-power", fmtNum(panel.specs.pmax * cfg.panelQty));
   },
   "cfg-battery-qty": (el) => {
     const cfg = App.state.configurator;
-    cfg.batteryQty = Math.max(1, Math.round(Number(el.value)) || 1);
+    cfg.batteryQty = clampQty(el.value);
     const battery = PRODUCTS.find((p) => p.id === cfg.batteryId);
     if (battery) App.setText("battery-total-kwh", fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2));
   },
   "consumption": (el) => {
     const it = App.state.calc.consumption[Number(el.dataset.i)];
     if (!it) return;
-    it[el.dataset.field] = el.dataset.field === "name" ? el.value : Math.max(0, Number(el.value) || 0);
+    const f = el.dataset.field;
+    // las horas de uso por día no pueden pasar de 24
+    it[f] = f === "name" ? el.value : f === "hours" ? Math.min(24, nonNegative(el)) : nonNegative(el);
     App.calcConsumptionRecompute();
   },
-  "cost": (el) => { App.state.calc.cost[el.dataset.field] = Number(el.value) || 0; App.calcCostRecompute(); },
-  "savings": (el) => { App.state.calc.savings[el.dataset.field] = Number(el.value) || 0; App.calcSavingsRecompute(); },
+  "cost": (el) => { App.state.calc.cost[el.dataset.field] = nonNegative(el); App.calcCostRecompute(); },
+  "savings": (el) => { App.state.calc.savings[el.dataset.field] = nonNegative(el); App.calcSavingsRecompute(); },
   "orient": (el) => {
     const lat = Number(el.value.replace(",", "."));
     App.state.calc.orientation.lat = Number.isFinite(lat) ? Math.max(-90, Math.min(90, lat)) : 0;
@@ -906,6 +1250,7 @@ const INPUT_BINDINGS = {
   "revocation": (el) => { App.state.revocation[el.dataset.field] = el.value; },
   "sizer": (el) => {
     if (el.tagName === "SELECT") return; // los selects se resuelven en "change"
+    App.calcTrackUse("dimensionador");
     App.state.sizer[el.dataset.scope][el.dataset.field] = el.value;
     App.renderSizerOutput();
   },
@@ -919,11 +1264,12 @@ const CHANGE_BINDINGS = {
   "cfg-tmin": (el) => {
     const t = Math.round(Number(el.value));
     App.state.configurator.tMinC = Number.isFinite(t) && el.value !== "" ? Math.max(-40, Math.min(30, t)) : null;
-    App.render();
+    App.deferRender();
   },
-  "cfg-panel-qty": () => App.render(),
-  "cfg-battery-qty": () => App.render(),
-  "detail-qty": () => App.render(),
+  // cantidades: el render (que recalcula compatibilidad y totales) espera a que termine el clic
+  "cfg-panel-qty": () => App.deferRender(),
+  "cfg-battery-qty": () => App.deferRender(),
+  "detail-qty": () => App.deferRender(),
   "checkout-delivery": (el) => {
     const c = App.state.checkout;
     c.delivery = el.value === "retiro" ? "retiro" : "envio";
@@ -941,6 +1287,18 @@ const CHANGE_BINDINGS = {
 };
 
 document.addEventListener("click", (e) => {
+  // menú de la cuenta abierto: un clic afuera lo cierra
+  closeAccountMenus(e.target.closest(".dropdown.is-open"));
+
+  // clic a WhatsApp (cualquier link a wa.me): generate_lead con el lugar desde donde se hizo
+  const wa = e.target.closest('a[href^="https://wa.me"]');
+  if (wa) {
+    const context = wa.dataset.context || (wa.id === "wa-fab" ? "boton-flotante" : App.state.view);
+    const params = { method: "whatsapp", context };
+    if (App.state.view === "cart" && App.state.cart.length) Object.assign(params, { currency: "ARS", value: gaItemsParams(App.state.cart).value });
+    Track.event("generate_lead", params);
+  }
+
   const el = e.target.closest("[data-action]");
   if (!el || el.disabled) return;
   const fn = ACTIONS[el.dataset.action];
@@ -959,6 +1317,15 @@ document.addEventListener("change", (e) => {
   if (fn) fn(e.target);
 });
 
+// El aviso (toast) no se cierra mientras el puntero o el foco están encima
+const toastRoot = document.getElementById("toast-root");
+if (toastRoot) {
+  toastRoot.addEventListener("mouseenter", () => App.pauseToast());
+  toastRoot.addEventListener("focusin", () => App.pauseToast());
+  toastRoot.addEventListener("mouseleave", () => App.resumeToast());
+  toastRoot.addEventListener("focusout", () => setTimeout(() => App.resumeToast(), 0));
+}
+
 // La foto de la cuenta que no carga se quita y queda la inicial ("error" no burbujea: captura)
 document.addEventListener("error", (e) => {
   if (!(e.target && e.target.matches && e.target.matches("img[data-avatar-img]"))) return;
@@ -969,7 +1336,7 @@ document.addEventListener("error", (e) => {
 // Ingreso o salida en otra pestaña: se actualiza el header. Si se cerró la sesión y la página
 // actual es de la cuenta (Mis pedidos, Mis datos, un pedido con código), se pide ingresar.
 window.addEventListener("storage", (e) => {
-  if (e.key !== SESSION_KEY || !App.cartReady) return;
+  if (e.key !== SESSION_KEY) return;
   const s = App.state;
   const session = getSession();
   if (!session) {
@@ -1010,7 +1377,7 @@ window.addEventListener("pageshow", (e) => {
   const c = App.state.checkout;
   if (!c.sending && !c.slow) return;
   Object.assign(c, { sending: false, slow: false });
-  if (App.cartReady) App.render();
+  App.render();
 });
 
 // <details> no burbujea "toggle": se escucha en captura
@@ -1028,10 +1395,29 @@ document.addEventListener("submit", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && App.state.mobileNavOpen) {
+  if (e.key !== "Escape") return;
+  const openMenu = document.querySelector(".dropdown.is-open");
+  if (openMenu) {
+    setAccountMenu(openMenu, false);
+    openMenu.querySelector('[data-action="toggle-account-menu"]')?.focus();
+    return;
+  }
+  if (App.state.mobileNavOpen) {
     App.toggleMobileNav(false);
     document.querySelector('[data-fid="menu"]')?.focus();
   }
+});
+
+// El botón de Google se dibuja con un ancho fijo: al rotar o cambiar el tamaño de la ventana se redibuja
+let gsiResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(gsiResizeTimer);
+  gsiResizeTimer = setTimeout(() => {
+    const el = document.getElementById("gsi-button");
+    if (!el || !App.gsiInitialized) return;
+    const width = Math.floor(el.clientWidth);
+    if (width && width !== App.gsiWidth) { App.gsiWidth = width; App.mountGoogleButton(); }
+  }, 250);
 });
 
 /* =========================================================================
@@ -1039,20 +1425,27 @@ document.addEventListener("keydown", (e) => {
    Traduce el hash (#store/panel?marca=X, #product/db-1, #calculators/ahorro,
    #configurator?tipo=hybrid…) en estado + render.
    ========================================================================= */
-function applyRouteFromHash() {
+function applyRouteFromHash({ keepScroll = false } = {}) {
   const raw = location.hash.replace(/^#/, "");
   const [path, query] = raw.split("?");
   const [view, rawParam] = path.split("/");
-  const param = rawParam ? decodeURIComponent(rawParam) : "";
+  let param = "";
+  try { param = rawParam ? decodeURIComponent(rawParam) : ""; } catch (e) { param = null; } // %E0 mal formado
   const params = new URLSearchParams(query || "");
   const s = App.state;
-  let afterRender = null;
+  let focusSelector = null;
 
-  if (!path || view === "home") {
+  if (param === null) {
+    s.view = "not-found";
+  } else if (!path || view === "home") {
     s.view = "home";
   } else if (view === "store") {
     s.view = "store";
     s.storeCategory = param || "all";
+    if (param && !CATEGORY_META[param]) { // categoría inexistente: la tienda completa
+      s.storeCategory = "all";
+      history.replaceState(history.state, "", `#store${query ? `?${query}` : ""}`);
+    }
     s.storeFilters = {
       brand: params.get("marca") || null,
       tech: params.get("tecnologia") || null,
@@ -1060,27 +1453,39 @@ function applyRouteFromHash() {
     };
     s.storeSort = params.get("orden") || "none";
   } else if (view === "product") {
-    if (!param) return;
-    s.view = "product-detail";
-    if (s.selectedProductId !== param) s.productDetailQty = 1;
-    s.selectedProductId = param;
+    if (!param) s.view = "not-found";
+    else {
+      s.view = "product-detail";
+      if (s.selectedProductId !== param) s.productDetailQty = 1;
+      s.selectedProductId = param;
+    }
   } else if (view === "configurator") {
     s.view = "configurator";
     s.cfgTool = param === "paso-a-paso" ? "steps" : "sizer";
+    if (s.cfgTool === "sizer") s.sizer.mode = params.get("modo") === "personalizado" ? "custom" : "quick";
     const tipo = params.get("tipo");
     if (tipo && SYSTEM_TYPES.some((t) => t.id === tipo)) {
       s.cfgTool = "steps";
       s.configurator = defaultConfigurator();
       s.configurator.systemTypeId = tipo;
       s.configurator.step = 1;
-      history.replaceState(null, "", "#configurator/paso-a-paso"); // el preseleccionado no queda pegado a la URL
+      history.replaceState(null, "", "#configurator/paso-a-paso?paso=2"); // el preseleccionado no queda pegado a la URL
+    } else if (s.cfgTool === "steps" && s.catalog === "ready") {
+      // ?paso=N (1 = tipo de sistema): solo se avanza hasta donde lo permiten las elecciones hechas
+      const c = s.configurator;
+      const before = c.step;
+      const target = Math.max(0, Math.min((Number(params.get("paso")) || 1) - 1, configuratorSteps(c).length - 1));
+      if (target < c.step) c.step = target;
+      else while (c.step < target && cfgCanAdvance(c)) c.step++;
+      if (c.step !== target) history.replaceState(null, "", c.step ? `#configurator/paso-a-paso?paso=${c.step + 1}` : "#configurator/paso-a-paso");
+      if (c.step !== before) focusSelector = "#cfg-step-title";
     }
   } else if (view === "calculators") {
     s.view = "calculators";
     s.calcSection = param || null;
   } else if (view === "pedido") {
-    if (!param) return;
-    if (isOrderCode(param) && !getSession()) {
+    if (!param) s.view = "not-found";
+    else if (isOrderCode(param) && !getSession()) {
       routeToLogin(raw); // el pedido con código es de una cuenta
     } else {
       s.view = "order";
@@ -1114,25 +1519,30 @@ function applyRouteFromHash() {
   } else if (["info", "contact", "terms", "privacy"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};
+  } else if (App.lastRouteKey !== null && document.getElementById(raw)) {
+    return; // ancla dentro de la página (p. ej. "Saltar al contenido" → #main): no es una ruta
   } else {
-    return; // hash desconocido: no tocamos el estado actual
+    s.view = "not-found"; // hash desconocido: página 404 con header y pie
   }
 
   s.mobileNavOpen = false;
+  App.accountMenuOpen = false;
 
   // Solo se vuelve arriba (y se mueve el foco) al cambiar de página; cambiar
   // un filtro o el orden de la tienda mantiene la posición.
   const routeKey = view === "calculators" ? "calculators" : `${s.view}/${param}`;
-  const pageChanged = routeKey !== App.lastRouteKey;
-  if (pageChanged) {
-    if (s.view !== "home") App.homeRevealed = false;
-    if (!afterRender) window.scrollTo({ top: 0, behavior: "auto" });
-  }
+  const pageChanged = routeKey !== App.lastRouteKey && !keepScroll;
   const isFirst = App.lastRouteKey === null;
   App.lastRouteKey = routeKey;
+  App.routeTrackKey = `${s.view}/${param}`;
 
-  App.render(pageChanged && !isFirst ? { focusSelector: "#main" } : {});
-  if (afterRender) requestAnimationFrame(afterRender);
+  App.render(pageChanged && !isFirst ? { focusSelector: "#main" } : focusSelector ? { focusSelector } : {});
+  if (pageChanged) {
+    if (s.view !== "home") App.homeRevealed = false;
+    // con "Atrás"/"Adelante" se vuelve a la posición en la que estaba esa página (ver setupScrollMemory)
+    const saved = history.state && Number.isFinite(history.state.scrollY) ? history.state.scrollY : 0;
+    window.scrollTo({ top: saved, behavior: "auto" });
+  }
 }
 
 /* Página que necesita sesión: se recuerda el destino y se muestra #ingresar en su lugar. */
@@ -1152,7 +1562,24 @@ function navigateHash(newHash) {
   else location.hash = newHash;
 }
 
-window.addEventListener("hashchange", applyRouteFromHash);
+window.addEventListener("hashchange", () => applyRouteFromHash());
+
+/* Memoria del scroll: la posición de cada página se guarda en su entrada del historial
+   (history.state.scrollY), así al volver con "Atrás" de una ficha a la tienda se vuelve
+   al mismo producto. Una página nueva (link) no tiene posición guardada: empieza arriba. */
+let scrollMemoryTimer = null;
+function setupScrollMemory() {
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  // al cambiar de página se descarta lo pendiente: si no, la posición de la página anterior
+  // se guardaría en la entrada nueva
+  window.addEventListener("hashchange", () => clearTimeout(scrollMemoryTimer), true);
+  window.addEventListener("scroll", () => {
+    clearTimeout(scrollMemoryTimer);
+    scrollMemoryTimer = setTimeout(() => {
+      try { history.replaceState({ ...(history.state || {}), scrollY: Math.round(window.scrollY) }, ""); } catch (e) { /* se ignora */ }
+    }, 150);
+  }, { passive: true });
+}
 
 /* =========================================================================
    "Volver arriba": se muestra al pasar los 600px de scroll. Usa un
@@ -1172,45 +1599,31 @@ function setupBackToTop() {
 
 /* =========================================================================
    INICIALIZACIÓN
-   Intenta cargar productos reales desde la API. Si el backend no responde
-   (apagado, CORS, red), sigue con el catálogo de demo para que la página
-   nunca quede en blanco.
+   Las páginas que no dependen del catálogo se muestran enseguida; las de
+   catálogo esperan a la API (con reintentos, ver App.loadCatalog).
    ========================================================================= */
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   setupBackToTop();
-  const waFab = document.getElementById("wa-fab");
-  if (waFab) waFab.href = whatsappLink("Hola, quiero hacer una consulta.");
-
-  // Si el catálogo tarda, se avisa en vez de dejar un esqueleto mudo.
-  const slowTimer = setTimeout(() => {
-    const t = document.getElementById("boot-text");
-    if (t) t.textContent = "Está tardando más de lo normal. Seguimos intentando…";
-  }, 2500);
-
+  setupScrollMemory();
   try {
-    const [apiProducts] = await Promise.all([loadProductsFromAPI(), loadCompatibilityParams()]);
-    if (apiProducts && apiProducts.length > 0) {
-      PRODUCTS = apiProducts;
-    } else {
-      console.warn("Usando catálogo de demo: no se pudo conectar con la API en", API_BASE_URL);
-    }
-    App.state.cart = restoreCart();
     const bootSession = getSession();
     App.accountOwnerId = bootSession ? bootSession.customer.id : null;
-    App.cartReady = true;
-    clearTimeout(slowTimer);
+    App.renderCookieBanner();
     applyRouteFromHash();
+    App.loadCatalog();
   } catch (err) {
-    clearTimeout(slowTimer);
-    console.error("Error inicializando la app:", err);
     document.getElementById("app-root").innerHTML = `
       <div class="wrap page">
         <div class="empty">
           ${icon("warning-circle")}
-          <h1 class="page-title" style="font-size:1.75rem">No pudimos cargar la página</h1>
-          <p>Recargá para intentar de nuevo. Si sigue pasando, revisá la consola del navegador (F12).</p>
-          <button type="button" class="btn btn-primary" data-action="reload">Recargar</button>
+          <h1 class="page-title page-title-sm">No pudimos cargar la página</h1>
+          <p>Recargá para intentar de nuevo. Si sigue pasando, escribinos por WhatsApp y te ayudamos.</p>
+          <div class="hero-ctas hero-ctas-center">
+            <button type="button" class="btn btn-primary" data-action="reload">Recargar</button>
+            <a class="btn btn-secondary" href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
         </div>
       </div>`;
+    throw err; // queda en la consola para diagnosticar
   }
 });

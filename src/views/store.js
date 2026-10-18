@@ -20,6 +20,11 @@ function productTech(p) {
   return p.specs?.tech || p.specs?.tecnologia || p.specs?.technology;
 }
 
+const CATEGORY_ORDER = Object.keys(CATEGORY_META);
+
+/* "Reguladores MPPT" -> "reguladores MPPT" (para usarlo dentro de una frase). */
+const lowerFirst = (t) => t.charAt(0).toLowerCase() + t.slice(1);
+
 /* Filtra y ordena según el estado de la tienda (que a su vez sale de la URL). */
 function storeResults(state) {
   const cat = state.storeCategory || "all";
@@ -35,7 +40,10 @@ function storeResults(state) {
     if (sort === "price-asc") return a.priceARS - b.priceARS;
     if (sort === "price-desc") return b.priceARS - a.priceARS;
     if (sort === "stock") return (AVAILABILITY_SORT_RANK[a.availability] ?? 9) - (AVAILABILITY_SORT_RANK[b.availability] ?? 9);
-    return 0;
+    // Relevancia: por categoría (en el orden del menú), primero lo que tiene stock y después por precio
+    return (CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category))
+      || ((AVAILABILITY_SORT_RANK[a.availability] ?? 9) - (AVAILABILITY_SORT_RANK[b.availability] ?? 9))
+      || (a.priceARS - b.priceARS);
   });
   return { byCategory, list };
 }
@@ -47,7 +55,7 @@ function productCardHTML(p, currency) {
     ${productThumbHTML(p, "", true)}
     <div class="card-body">
       <p class="brand">${esc(p.brand)}</p>
-      <h3><a href="#product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></h3>
+      <h3><a href="#product/${encodeURIComponent(p.id)}" title="${esc(p.name)}">${esc(p.name)}</a></h3>
       ${spec ? `<p class="key-spec mono">${esc(spec)}</p>` : ""}
       <div class="card-foot">
         ${priceTagHTML(p, currency)}
@@ -94,7 +102,7 @@ function renderStore(state) {
       <details class="filters-disclosure" ${filtersStartOpen(state, activeCount) ? "open" : ""} data-bind="filters-open">
         <summary>${icon("faders")} Filtros${activeCount ? ` (${activeCount})` : ""} ${icon("caret-down")}</summary>
         ${filterGroups}
-        ${activeCount ? `<button type="button" class="btn btn-ghost btn-sm" style="margin-top:20px" data-action="filters-clear">${icon("arrow-counter-clockwise")} Limpiar filtros</button>` : ""}
+        ${activeCount ? `<button type="button" class="btn btn-ghost btn-sm filters-clear" data-action="filters-clear">${icon("arrow-counter-clockwise")} Limpiar filtros</button>` : ""}
       </details>
     </aside>` : "<div></div>";
 
@@ -110,19 +118,23 @@ function renderStore(state) {
 
   const title = cat === "all" ? "Productos" : (CATEGORY_META[cat]?.label || "Productos");
 
-  return `
-  <div class="wrap page">
-    <div class="page-head">
-      <h1 class="page-title">${title}</h1>
-      <p class="page-lead">Componentes con especificaciones de fabricante. Entrá a cada uno para ver la ficha técnica completa. Todos los precios incluyen IVA.</p>
-    </div>
-    <nav class="cat-tabs" aria-label="Categorías">${tabs}</nav>
-    <div class="store-layout">
+  // Categoría sin productos cargados: no es un problema de filtros, se avisa y se ofrece consultar
+  const body = byCategory.length === 0
+    ? `<div class="empty">
+        ${icon(CATEGORY_META[cat]?.icon || "package")}
+        <h2>Todavía no cargamos productos en esta categoría</h2>
+        <p>Si necesitás ${cat === "all" ? "algún equipo" : esc(lowerFirst(CATEGORY_META[cat]?.label || ""))}, escribinos: lo conseguimos y te pasamos el precio.</p>
+        <div class="hero-ctas hero-ctas-center">
+          <a href="${whatsappLink(`Hola, busco ${cat === "all" ? "equipos" : lowerFirst(CATEGORY_META[cat]?.label || "equipos")} para un sistema solar.`)}" class="btn btn-primary" target="_blank" rel="noopener" data-context="tienda-vacia">${icon("whatsapp-logo", "", "fill")} Consultanos por WhatsApp</a>
+          <a href="#store" class="btn btn-secondary">Ver todos los productos</a>
+        </div>
+      </div>`
+    : `<div class="store-layout">
       ${filtersAside}
       <div>
         <div class="results-bar">
           <p class="small muted" aria-live="polite"><span class="num">${list.length}</span> ${list.length === 1 ? "producto" : "productos"}</p>
-          <label class="field" style="grid-auto-flow:column;align-items:center;gap:10px">
+          <label class="field sort-field">
             <span class="small muted">Ordenar por</span>
             <select class="select" data-bind="store-sort" name="sort">
               ${SORT_OPTIONS.map((o) => `<option value="${o.value}" ${sort === o.value ? "selected" : ""}>${o.label}</option>`).join("")}
@@ -131,6 +143,15 @@ function renderStore(state) {
         </div>
         ${results}
       </div>
+    </div>`;
+
+  return `
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">${title}</h1>
+      <p class="page-lead">Componentes con especificaciones de fabricante. Entrá a cada uno para ver la ficha técnica completa. Todos los precios incluyen IVA.</p>
     </div>
+    <nav class="cat-tabs" aria-label="Categorías">${tabs}</nav>
+    ${body}
   </div>`;
 }

@@ -4,6 +4,11 @@ const HOME_IMAGES = {
   hero: "https://images.unsplash.com/photo-1592833159155-c62df1b65634?w=1200&q=75&auto=format&fit=crop",
 };
 
+/* Versiones más livianas de la foto del hero para celulares (la de 1200 px es el src de siempre). */
+function heroSrcset() {
+  return [480, 800, 1200].map((w) => `${HOME_IMAGES.hero.replace(/w=\d+/, `w=${w}`)} ${w}w`).join(", ");
+}
+
 /* Calculadoras: las usa la página de calculadoras (subnav). */
 const CALCULATOR_LINKS = [
   { id: "consumo", icon: "gauge", name: "Consumo", text: "Cuánta energía usan tus equipos por día, mes y año." },
@@ -14,7 +19,7 @@ const CALCULATOR_LINKS = [
 
 /* Qué pasa después de armar el sistema. Lo usan la home, el carrito y la página de información. */
 const PROCESS_STEPS = [
-  { icon: "solar-panel", title: "Armás tu sistema", text: "En el configurador o eligiendo productos sueltos. No hace falta registrarte." },
+  { icon: "solar-panel", title: "Armás tu sistema", text: "En el configurador o eligiendo productos sueltos. Para armarlo no hace falta registrarte; para pagar online ingresás con Google." },
   { icon: "chat-circle-text", title: "Pagás o pedís la cotización", text: "Pagás online con Mercado Pago, o con un clic armás el mensaje con tu pedido y lo enviás por WhatsApp." },
   { icon: "clipboard-text", title: "Revisamos tu proyecto", text: "Una persona de Auryx revisa la compatibilidad y el dimensionamiento, y te consulta lo que haga falta: consumo, ubicación, techo." },
   { icon: "receipt", title: "Coordinamos envío e instalación", text: "Con stock, envío e instalación confirmados. Si pediste cotización, recién ahí decidís si avanzás." },
@@ -48,12 +53,14 @@ function renderHome(state) {
       ${icon("arrow-right", "go")}
     </a>`).join("");
 
+  // Solo las categorías con productos (si el catálogo todavía no cargó, se muestran todas)
   const counts = PRODUCTS.reduce((acc, p) => { acc[p.category] = (acc[p.category] || 0) + 1; return acc; }, {});
-  const catTiles = Object.entries(CATEGORY_META).map(([key, meta]) => `
-    <a href="#store/${key}" class="cat-tile" role="listitem">
+  const withProducts = Object.entries(CATEGORY_META).filter(([key]) => counts[key]);
+  const catTiles = (withProducts.length ? withProducts : Object.entries(CATEGORY_META)).map(([key, meta]) => `
+    <li><a href="#store/${key}" class="cat-tile">
       ${icon(meta.icon)}
       <span><strong>${meta.label}</strong><span class="small dim">${counts[key] ? `${counts[key]} ${counts[key] === 1 ? "producto" : "productos"}` : "Ver categoría"}</span></span>
-    </a>`).join("");
+    </a></li>`).join("");
 
   return `
   <section class="hero" aria-labelledby="hero-title">
@@ -68,7 +75,8 @@ function renderHome(state) {
         </div>
       </div>
       <div class="hero-media">
-        <img src="${HOME_IMAGES.hero}" alt="Paneles solares instalados en hileras sobre una ladera con árboles" width="1200" height="1800" fetchpriority="high" decoding="async" />
+        <img src="${HOME_IMAGES.hero}" srcset="${heroSrcset()}" sizes="(min-width: 900px) 45vw, 100vw"
+          alt="Paneles solares instalados en hileras sobre una ladera con árboles" width="1200" height="1800" fetchpriority="high" decoding="async" />
       </div>
     </div>
   </section>
@@ -86,7 +94,7 @@ function renderHome(state) {
         <h2 id="catalog-title" class="band-title">Todo lo que lleva una instalación</h2>
         <a href="#store" class="link-arrow">Ver todos los productos ${icon("arrow-right")}</a>
       </div>
-      <div class="snap-row" role="list">${catTiles}</div>
+      <ul class="snap-row" role="list">${catTiles}</ul>
     </div>
   </section>
 
@@ -94,10 +102,11 @@ function renderHome(state) {
     <div class="wrap">
       <div class="band-head">
         <h2 id="process-title" class="band-title">Cómo sigue después de armarlo</h2>
-        <a class="link-arrow" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener">Consultanos por WhatsApp ${icon("arrow-right")}</a>
+        <a class="link-arrow" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener" data-context="home">Consultanos por WhatsApp ${icon("arrow-right")}</a>
       </div>
       <p class="band-lead">Pagá online con Mercado Pago o pedí una cotización sin compromiso. Los precios publicados incluyen IVA.</p>
       ${processStepsHTML("process-steps-tight")}
+      <p class="home-revocation small"><a href="#arrepentimiento">${icon("arrow-u-up-left")}Botón de arrepentimiento</a><span class="dim">Tenés ${REVOCATION_TERM} para arrepentirte de una compra.</span></p>
     </div>
   </section>`;
 }

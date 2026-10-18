@@ -25,9 +25,9 @@ function cartLineHTML({ product, qty, idx }, currency) {
       <p class="xsmall dim">${esc(product.brand)}</p>
     </div>
     <div class="controls">
-      <div class="stepper" role="group" aria-label="Cantidad de ${esc(product.name)}">
+      <div class="stepper" role="group" aria-label="Cantidad de ${esc(product.name)}: ${Number(qty)}">
         <button type="button" class="icon-btn" data-action="cart-step" data-idx="${idx}" data-delta="-1" data-fid="cart-${idx}-m" aria-label="Restar uno" ${qty <= 1 ? "disabled" : ""}>${icon("minus")}</button>
-        <span class="stepper-value">${qty}</span>
+        <span class="stepper-value">${Number(qty)}</span>
         <button type="button" class="icon-btn" data-action="cart-step" data-idx="${idx}" data-delta="1" data-fid="cart-${idx}-p" aria-label="Sumar uno">${icon("plus")}</button>
       </div>
       ${priceTagHTML({ priceARS: product.priceARS * qty, priceUSD: product.priceUSD * qty }, currency)}
@@ -41,11 +41,11 @@ function renderCart(state) {
   if (cart.length === 0) {
     return `
     <div class="wrap page">
-      <div class="empty" style="max-width:640px;margin-inline:auto">
+      <div class="empty empty-narrow">
         ${icon("shopping-cart-simple")}
-        <h1 class="page-title" style="font-size:1.75rem">Tu carrito está vacío</h1>
+        <h1 class="page-title page-title-sm">Tu carrito está vacío</h1>
         <p>Agregá productos sueltos desde la tienda o armá un sistema completo con el configurador.</p>
-        <div class="hero-ctas" style="justify-content:center">
+        <div class="hero-ctas hero-ctas-center">
           <a href="#configurator" class="btn btn-primary">Diseñar mi sistema</a>
           <a href="#store" class="btn btn-secondary">Ver productos</a>
         </div>
@@ -83,17 +83,17 @@ function renderCart(state) {
         <dl class="rows">
           <div><dt>Unidades</dt><dd class="mono">${t.units}</dd></div>
         </dl>
-        <div class="summary-total" style="margin-bottom:20px"><span class="muted">Total estimado</span>${priceTagHTML(t, state.currency, "lg")}</div>
+        <div class="summary-total summary-total-spaced"><span class="muted">Total</span>${priceTagHTML(t, state.currency, "lg")}</div>
         ${checkoutFormHTML(state)}
         <div class="checkout-alt">
-          <a class="btn btn-secondary btn-block" href="${whatsappLink(quoteMessage(state))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Pedir cotización por WhatsApp</a>
-          <button type="button" class="btn btn-ghost btn-block" style="margin-top:6px" data-action="cart-quote">Prefiero usar el formulario</button>
+          <a class="btn btn-secondary btn-block" href="${whatsappLink(quoteMessage(state))}" target="_blank" rel="noopener" data-context="carrito">${icon("whatsapp-logo", "", "fill")} Pedir cotización por WhatsApp</a>
+          <button type="button" class="btn btn-ghost btn-block checkout-alt-form" data-action="cart-quote">Prefiero usar el formulario</button>
         </div>
-        <p class="xsmall dim" style="margin-top:12px">Precios con IVA incluido. No incluyen envío ni instalación: los coordinamos con vos después del pedido. Tenés 10 días corridos para arrepentirte de la compra (<a href="#arrepentimiento">Botón de arrepentimiento</a>).</p>
+        <p class="xsmall dim cart-note">Precios finales con IVA incluido. No incluyen envío ni instalación: los coordinamos con vos después del pedido. Podés arrepentirte de la compra dentro de los ${REVOCATION_TERM} (<a href="#arrepentimiento">Botón de arrepentimiento</a>).</p>
       </aside>
     </div>
     <section class="process process-compact" aria-labelledby="cart-process-title">
-      <h2 id="cart-process-title" class="process-title">Qué pasa cuando pedís la cotización</h2>
+      <h2 id="cart-process-title" class="process-title">Qué pasa después de tu pedido</h2>
       ${processStepsHTML()}
     </section>
     ${techNoteHTML()}
@@ -238,18 +238,18 @@ function addressFieldsHTML(prefix, bind, address, errors) {
 function billingFieldsHTML(prefix, bind, doc, name, errors) {
   const { input } = formFieldKit(prefix, bind, errors);
   return `
-    ${input("billingDoc", "DNI o CUIT", doc, 'inputmode="numeric" autocomplete="off" spellcheck="false"')}
+    ${input("billingDoc", 'DNI o CUIT <span class="unit">(solo números)</span>', doc, 'inputmode="numeric" autocomplete="off" spellcheck="false"')}
     ${input("billingName", "Nombre o razón social", name, 'autocomplete="off"')}`;
 }
 
-/* Línea de estado mientras se espera a la API: a los 5 s avisa que Render está despertando. */
+/* Línea de estado mientras se espera a la API: a los 5 s avisa que está tardando más de lo normal. */
 function pendingStatusHTML(text, slow) {
-  return `<p class="form-status login-status" role="status"><span class="spinner" aria-hidden="true"></span> ${slow ? "Despertando el servidor, puede tardar hasta un minuto…" : text}</p>`;
+  return `<p class="form-status login-status" role="status"><span class="spinner" aria-hidden="true"></span> ${slow ? "Está tardando más de lo normal, seguimos intentando…" : text}</p>`;
 }
 
 function checkoutFormHTML(state) {
   if (!cartCanPayOnline(state.cart)) {
-    return `<p class="small muted">Tu carrito tiene productos de ejemplo: pedí la cotización y te pasamos el precio final.</p>`;
+    return `<p class="small muted">Algunos productos del carrito no se pueden pagar online: pedí la cotización y te pasamos el precio final.</p>`;
   }
   const session = getSession();
   if (!session) {
@@ -374,8 +374,19 @@ function fmtOrderDate(iso) {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" });
 }
 
-/* Solo se abre un link de pago https (lo arma Mercado Pago). */
-const safePaymentUrl = (url) => (typeof url === "string" && /^https:\/\//i.test(url) ? url : null);
+/* Solo se abre un link de pago https de Mercado Pago: si la API devolviera otro dominio, no hay botón. */
+const PAYMENT_HOSTS = ["mercadopago.com", "mercadopago.com.ar", "mercadolibre.com", "mercadolibre.com.ar"];
+function safePaymentUrl(url) {
+  if (typeof url !== "string") return null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const allowed = PAYMENT_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+    return u.protocol === "https:" && allowed ? u.href : null;
+  } catch (e) {
+    return null;
+  }
+}
 
 /* "Producto… y 2 productos más" */
 function orderSummaryText(items) {
@@ -390,6 +401,7 @@ function orderWhatsappText(code) { return `Hola, tengo una consulta por mi pedid
 /* Página de vuelta del pago (#pedido/<id>): consulta el estado a la API. */
 const ORDER_STATUS_COPY = {
   pagado: { tone: "ok", icon: "check-circle", title: "¡Pago aprobado!", text: "Recibimos tu pago. En las próximas 48 h hábiles te contactamos para coordinar el envío y la instalación." },
+  pagado_retiro: { tone: "ok", icon: "check-circle", title: "¡Pago aprobado!", text: "Recibimos tu pago. En las próximas 48 h hábiles te contactamos para coordinar el retiro." },
   pendiente_pago: { tone: "warn", icon: "hourglass-medium", title: "Pago pendiente", text: "Mercado Pago todavía no confirmó el pago. Si pagaste en efectivo o por transferencia puede demorar; esta página se actualiza sola." },
   rechazado: { tone: "bad", icon: "x-circle", title: "El pago no se aprobó", text: "Mercado Pago rechazó el pago. Podés volver al carrito e intentar con otro medio, o escribirnos por WhatsApp." },
   cancelado: { tone: "bad", icon: "x-circle", title: "Pedido cancelado", text: "El pago se canceló o se devolvió. Si fue un error, escribinos." },
@@ -398,15 +410,15 @@ const ORDER_STATUS_COPY = {
 
 function orderItemsHTML(d) {
   return `
-      <ul class="summary-lines" style="border-top:0;padding-top:0">
-        ${(d.items || []).map((i) => `<li><span class="name"><span class="mono">${i.quantity}×</span> ${esc(i.productName)}</span><span class="price">${fmtARS(i.unitPriceArs * i.quantity)}</span></li>`).join("")}
+      <ul class="summary-lines summary-lines-flush">
+        ${(d.items || []).map((i) => `<li><span class="name"><span class="mono">${Number(i.quantity) || 0}×</span> ${esc(i.productName)}</span><span class="price">${fmtARS(Number(i.unitPriceArs) * Number(i.quantity))}</span></li>`).join("")}
       </ul>
       <div class="summary-total"><span class="muted">Total</span><span class="price price-lg">${fmtARS(d.totalArs)}<small class="iva">IVA incluido</small></span></div>`;
 }
 
 /* Pedido con código (de un cliente): código grande, pago, entrega con seguimiento, productos y dirección. */
 function renderCodeOrder(d) {
-  const copy = ORDER_STATUS_COPY[d.status] || ORDER_STATUS_COPY.pendiente_pago;
+  const copy = (d.status === "pagado" && d.deliveryMethod === "retiro" ? ORDER_STATUS_COPY.pagado_retiro : ORDER_STATUS_COPY[d.status]) || ORDER_STATUS_COPY.pendiente_pago;
   const payUrl = d.status === "pendiente_pago" ? safePaymentUrl(d.paymentUrl) : null;
   const a = d.shippingAddress;
   const addressHTML = a ? `<p class="muted">${esc(a.street)}${a.floor ? `, ${esc(a.floor)}` : ""}<br>${esc(a.city)}, ${esc(a.province)} (${esc(a.zip)})</p>` : "";
@@ -415,7 +427,7 @@ function renderCodeOrder(d) {
     <div class="page-head">
       <p class="small dim">Pedido${d.createdAt ? ` del ${esc(fmtOrderDate(d.createdAt))}` : ""}</p>
       <h1 class="page-title order-code mono">${esc(d.code)}</h1>
-      <p class="xsmall dim">Guardá este código por cualquier consulta.</p>
+      <p class="xsmall dim">Guardá este código por cualquier consulta. Si querés devolver la compra, usá el <a class="text-link" href="#arrepentimiento">Botón de arrepentimiento</a>.</p>
     </div>
     <div class="order-grid">
       <section class="panel panel-pad order-status" aria-labelledby="order-status-title">
@@ -439,10 +451,10 @@ function renderCodeOrder(d) {
         ${d.billingDoc ? `<h3 class="order-subtitle">Facturación</h3><p class="muted">${esc(d.billingName || "")} <span class="mono">${esc(d.billingDoc)}</span></p>` : ""}
       </section>
     </div>
-    <div class="hero-ctas" style="margin-top:24px">
+    <div class="hero-ctas hero-ctas-spaced">
       ${d.status === "rechazado" ? `<a href="#cart" class="btn btn-primary">Volver al carrito</a>` : ""}
       <a href="#mis-pedidos" class="btn btn-secondary">Mis pedidos</a>
-      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(d.code))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
+      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(d.code))}" target="_blank" rel="noopener" data-context="pedido">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
     </div>
   </div>`;
 }
@@ -450,22 +462,22 @@ function renderCodeOrder(d) {
 function renderOrder(state) {
   const o = state.order || {};
   if (o.notMine) {
-    return `<div class="wrap page"><div class="empty" style="max-width:640px;margin-inline:auto">${icon("lock-simple")}
-      <h1 class="page-title" style="font-size:1.75rem">Este pedido no es de tu cuenta</h1>
+    return `<div class="wrap page"><div class="empty empty-narrow">${icon("lock-simple")}
+      <h1 class="page-title page-title-sm">Este pedido no es de tu cuenta</h1>
       <p>Revisá que hayas ingresado con la misma cuenta con la que compraste. Si el pedido es tuyo, escribinos.</p>
-      <div class="hero-ctas" style="justify-content:center">
+      <div class="hero-ctas hero-ctas-center">
         <a href="#mis-pedidos" class="btn btn-primary">Ver mis pedidos</a>
-        <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(o.id || ""))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultanos</a>
+        <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(o.id || ""))}" target="_blank" rel="noopener" data-context="pedido">${icon("whatsapp-logo", "", "fill")} Consultanos</a>
       </div></div></div>`;
   }
   if (o.error) {
-    return `<div class="wrap page"><div class="empty" style="max-width:640px;margin-inline:auto">${icon("warning-circle")}
-      <h1 class="page-title" style="font-size:1.75rem">No encontramos el pedido</h1><p>${esc(o.error)}</p>
-      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(o.id || ""))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultanos</a></div></div>`;
+    return `<div class="wrap page"><div class="empty empty-narrow">${icon("warning-circle")}
+      <h1 class="page-title page-title-sm">No encontramos el pedido</h1><p>${esc(o.error)}</p>
+      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(o.id || ""))}" target="_blank" rel="noopener" data-context="pedido">${icon("whatsapp-logo", "", "fill")} Consultanos</a></div></div>`;
   }
   if (!o.data) {
-    return `<div class="wrap page"><div class="empty" style="max-width:640px;margin-inline:auto">${icon("hourglass-medium")}
-      <h1 class="page-title" style="font-size:1.75rem">Consultando tu pedido…</h1></div></div>`;
+    return `<div class="wrap page"><div class="empty empty-narrow">${icon("hourglass-medium")}
+      <h1 class="page-title page-title-sm">Consultando tu pedido…</h1></div></div>`;
   }
   const d = o.data;
   if (d.code) return renderCodeOrder(d);
@@ -479,10 +491,10 @@ function renderOrder(state) {
       <p class="page-lead" role="status">${esc(copy.text)}</p>
       <p class="xsmall dim">Pedido <span class="mono">${esc(d.publicId)}</span>. Guardá este número por cualquier consulta.</p>
     </div>
-    <div class="panel panel-pad" style="max-width:720px">${orderItemsHTML(d)}</div>
-    <div class="hero-ctas" style="margin-top:24px">
+    <div class="panel panel-pad order-legacy">${orderItemsHTML(d)}</div>
+    <div class="hero-ctas hero-ctas-spaced">
       ${d.status === "rechazado" ? `<a href="#cart" class="btn btn-primary">Volver al carrito</a>` : `<a href="#store" class="btn btn-secondary">Seguir viendo productos</a>`}
-      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(d.publicId))}" target="_blank" rel="noopener">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
+      <a class="btn btn-secondary" href="${whatsappLink(orderWhatsappText(d.publicId))}" target="_blank" rel="noopener" data-context="pedido">${icon("whatsapp-logo", "", "fill")} Consultar por WhatsApp</a>
     </div>
   </div>`;
 }

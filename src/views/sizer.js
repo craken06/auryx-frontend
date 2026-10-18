@@ -424,7 +424,7 @@ function sizerCustomResult(cu) {
   if (cons <= 0) return { empty: "Ingresá tu consumo mensual para calcular las cantidades." };
   if (sizerGoalFraction(cu.goal, sizerNum(cu.cover), 0.85) <= 0) return { empty: "Indicá qué porcentaje del consumo querés cubrir." };
   const { inv, nInv, plan, pan, env, t, crit, backup } = sizerCustomSizing(cu);
-  if (!inv) return { empty: "No hay inversores de ejemplo para esa combinación. Cambiá el objetivo o la conexión." };
+  if (!inv) return { empty: "No hay inversores de referencia para esa combinación. Cambiá el objetivo o la conexión." };
   if (t.nArea < 1) return { empty: "Con esa superficie no entra ni un panel. Revisá los m² libres." };
 
   // la batería sigue al inversor efectivo (en automático puede cambiar con el consumo o la superficie)
@@ -448,7 +448,7 @@ function sizerCustomResult(cu) {
   if (backup) extra.push({ tone: acKw >= crit ? "ok" : "bad", text: `Potencia AC de ${fmtNum(acKw)} kW para ${fmtNum(crit, 1)} kW de cargas críticas.` });
   if (inv.type !== "off" && cu.phase !== inv.phase) extra.push({ tone: "bad", text: "La fase del inversor no coincide con la conexión." });
   if (cu.phase === "mono" && acKw > 10) extra.push({ tone: "warn", text: `${fmtNum(acKw)} kW de inversores en una conexión monofásica: lo habitual es no pasar de 10 kW. Consultá con tu distribuidora o pasá a trifásica.` });
-  if (nInv > 4) extra.push({ tone: "warn", text: `Son ${nInv} inversores de ${fmtNum(inv.kw)} kW. ${cu.inv === "auto" ? "Es el modelo más grande del catálogo de ejemplo para esta conexión" : "Conviene un modelo más grande"}${cu.phase === "mono" ? " o pasar a trifásica" : ""}.` });
+  if (nInv > 4) extra.push({ tone: "warn", text: `Son ${nInv} inversores de ${fmtNum(inv.kw)} kW. ${cu.inv === "auto" ? "Es el modelo más grande de los equipos de referencia para esta conexión" : "Conviene un modelo más grande"}${cu.phase === "mono" ? " o pasar a trifásica" : ""}.` });
 
   const notes = [];
   if (cu.goal === "resp") notes.push({ tone: "info", text: "Respaldo calculado con el 60 % de las cargas críticas en promedio." });
@@ -568,7 +568,7 @@ function sizerCustomInputsHTML(cu, currency) {
       ${sizerSelectHTML({ scope: s, field: "pan", label: "Panel", value: cu.pan, options: sizerOptions(SIZER_PANELS, cu.pan, (x) => `${sizerItemName(x)} (${price(x)})`) })}
       ${invs.length
         ? sizerSelectHTML({ scope: s, field: "inv", label: "Inversor", value: cu.inv, hint: invHint, options: sizerOptions(invOptions, cu.inv, (x) => x.label) })
-        : `<p class="field-hint">No hay inversores de ejemplo para esta combinación.</p>`}
+        : `<p class="field-hint">No hay inversores de referencia para esta combinación.</p>`}
       ${bats.length ? sizerSelectHTML({ scope: s, field: "bat", label: "Batería", value: cu.bat, hint: `Solo las de ${inv.bat === "HV" ? "alta tensión" : "48 V"}, como pide el inversor.`, options: sizerOptions(bats, cu.bat, (x) => `${sizerItemName(x)} (${price(x)})`) }) : ""}
     </fieldset>`;
 }
@@ -587,7 +587,7 @@ function sizerNotesHTML(notes) {
 
 /* Fila de módulos dibujados (decorativo: la descripción en texto va al lado). */
 function sizerCellsHTML(count, cls) {
-  if (count > 24) return `<span class="sz-cells-more">${count}</span>`;
+  if (count > 24) return `<span class="sz-cells-more">${count} ${cls === "sz-mod" ? "módulos" : "paneles"}</span>`;
   return `<span class="sz-cells" aria-hidden="true">${`<i class="${cls}"></i>`.repeat(count)}</span>`;
 }
 
@@ -602,7 +602,7 @@ function sizerConfigHTML(c) {
     </li>`).join("");
   const bankHTML = bank ? `
     <div class="sz-config-block">
-      <h5>Banco de baterías${nInv > 1 ? " (por inversor)" : ""}</h5>
+      <h4>Banco de baterías${nInv > 1 ? " (por inversor)" : ""}</h4>
       <p>${sizerBankText(bank, bat)}</p>
       <div class="sz-bank${bank.series ? " is-series" : ""}">${sizerCellsHTML(bank.n, "sz-mod")}<span class="small dim">${bank.series ? "Serie" : "Paralelo"}</span></div>
       <dl class="sz-elec">
@@ -612,9 +612,9 @@ function sizerConfigHTML(c) {
       </dl>
     </div>` : "";
   return `<div class="sz-config">
-    <h4>Conexionado</h4>
+    <h3>Conexionado</h3>
     <div class="sz-config-block">
-      <h5>Arreglo FV</h5>
+      <h4>Arreglo FV</h4>
       ${nInv > 1 ? `<p class="sz-config-total"><strong>Total: ${plan.s * nInv} strings y ${plan.n * nInv} paneles, repartidos en ${nInv} inversores iguales.</strong> Cada inversor lleva:</p>` : ""}
       <p><strong>${sizerPlural(plan.s, "string", "strings")} ${sizerLensText(plan)} paneles en serie</strong> (${plan.n} paneles${nInv > 1 ? " por inversor" : ""}). ${sizerWiringText(plan)}</p>
       <ul class="sz-mppts">${mppts}</ul>
@@ -630,7 +630,7 @@ function sizerConfigHTML(c) {
 
 function sizerBomHTML(lines, total, currency) {
   return `<div class="sz-bom">
-    <h4>Lista de materiales</h4>
+    <h3>Lista de materiales <span class="sz-ref-tag">Equipos de referencia</span></h3>
     <ul>${lines.map((l) => `
       <li>
         <span class="sz-qty">${l.qty}×</span>
@@ -638,7 +638,8 @@ function sizerBomHTML(lines, total, currency) {
         <span class="sz-price">${sizerMoney(l.qty * l.item.usd, currency)}</span>
       </li>`).join("")}
     </ul>
-    <div class="sz-total"><span>Total de referencia</span><strong>${sizerMoney(total, currency)}</strong></div>
+    <div class="sz-total"><span>Precio orientativo</span><strong>${sizerMoney(total, currency)}</strong></div>
+    <p class="sz-note is-info">${icon("info")}<span>Son equipos de referencia para estimar el sistema y pueden no estar en la tienda. Te cotizamos el equivalente disponible.</span></p>
   </div>`;
 }
 
@@ -683,7 +684,7 @@ function sizerQuoteMessage(kind, inputs, r, currency) {
   const perMppt = c.plan.alloc.map((k, i) => (k ? `MPPT ${i + 1}: ${sizerPlural(k, "string", "strings")} de ${c.plan.lens[i]}` : "")).filter(Boolean).join("; ");
   const wiring = `Arreglo: ${c.nInv > 1 ? `${c.nInv} inversores, cada uno con ` : ""}${sizerPlural(c.plan.s, "string", "strings")} ${sizerLensText(c.plan)} paneles en serie (${perMppt})`;
   const bank = c.bank ? `\nBanco: ${sizerBankText(c.bank, c.bat)}` : "";
-  return `Hola, armé un sistema con el dimensionador de Auryx (${label}).\n\nMis datos:\n${sizerInputsSummary(kind, inputs)}\n\nSistema sugerido:\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nTotal de referencia: ${sizerMoney(r.total, currency)}\n¿Me pasan una cotización?`;
+  return `Hola, armé un sistema con el dimensionador de Auryx (${label}).\n\nMis datos:\n${sizerInputsSummary(kind, inputs)}\n\nSistema sugerido:\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nPrecio orientativo: ${sizerMoney(r.total, currency)}\n¿Me pasan una cotización?`;
 }
 
 const SIZER_MODE_LABEL = { quick: "automático rápido", custom: "automático personalizado" };
@@ -696,7 +697,7 @@ function sizerOutputHTML(sz, currency) {
   }
   const title = kind === "quick" ? "Sistema sugerido" : "Resultado";
   const badge = r.ok
-    ? `<span class="badge tone-ok">${icon("check-circle", "", "fill")}Todo cierra</span>`
+    ? `<span class="badge tone-ok">${icon("check-circle", "", "fill")}Compatible</span>`
     : `<span class="badge tone-bad">${icon("x-circle", "", "fill")}Revisar</span>`;
 
   const stats = [];
@@ -709,23 +710,23 @@ function sizerOutputHTML(sz, currency) {
 
   return `
     <div class="sz-out-head">
-      <h3>${title}</h3>
+      <h2>${title}</h2>
       ${badge}
     </div>
-    <div class="sz-figure" aria-live="polite">
+    <div class="sz-figure">
       <span class="sz-kwp">${fmtNum(r.kwp, 2)}<small>kWp</small></span>
       ${r.gen !== undefined ? `<span class="sz-gen">${fmtNum(r.gen)} kWh/mes generados</span>` : ""}
     </div>
     <dl class="sz-stats">${stats.map((s) => `<div><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}</dl>
     ${sizerConfigHTML(r.config)}
     <div class="sz-verify">
-      <h4>Compatibilidad entre componentes</h4>
+      <h3>Compatibilidad entre componentes</h3>
       ${sizerChecksHTML(r.checks)}
     </div>
     ${sizerBomHTML(r.lines, r.total, currency)}
     ${r.notes && r.notes.length ? sizerNotesHTML(r.notes) : ""}
     <div class="sz-actions">
-      <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener">${icon("whatsapp-logo")} Pedir cotización</a>
+      <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener" data-context="dimensionador">${icon("whatsapp-logo", "", "fill")} Pedir cotización</a>
     </div>`;
 }
 

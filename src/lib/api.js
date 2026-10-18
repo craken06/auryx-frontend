@@ -1,4 +1,4 @@
-/* AURYX: Cliente de la API real (compragamer-api). Depende de: config.js (API_BASE_URL, USD_ARS_RATE), lib/session.js. */
+/* AURYX: Cliente de la API real (compragamer-api). Depende de: config.js (API_BASE_URL, USD_ARS_RATE), data/products.js (DEMO_MODE, DEMO_PRODUCTS), lib/session.js. */
 
 /* =========================================================================
    AURYX: Conexión con el backend real (compragamer-api / NestJS + Prisma)
@@ -15,16 +15,16 @@ const AVAILABILITY_MAP = {
 };
 
 /**
- * El motor de compatibilidad y el configurador leen las claves del catálogo
- * de demo (pmax, capacityWh). La API usa claves en español: se agregan los
- * alias sin pisar lo que ya venga cargado. Son no enumerables para que la
- * tabla de especificaciones (Object.entries) no muestre el dato duplicado.
+ * El motor de compatibilidad y el configurador leen las claves normalizadas
+ * (pmax, capacityWh). La API usa claves en español: se agregan los alias sin
+ * pisar lo que ya venga cargado. La ficha (views/productDetail.js) muestra la
+ * clave normalizada y oculta la de la API cuando están las dos, así el dato
+ * no aparece repetido.
  */
 function normalizeApiSpecs(slug, specs) {
   const out = { ...specs };
-  const alias = (key, value) => Object.defineProperty(out, key, { value, enumerable: false });
-  if (slug === "panel" && out.pmax == null && out.potencia_wp != null) alias("pmax", out.potencia_wp);
-  if (slug === "bateria" && out.capacityWh == null && out.capacidad_kwh != null) alias("capacityWh", out.capacidad_kwh * 1000);
+  if (slug === "panel" && out.pmax == null && out.potencia_wp != null) out.pmax = out.potencia_wp;
+  if (slug === "bateria" && out.capacityWh == null && out.capacidad_kwh != null) out.capacityWh = out.capacidad_kwh * 1000;
   return out;
 }
 
@@ -36,6 +36,7 @@ function normalizeApiSpecs(slug, specs) {
 function adaptApiProduct(apiProduct) {
   const price = Number(apiProduct.price);
   const isUSD = apiProduct.currency === "USD";
+  const firstImage = [...(apiProduct.images || [])].sort((a, b) => (a.order || 0) - (b.order || 0))[0];
 
   return {
     id: `db-${apiProduct.id}`, // prefijo para no colisionar con IDs de demo
@@ -53,8 +54,10 @@ function adaptApiProduct(apiProduct) {
     // producto viejo todavía no lo tiene cargado, cae a [] (no aparece en
     // el configurador hasta que se le complete el dato, sin inventarlo).
     systemTypes: apiProduct.specs?.systemTypes || [],
-    // primera imagen de product_images (por orden); sin imágenes se muestra el ícono de la categoría
-    image: [...(apiProduct.images || [])].sort((a, b) => (a.order || 0) - (b.order || 0))[0]?.url || null,
+    // primera imagen de product_images (por orden); sin imágenes se muestra el ícono de la categoría.
+    // imageAlt: el texto alternativo que se carga en el admin (vacío = productThumbHTML decide).
+    image: firstImage?.url || null,
+    imageAlt: (firstImage && typeof firstImage.altText === "string" && firstImage.altText.trim()) || "",
     _fromApi: true,
   };
 }
@@ -76,7 +79,8 @@ function dbIdOf(product) {
 async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth = false, redirectOn401 = true } = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  const headers = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+  // Content-Type solo con cuerpo: un GET sin headers extra no necesita preflight de CORS
+  const headers = body === undefined ? {} : { "Content-Type": "application/json" };
   const session = auth ? getSession() : null;
   if (session) headers.Authorization = `Bearer ${session.token}`;
   try {
@@ -113,66 +117,77 @@ async function apiRequest(path, { method = "GET", body, timeoutMs = 8000, auth =
   }
 }
 
+/* Avisos de diagnóstico: solo en desarrollo local (en el sitio publicado la consola queda limpia). */
+function devWarn(...args) {
+  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) console.warn(...args);
+}
+
 /* Parámetros del motor de compatibilidad (temperatura mínima de diseño, márgenes).
    Si la API no responde se usan los mismos valores por defecto que el backend. */
 let COMPAT_PARAMS = { tMinC: -10, tCellMaxC: 70 };
 async function loadCompatibilityParams() {
   try {
-    const data = await apiRequest("/compatibility/rules", { timeoutMs: 4000 });
+    const data = await apiRequest("/compatibility/rules", { timeoutMs: 8000 });
     if (data && data.params) COMPAT_PARAMS = { ...COMPAT_PARAMS, ...data.params };
   } catch (err) {
-    console.warn("No se pudieron cargar los parámetros de compatibilidad:", err.message);
+    devWarn("No se pudieron cargar los parámetros de compatibilidad:", err.message);
   }
 }
 
 /**
- * Pide la cotización USD→ARS vigente a la API y actualiza USD_ARS_RATE.
- * Si falla, queda el valor de respaldo de config.js y no se interrumpe nada.
+ * Pide la cotización USD→ARS vigente a la API (la misma con la que el backend cobra los
+ * productos cargados en USD) y actualiza USD_ARS_RATE. Devuelve true si la obtuvo.
  * EXCHANGE_INFO guarda el origen para mostrarlo en el pie de página.
  */
 let EXCHANGE_INFO = null;
-async function loadExchangeRate() {
+async function loadExchangeRate(timeoutMs = 8000) {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${API_BASE_URL}/exchange-rate`, {
-      signal: controller.signal,
-      headers: { "ngrok-skip-browser-warning": "true" },
-    });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`La API respondió ${res.status}`);
-    const data = await res.json();
-    const rate = Number(data.usdArs);
+    const data = await apiRequest("/exchange-rate", { timeoutMs });
+    const rate = Number(data && data.usdArs);
     if (!Number.isFinite(rate) || rate <= 0) throw new Error("cotización inválida");
     USD_ARS_RATE = rate;
     EXCHANGE_INFO = { rate, updatedAt: data.updatedAt || null, source: data.source };
+    return true;
   } catch (err) {
-    console.warn("No se pudo cargar la cotización del dólar, se usa el valor de respaldo:", err.message);
+    devWarn("No se pudo cargar la cotización del dólar:", err.message);
+    return false;
   }
 }
 
 /**
- * Pide los productos reales a la API. Si falla (API caída, CORS, etc.)
- * devuelve null para que quien llame decida el fallback.
+ * Carga el catálogo: productos + cotización (las dos cosas hacen falta para mostrar precios
+ * que coincidan con lo que cobra el backend). La API está en Render gratis: si estuvo un rato
+ * sin uso, la primera respuesta tarda de 30 a 60 s. Por eso se reintenta hasta `deadlineMs`
+ * (70 s) antes de rendirse; `onSlow` avisa a los 2,5 s para cambiar el mensaje de espera.
+ * Devuelve la lista de productos adaptados, o null si no se pudo (quien llama muestra el error).
+ * Nunca cae a un catálogo de ejemplo, salvo en el modo demo de desarrollo local (DEMO_MODE).
  */
-async function loadProductsFromAPI() {
+async function loadCatalog({ deadlineMs = 70000, onSlow } = {}) {
+  if (typeof DEMO_MODE !== "undefined" && DEMO_MODE) {
+    USD_ARS_RATE = 1500; // cotización de ejemplo, solo para la demo local
+    return DEMO_PRODUCTS.slice();
+  }
+  const start = Date.now();
+  const left = () => deadlineMs - (Date.now() - start);
+  const slowTimer = onSlow ? setTimeout(onSlow, 2500) : null;
+  let products = null;
+  let rateOk = false;
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s máximo de espera
-    // la cotización se pide en paralelo y tiene que estar lista antes de convertir precios
-    const [res] = await Promise.all([
-      fetch(`${API_BASE_URL}/products`, {
-        signal: controller.signal,
-        headers: { "ngrok-skip-browser-warning": "true" },
-      }),
-      loadExchangeRate(),
-    ]);
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`La API respondió ${res.status}`);
-    const data = await res.json();
-    return data.map(adaptApiProduct);
-  } catch (err) {
-    console.error("No se pudo cargar productos desde la API:", err.message);
+    while (left() > 0) {
+      // un intento largo cubre el arranque en frío; si falla rápido (502 de Render, red), se espera y se repite
+      const timeoutMs = Math.max(1000, Math.min(left(), 45000));
+      const [list, ok] = await Promise.all([
+        products ? products : apiRequest("/products", { timeoutMs }).catch((err) => { devWarn("No se pudo cargar el catálogo:", err.message); return null; }),
+        rateOk ? true : loadExchangeRate(timeoutMs),
+      ]);
+      if (Array.isArray(list)) products = list;
+      rateOk = ok;
+      if (products && rateOk) return products.map(adaptApiProduct);
+      if (left() > 3000) await new Promise((r) => setTimeout(r, 3000));
+      else break;
+    }
     return null;
+  } finally {
+    clearTimeout(slowTimer);
   }
 }

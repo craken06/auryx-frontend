@@ -44,7 +44,7 @@ function calcSectionHTML(id, title, subtitle, inputs, result, footnote = "") {
     </div>
     <div class="calc-grid">
       <div class="calc-inputs">${inputs}</div>
-      <div class="calc-result">${result}<div id="calc-warn-${id}" class="calc-warnings" aria-live="polite"></div>${footnote ? `<p class="xsmall dim" style="margin-top:12px">${footnote}</p>` : ""}</div>
+      <div class="calc-result">${result}<div id="calc-warn-${id}" class="calc-warnings" aria-live="polite"></div>${footnote ? `<p class="xsmall dim calc-footnote">${footnote}</p>` : ""}</div>
     </div>
   </section>`;
 }

@@ -10,8 +10,8 @@ const CALCULATOR_RENDERERS = {
 function renderCalculators(state) {
   const active = CALCULATOR_RENDERERS[state.calcSection] ? state.calcSection : CALCULATOR_LINKS[0].id;
   return `
-  <div class="wrap" style="padding-top:56px">
-    <div class="page-head" style="margin-bottom:28px">
+  <div class="wrap calc-page-top">
+    <div class="page-head calc-page-head">
       <h1 class="page-title">Calculadoras</h1>
       <p class="page-lead">De uso libre y sin registro. Cada una explica cómo llega al resultado, así también sirven para aprender.</p>
     </div>
@@ -21,8 +21,8 @@ function renderCalculators(state) {
       ${CALCULATOR_LINKS.map((c) => `<a href="#calculators/${c.id}"${active === c.id ? ' aria-current="true"' : ""}>${icon(c.icon)}${c.name}</a>`).join("")}
     </div>
   </nav>
-  <div class="wrap" style="padding-bottom:48px">
+  <div class="wrap calc-page-bottom">
     ${CALCULATOR_RENDERERS[active](state)}
-    ${techNoteHTML("tech-note-spaced")}
+    <p class="tech-note tech-note-spaced">${icon("info")}<span><strong>Resultados orientativos.</strong> Usan valores promedio y fórmulas simplificadas. Para dimensionar una instalación real, el proyecto lo tiene que revisar un profesional matriculado.</span></p>
   </div>`;
 }

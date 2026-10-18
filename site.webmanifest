@@ -1,0 +1,16 @@
+{
+  "name": "AURYX | Equipos de energía solar",
+  "short_name": "AURYX",
+  "description": "Paneles, inversores y baterías con la compatibilidad verificada.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "minimal-ui",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "icons": [
+    { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}

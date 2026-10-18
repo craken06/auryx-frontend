@@ -30,7 +30,7 @@ function avatarHTML(customer, size = 32) {
 }
 
 function waHelpLink(label) {
-  return `<a href="${whatsappLink("Hola, quiero ingresar a mi cuenta en el sitio.")}" target="_blank" rel="noopener">${label}</a>`;
+  return `<a href="${whatsappLink("Hola, quiero ingresar a mi cuenta en el sitio.")}" target="_blank" rel="noopener" data-context="ingresar">${label}</a>`;
 }
 
 /* Lugar del botón de Google (lo dibuja App.mountGoogleButton después de cada render
@@ -57,7 +57,7 @@ function loginStatusHTML(l) {
 const LOGIN_BENEFITS = [
   { icon: "shopping-cart-simple", title: "Comprá online", text: "Pagás con Mercado Pago en pocos pasos." },
   { icon: "package", title: "Seguí tus pedidos", text: "Ves el estado del pago y de la entrega." },
-  { icon: "lightning", title: "Checkout más rápido", text: "Guardamos tu teléfono y dirección para la próxima." },
+  { icon: "lightning", title: "Comprá más rápido", text: "Guardamos tu teléfono y dirección para la próxima." },
 ];
 
 /* Composición de #ingresar: tarjeta a la izquierda, foto de la home a la derecha (se oculta en pantallas chicas). */
@@ -66,7 +66,7 @@ function authLayoutHTML(cardHTML) {
   <section class="auth">
     <div class="wrap auth-grid">
       <div class="auth-card panel">${cardHTML}</div>
-      <div class="auth-media" aria-hidden="true"><img src="${HOME_IMAGES.hero}" alt="" width="1200" height="1500" loading="lazy" /></div>
+      <div class="auth-media" aria-hidden="true"><img src="${HOME_IMAGES.hero}" alt="" width="1200" height="1500" fetchpriority="low" decoding="async" /></div>
     </div>
   </section>`;
 }
@@ -142,7 +142,7 @@ function renderMyOrders(state) {
   let body;
   if (m.error) {
     body = `<p class="form-status tone-bad" role="alert">${esc(m.error)}</p>
-      <button type="button" class="btn btn-secondary" data-action="my-orders-retry" style="margin-top:12px">Probar de nuevo</button>`;
+      <button type="button" class="btn btn-secondary mt-2" data-action="my-orders-retry">Probar de nuevo</button>`;
   } else if (!m.data) {
     body = pendingStatusHTML("Cargando tus pedidos…", m.slow);
   } else if (!m.data.length) {
@@ -154,7 +154,10 @@ function renderMyOrders(state) {
   }
   return `
   <div class="wrap page">
-    <div class="page-head"><h1 class="page-title">Mis pedidos</h1></div>
+    <div class="page-head">
+      <h1 class="page-title">Mis pedidos</h1>
+      <p class="small muted">¿Querés devolver una compra? Tenés ${REVOCATION_TERM}: <a class="text-link" href="#arrepentimiento">Botón de arrepentimiento</a>.</p>
+    </div>
     ${body}
   </div>`;
 }

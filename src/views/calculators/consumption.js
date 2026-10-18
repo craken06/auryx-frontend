@@ -1,10 +1,14 @@
 /* AURYX: calculadora de consumo. Depende de: utils/format.js, utils/calculatorHelpers.js. */
 
+/* Un día tiene 24 h: las horas de uso se topean acá aunque se tipee más. */
+const clampHours = (h) => Math.min(24, Math.max(0, Number(h) || 0));
+
+/* Mes promedio de 365 / 12 días, así mensual × 12 = anual. */
 function consumptionTotals(items) {
-  const dailyWh = items.reduce((s, it) => s + it.power * it.qty * it.hours, 0);
+  const dailyWh = items.reduce((s, it) => s + it.power * it.qty * clampHours(it.hours), 0);
   return {
     daily: `${fmtNum(dailyWh / 1000, 2)} kWh`,
-    monthly: `${fmtNum((dailyWh * 30) / 1000, 1)} kWh`,
+    monthly: `${fmtNum((dailyWh * 365) / 12 / 1000, 1)} kWh`,
     yearly: `${fmtNum((dailyWh * 365) / 1000)} kWh`,
   };
 }
@@ -25,7 +29,7 @@ function consumptionRowHTML(it, i) {
     </div>
     ${cell("power", "Potencia (W)", it.power)}
     ${cell("qty", "Cantidad", it.qty, 'inputmode="numeric"')}
-    ${cell("hours", "Horas por día", it.hours, 'max="24"')}
+    ${cell("hours", "Horas por día", it.hours > 24 ? 24 : it.hours, 'max="24"')}
     <div class="del-cell">
       <button type="button" class="icon-btn icon-btn-danger" data-action="calc-consumption-remove" data-i="${i}"
         aria-label="Quitar ${esc(it.name || `equipo ${i + 1}`)}">${icon("trash")}</button>

@@ -1,16 +1,23 @@
-/* AURYX: Catálogo de demo (fallback) + metadatos de categorías/tipos de sistema. Sin dependencias. */
+/* AURYX: Catálogo de demo (solo desarrollo local) + metadatos de categorías/tipos de sistema. Sin dependencias. */
 
 /* =========================================================================
    AURYX: Datos de catálogo
-   Especificaciones técnicas tomadas de hojas de datos de fabricante.
-   Precios son estimaciones de mercado (ARS/USD) a ajustar antes de producción.
+   El catálogo real viene siempre de la API (ver loadCatalog en lib/api.js).
+   Si la API no responde, el sitio muestra "No pudimos cargar el catálogo" con
+   un botón para reintentar: nunca productos ni precios inventados.
    ========================================================================= */
 
-/* Datos de demo: se usan como fallback si la API no responde
-   (o mientras se está desarrollando sin el backend levantado).
-   Una vez que la API responde, App reemplaza PRODUCTS con los datos reales.
-   DEMO_PRODUCTS se conserva aparte: la demo interactiva del inicio lo usa
-   como ejemplo fijo aunque el catálogo real venga de la API. */
+/* Modo demo, SOLO para desarrollo local: la API rechaza el origen localhost (CORS),
+   así que para probar las vistas sin backend se abre http://localhost:PUERTO/?demo=1.
+   En el sitio publicado no se activa nunca (ni con ?demo=1). Los precios de
+   DEMO_PRODUCTS son estimaciones de ejemplo y no se muestran al público. */
+const DEMO_MODE = (function () {
+  try {
+    const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+    return local && new URLSearchParams(location.search).get("demo") === "1";
+  } catch (e) { return false; }
+})();
+
 const DEMO_PRODUCTS = [
   {
     id: "panel-jk-575", category: "panel",
@@ -92,7 +99,8 @@ const DEMO_PRODUCTS = [
     specs: { material: "Aluminio anodizado", paneles: 4, cargaViento: "hasta 150 km/h" },
   },
 ];
-let PRODUCTS = DEMO_PRODUCTS.slice();
+// Catálogo en uso: vacío hasta que responde la API (o DEMO_PRODUCTS en modo demo local).
+let PRODUCTS = [];
 
 const CATEGORY_META = {
   panel: { label: "Paneles solares", icon: "solar-panel" },
@@ -162,4 +170,5 @@ const SPEC_LABELS = {
   capacidad_kwh: "Capacidad (kWh)", vida_util_ciclos: "Vida útil (ciclos)", tension_absorcion_v: "Tensión de absorción (V)",
   tension_flotacion_v: "Tensión de flotación (V)", temp_almacenamiento_c: "Temperatura de almacenamiento (°C)",
   carga_max_kg: "Carga máx. (kg)", compatible_con: "Compatible con",
+  systemTypes: "Tipos de sistema", ip: "Grado IP", mpptCount: "Cantidad de MPPT",
 };

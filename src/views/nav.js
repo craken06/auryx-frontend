@@ -41,14 +41,14 @@ function renderNav(state) {
 
   const preview = cart.slice(0, 4);
   const cartPanel = preview.length === 0
-    ? `<div class="cart-preview-list"><p class="small dim" style="padding:8px 0">Tu carrito está vacío.</p></div>`
+    ? `<div class="cart-preview-list"><p class="small dim cart-preview-empty">Tu carrito está vacío.</p></div>`
     : `<div class="cart-preview-list">
         ${preview.map((it) => `
           <div class="cart-preview-row">
             <span class="name"><span class="mono">${it.qty}×</span> ${esc(it.product.name)}</span>
             ${priceTagHTML(it.product, currency)}
           </div>`).join("")}
-        ${cart.length > preview.length ? `<p class="xsmall dim" style="padding-top:8px">y ${cart.length - preview.length} más</p>` : ""}
+        ${cart.length > preview.length ? `<p class="xsmall dim cart-preview-more">y ${cart.length - preview.length} más</p>` : ""}
       </div>
       <div class="cart-preview-foot"><a href="#cart" class="btn btn-primary btn-block">Ver carrito</a></div>`;
 
@@ -57,10 +57,11 @@ function renderNav(state) {
   const account = customer
     ? `
       <div class="dropdown account-dropdown">
-        <button type="button" class="account-btn" aria-haspopup="true" aria-label="Tu cuenta: ${esc(customer.name || customer.email || "")}">
+        <button type="button" class="account-btn" data-action="toggle-account-menu" aria-expanded="false" aria-haspopup="menu" aria-controls="account-menu"
+          aria-label="Tu cuenta: ${esc(customer.name || customer.email || "")}">
           ${avatarHTML(customer, 30)}<span class="account-name">${esc(customerFirstName(customer))}</span>${icon("caret-down")}
         </button>
-        <div class="dropdown-panel align-right account-panel">
+        <div id="account-menu" class="dropdown-panel align-right account-panel">
           <a href="#mis-pedidos" class="menu-item">${icon("package")}Mis pedidos</a>
           <a href="#mi-cuenta" class="menu-item">${icon("user-circle")}Mis datos</a>
           <div class="menu-sep" role="presentation"></div>
@@ -88,9 +89,9 @@ function renderNav(state) {
         ${icon(theme === "dark" ? "sun" : "moon")}
       </button>
       <div class="dropdown cart-dropdown">
-        <a href="#cart" class="icon-btn" style="position:relative" aria-label="Carrito, ${cartCount} ${cartCount === 1 ? "producto" : "productos"}">
+        <a href="#cart" class="icon-btn cart-link" aria-label="Carrito, ${cartCount} ${cartCount === 1 ? "producto" : "productos"}">
           ${icon("shopping-cart-simple")}
-          ${cartCount > 0 ? `<span class="cart-count" aria-hidden="true">${cartCount}</span>` : ""}
+          ${cartCount > 0 ? `<span class="cart-count" aria-hidden="true">${cartCount > 99 ? "99+" : cartCount}</span>` : ""}
         </a>
         <div class="dropdown-panel align-right">${cartPanel}</div>
       </div>
@@ -104,5 +105,9 @@ function renderNav(state) {
   <nav id="mobile-nav" class="mobile-nav wrap" aria-label="Principal (móvil)" ${mobileNavOpen ? "" : "hidden"}>
     ${NAV_LINKS.map((l) => `<a href="${l.href}"${navCurrent(l.id, view) ? ' aria-current="page"' : ""}>${l.label}</a>`).join("")}
     ${mobileAccount}
+    <div class="mobile-nav-prefs">
+      <button type="button" data-action="currency-toggle" data-fid="m-currency">Moneda: ${currency} (cambiar a ${nextCurrency})</button>
+      <button type="button" data-action="theme-toggle" data-fid="m-theme">Tema ${nextTheme}</button>
+    </div>
   </nav>`;
 }

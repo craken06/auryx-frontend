@@ -63,6 +63,7 @@
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .hidden { display: none !important; }
   .muted { color: var(--text-dim); font-size: 0.8125rem; }
+  tr.leido td { color: var(--text-dim); }
 
   .wordmark {
     display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; width: max-content;
@@ -328,7 +329,6 @@
     <h2>Productos cargados</h2>
     <div>
       <button class="secondary small" onclick="cargarProductos()"><i class="ph ph-arrow-clockwise" aria-hidden="true"></i>Actualizar</button>
-      <button class="danger small" onclick="borrarTodos()"><i class="ph ph-trash" aria-hidden="true"></i>Borrar todos</button>
     </div>
   </div>
   <div class="table-wrap">
@@ -436,8 +436,8 @@
 </main>
 </div>
 
-<script src="../src/config.js?v=20261021"></script>
-<script src="backend.js?v=20261021"></script>
+<script src="../src/config.js?v=20261022"></script>
+<script src="backend.js?v=20261022"></script>
 <script>
 let categorias = [];
 let editingImages = [];
@@ -612,7 +612,7 @@ function cancelarEdicion() {
 function renderImagenes() {
   document.getElementById('images_list').innerHTML = editingImages.length
     ? editingImages.map((i) => `<figure><img src="${esc(i.url)}" alt="${esc(i.alt_text)}"><figcaption>${esc(i.alt_text || '')}
-        <button type="button" class="danger small" onclick="borrarImagen(${i.id})"><i class="ph ph-x" aria-hidden="true"></i>Quitar</button></figcaption></figure>`).join('')
+        <button type="button" class="danger small" onclick="borrarImagen(${Number(i.id)})"><i class="ph ph-x" aria-hidden="true"></i>Quitar</button></figcaption></figure>`).join('')
     : '<span class="muted">Sin imágenes: la tienda muestra el ícono de la categoría.</span>';
 }
 
@@ -643,13 +643,6 @@ async function borrarProducto(id) {
   catch (err) { flash('msg', err.message, false); }
 }
 
-async function borrarTodos() {
-  const frase = prompt('Esto borra TODOS los productos y no se puede deshacer.\nPara confirmar, escribí: BORRAR TODO');
-  if (frase !== 'BORRAR TODO') return;
-  try { await api('/api/products', { method: 'DELETE', body: JSON.stringify({ confirm: frase }) }); flash('msg', 'Todos los productos fueron borrados'); cargarProductos(); }
-  catch (err) { flash('msg', err.message, false); }
-}
-
 const STOCK = { disponible: ['Disponible', 'ok'], a_pedido: ['A pedido', 'warn'], sin_stock: ['Sin stock', 'bad'] };
 const stockTag = (st) => { const [label, cls] = STOCK[st] || [st, '']; return `<span class="tag ${cls}">${esc(label)}</span>`; };
 
@@ -660,8 +653,8 @@ async function cargarProductos() {
       <td>${p.id}</td><td>${esc(p.category_name)}</td><td>${esc(p.brand)}</td><td>${esc(p.name)}</td>
       <td style="white-space:nowrap">${esc(Number(p.price).toLocaleString('es-AR'))} ${esc(p.currency)}</td><td>${stockTag(p.stock_status)}</td>
       <td>${p.active ? '' : '<span class="tag warn">oculto</span>'}${p.images ? `<span class="tag">${p.images} img</span>` : ''}${p.in_configurator ? '<span class="tag ok">configurador</span>' : ''}</td>
-      <td><button class="secondary small" onclick="editarProducto(${p.id})"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Editar</button>
-          <button class="danger small icon-only" onclick="borrarProducto(${p.id})" aria-label="Borrar producto ${p.id}"><i class="ph ph-trash" aria-hidden="true"></i></button></td>
+      <td><button class="secondary small" onclick="editarProducto(${Number(p.id)})"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Editar</button>
+          <button class="danger small icon-only" onclick="borrarProducto(${Number(p.id)})" aria-label="Borrar producto ${Number(p.id)}"><i class="ph ph-trash" aria-hidden="true"></i></button></td>
     </tr>`).join('');
 }
 
@@ -671,7 +664,7 @@ async function cargarFaltantes() {
   document.querySelector('#tabla_faltantes tbody').innerHTML = rows.length ? rows.map((r) => `
     <tr><td>${r.id}</td><td>${esc(r.category)}</td><td>${esc(r.brand)} ${esc(r.name)}</td>
     <td>${tags(r.missingRequired, 'bad')}</td><td>${tags(r.missingEngine, 'warn')}</td>
-    <td><button class="secondary small" onclick="editarProducto(${r.id})">Completar</button></td></tr>`).join('')
+    <td><button class="secondary small" onclick="editarProducto(${Number(r.id)})">Completar</button></td></tr>`).join('')
     : '<tr><td colspan="6">Todos los productos tienen sus datos completos.</td></tr>';
 }
 
@@ -738,7 +731,7 @@ async function cargarPedidos() {
     <td>${o.customer ? `<button type="button" class="link" data-cliente="${esc(o.customer.id)}">${esc(o.customer.name)}</button>` : esc(o.customerName) + ' <span class="tag">sin cuenta</span>'}
       <br><span class="muted">${esc(o.customerEmail)}</span>${o.customerPhone ? `<br><span class="muted" style="white-space:nowrap">${esc(o.customerPhone)}</span>` : ''}${o.notes ? `<br><span class="muted">${esc(o.notes)}</span>` : ''}
       ${o.billingDoc ? `<br><span class="muted">Factura: ${esc(o.billingName || '')} <span style="white-space:nowrap">${esc(o.billingDoc)}</span></span>` : ''}</td>
-    <td>${o.items.map((i) => `${i.quantity}× ${esc(i.productName)}`).join('<br>')}</td>
+    <td>${o.items.map((i) => `${Number(i.quantity)}× ${esc(i.productName)}`).join('<br>')}</td>
     <td>${money(o.totalArs)}</td>
     <td>${o.deliveryMethod ? `<strong>${esc(DELIVERY_LABEL[o.deliveryMethod] || o.deliveryMethod)}</strong>` : '<span class="muted">-</span>'}${o.shippingAddress ? `<br><span class="muted">${esc(direccion(o.shippingAddress))}</span>` : ''}</td>
     <td>${celdaEntrega(o)}</td></tr>`).join('')
@@ -846,7 +839,7 @@ function renderFicha(c, confirmando, error = '') {
     <h3 style="font-size:15px; margin:20px 0 8px">Pedidos</h3>
     <div class="table-wrap"><table><thead><tr><th>Código</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Entrega</th><th>Pago</th><th>Estado de entrega</th></tr></thead><tbody>
     ${orders.length ? orders.map((o) => `<tr><td><strong>${esc(o.code || '-')}</strong></td><td>${fecha(o.createdAt)}</td>
-      <td>${(o.items || []).map((i) => `${i.quantity}× ${esc(i.productName)}`).join('<br>')}</td><td>${money(o.totalArs)}</td>
+      <td>${(o.items || []).map((i) => `${Number(i.quantity)}× ${esc(i.productName)}`).join('<br>')}</td><td>${money(o.totalArs)}</td>
       <td>${o.deliveryMethod ? esc(DELIVERY_LABEL[o.deliveryMethod] || o.deliveryMethod) : '-'}${o.shippingAddress ? `<br><span class="muted">${esc(direccion(o.shippingAddress))}</span>` : ''}</td>
       <td><span class="tag ${ESTADOS[o.status] ?? ''}">${esc(String(o.status).replace('_', ' '))}</span>${o.mpPaymentId ? `<br><span class="muted">MP #${esc(o.mpPaymentId)}</span>` : ''}</td>
       <td>${esc(FULFILLMENT_LABEL[o.fulfillmentStatus] || o.fulfillmentStatus)}${o.trackingNumber ? `<br><span class="muted">${esc(o.trackingNumber)}</span>` : ''}</td></tr>`).join('')
@@ -872,10 +865,10 @@ document.getElementById('cliente_ficha').addEventListener('click', async (e) => 
 async function cargarMensajes() {
   const rows = await api('/api/contact');
   document.querySelector('#tabla_mensajes tbody').innerHTML = rows.length ? rows.map((m) => `
-    <tr style="${m.read ? 'opacity:.6' : ''}"><td>${new Date(m.createdAt).toLocaleString('es-AR')}</td>
+    <tr class="${m.read ? 'leido' : ''}"><td>${new Date(m.createdAt).toLocaleString('es-AR')}</td>
     <td>${esc(m.name)}<br><a href="mailto:${esc(m.email)}">${esc(m.email)}</a> ${esc(m.phone || '')}</td>
     <td style="white-space:pre-wrap">${esc(m.message)}</td>
-    <td>${m.read ? '' : `<button class="secondary small" onclick="marcarLeido(${m.id})"><i class="ph ph-check" aria-hidden="true"></i>Leído</button>`}</td></tr>`).join('')
+    <td>${m.read ? '' : `<button class="secondary small" onclick="marcarLeido(${Number(m.id)})"><i class="ph ph-check" aria-hidden="true"></i>Leído</button>`}</td></tr>`).join('')
     : '<tr><td colspan="4">No hay mensajes.</td></tr>';
 }
 
@@ -890,7 +883,7 @@ async function cargarReglas() {
     <td><span class="tag ${r.resultType === 'bad' ? 'bad' : r.resultType === 'warning' ? 'warn' : ''}">${esc(r.resultType)}</span></td>
     <td><textarea data-rule="${r.id}" data-field="message" style="min-height:48px;font-family:inherit;font-size:12px;min-width:220px">${esc(r.message)}</textarea></td>
     <td><input type="checkbox" data-rule="${r.id}" data-field="active" ${r.active ? 'checked' : ''} style="width:auto"></td>
-    <td><button class="small" onclick="guardarRegla(${r.id})">Guardar</button></td></tr>`).join('')
+    <td><button class="small" onclick="guardarRegla(${Number(r.id)})">Guardar</button></td></tr>`).join('')
     : '<tr><td colspan="7">La tabla está vacía: el motor usa las reglas por defecto. Corré <code>node scripts/migrate.js --apply</code> en compragamer-api para cargarlas y poder editarlas.</td></tr>';
 }
 

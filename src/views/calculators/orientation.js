@@ -23,16 +23,16 @@ function renderOrientationCalculator(state) {
 
   const optimalControls = `
     ${explainerHTML(`Como regla simplificada, el <strong class="mono">ángulo de inclinación óptimo ≈ latitud del lugar</strong> (en valor absoluto) maximiza la energía anual. En el hemisferio sur los paneles miran al <strong>Norte</strong>; en el norte, al <strong>Sur</strong>, porque de ese lado recorre el sol.`)}
-    ${fieldHTML({ id: "orient-lat", label: "Tu ubicación: latitud", unit: "grados", value: o.lat, bind: "orient", field: "lat", hint: "Negativa en el hemisferio sur. Buenos Aires es aproximadamente -34,6.", inputmode: "text" })}
+    ${fieldHTML({ id: "orient-lat", label: "Tu ubicación: latitud", unit: "grados", value: String(o.lat).replace(".", ","), type: "text", inputmode: "decimal", bind: "orient", field: "lat", hint: "Negativa en el hemisferio sur, entre -90 y 90. Buenos Aires es aproximadamente -34,6." })}
     <div><button type="button" class="btn btn-secondary btn-sm" data-action="orient-geolocate" id="orient-geo-btn">${icon("compass")} Usar mi ubicación</button>
       <span id="orient-geo-status" class="xsmall dim" role="status"></span></div>`;
 
   const manualControls = `
     ${explainerHTML(`Movés el panel con el control deslizante para ver cómo cambia la inclinación. El ángulo se mide desde la horizontal: 0° es el panel acostado y 90° es vertical.`)}
     <div class="field">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div class="field-inline">
         <label class="field-label" for="orient-angle-slider">Ángulo del panel</label>
-        <input id="orient-angle-number" class="input num-input" style="width:84px;text-align:center" type="number" inputmode="numeric"
+        <input id="orient-angle-number" class="input num-input angle-input" type="number" inputmode="numeric"
           min="0" max="90" value="${angle}" name="angle-number" autocomplete="off" aria-label="Ángulo del panel, en grados" data-bind="orient-angle" />
       </div>
       <input id="orient-angle-slider" class="slider" type="range" min="0" max="90" value="${angle}" name="angle" data-bind="orient-angle" />

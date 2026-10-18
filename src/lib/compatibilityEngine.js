@@ -8,6 +8,15 @@
    Aplica la misma corrección de Voc por temperatura mínima que el backend.
    ========================================================================= */
 
+/* Número con unidad para los mensajes, igual que el resto del sitio: Intl es-AR (coma
+   decimal, punto de miles) y espacio de no separación antes de la unidad ("52,3 V").
+   Es un carácter, no "&nbsp;": los mensajes se escapan con esc() al mostrarse. */
+const COMPAT_NF = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+function compatQty(n, unit) {
+  const v = Number(n);
+  return `${Number.isFinite(v) ? COMPAT_NF.format(v) : "s/d"} ${unit}`;
+}
+
 function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage, tMinC) {
   if (!panel || !qty || !converter) return null;
   const isMicro = converter.specs.es_microinversor === true;
@@ -34,12 +43,17 @@ function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage, 
   const messages = [];
   let status = "ok";
 
+  // Panel con datos en cero o sin cargar (p. ej. un producto de prueba): no se puede decir "Compatible".
+  const positive = (v) => Number.isFinite(Number(v)) && Number(v) > 0;
+  if (![panel.specs.voc, panel.specs.isc, panel.specs.pmax].every(positive)) {
+    return { status: "warning", messages: ["Faltan datos del panel (potencia, Voc o Isc): no se pudo verificar la compatibilidad. Consultanos antes de comprar."], totals: { totalVoc, totalIsc, totalPower, seriesCount, stringCount } };
+  }
   if (maxVoltage == null) {
     return { status: "warning", messages: ["Faltan datos del equipo (tensión FV máxima): no se pudo verificar la compatibilidad. Consultanos."], totals: { totalVoc, totalIsc, totalPower, seriesCount, stringCount } };
   }
   if (totalVoc > maxVoltage) {
     status = "bad";
-    messages.push(`La tensión ${isMicro ? "de cada panel" : "del string"} en frío (${totalVoc}V a ${tMin}°C) supera la máxima admitida (${maxVoltage}V). Riesgo de daño al equipo.`);
+    messages.push(`La tensión ${isMicro ? "de cada panel" : "del string"} en frío (${compatQty(totalVoc, "V")} a ${compatQty(tMin, "°C")}) supera la máxima admitida (${compatQty(maxVoltage, "V")}). Riesgo de daño al equipo.`);
   }
   // Con dato de cortocircuito del MPPT: Isc del arreglo vs. Isc máx. (límite duro) e
   // Imp vs. corriente de operación (si la supera, el inversor recorta: aviso, no bloqueo).
@@ -48,26 +62,26 @@ function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage, 
   if (maxShortCircuit != null) {
     if (totalIsc > maxShortCircuit) {
       status = "bad";
-      messages.push(`Corriente de cortocircuito del arreglo (${totalIsc}A) supera la máxima admitida por MPPT (${maxShortCircuit}A).`);
+      messages.push(`Corriente de cortocircuito del arreglo (${compatQty(totalIsc, "A")}) supera la máxima admitida por MPPT (${compatQty(maxShortCircuit, "A")}).`);
     } else if (totalImp != null && totalImp > maxCurrent) {
       if (status !== "bad") status = "warning";
-      messages.push(`La corriente de trabajo (${totalImp}A) supera la corriente máxima de entrada por MPPT (${maxCurrent}A): el inversor va a recortar algo de potencia en horas pico.`);
+      messages.push(`La corriente de trabajo (${compatQty(totalImp, "A")}) supera la corriente máxima de entrada por MPPT (${compatQty(maxCurrent, "A")}): el inversor va a recortar algo de potencia en horas pico.`);
     }
   } else if (maxCurrent != null && totalIsc > maxCurrent) {
     status = "bad";
-    messages.push(`Corriente total (${totalIsc}A) supera la corriente máxima de entrada (${maxCurrent}A)${isRegulator ? "" : " por MPPT"}.`);
+    messages.push(`Corriente total (${compatQty(totalIsc, "A")}) supera la corriente máxima de entrada (${compatQty(maxCurrent, "A")})${isRegulator ? "" : " por MPPT"}.`);
   }
   if (maxPower != null && checkedPower > maxPower) {
     if (isMicro) { if (status !== "bad") status = "warning"; } else status = "bad";
     messages.push(isMicro
-      ? `El panel (${checkedPower}W) supera la potencia recomendada para este microinversor (${maxPower}W): habrá recorte.`
-      : `Potencia total (${totalPower}W) supera la potencia FV máxima admitida (${maxPower}W).`);
+      ? `El panel (${compatQty(checkedPower, "W")}) supera la potencia recomendada para este microinversor (${compatQty(maxPower, "W")}): habrá recorte.`
+      : `Potencia total (${compatQty(totalPower, "W")}) supera la potencia FV máxima admitida (${compatQty(maxPower, "W")}).`);
   } else if (nominalPower && totalPower > nominalPower * 1.3 && status !== "bad") {
     status = "warning";
-    messages.push(`El arreglo (${totalPower}W) está sobredimensionado respecto a la potencia nominal (${nominalPower}W). Es una práctica común, pero conviene revisarlo.`);
+    messages.push(`El arreglo (${compatQty(totalPower, "W")}) está sobredimensionado respecto a la potencia nominal (${compatQty(nominalPower, "W")}). Es una práctica común, pero conviene revisarlo.`);
   }
   if (status === "ok") {
-    messages.push(`Compatible: ${totalVoc}V en frío / ${totalIsc}A / ${totalPower}W dentro de los rangos admitidos.`);
+    messages.push(`Compatible: ${compatQty(totalVoc, "V")} en frío / ${compatQty(totalIsc, "A")} / ${compatQty(totalPower, "W")} dentro de los rangos admitidos.`);
   }
 
   return { status, messages, totals: { totalVoc, totalIsc, totalPower, seriesCount, stringCount, converterQty: isMicro ? qty : 1 } };
@@ -87,13 +101,13 @@ function evaluateBatteryToConverter(battery, qty, converter, systemVoltage) {
   if (isRegulator) {
     if (Math.round(battery.specs.nominalVoltage) !== systemVoltage) {
       status = "bad";
-      messages.push(`La tensión nominal de la batería (${battery.specs.nominalVoltage}V) no coincide con la tensión de sistema elegida (${systemVoltage}V).`);
+      messages.push(`La tensión nominal de la batería (${compatQty(battery.specs.nominalVoltage, "V")}) no coincide con la tensión de sistema elegida (${compatQty(systemVoltage, "V")}).`);
     }
   } else {
     const v = battery.specs.nominalVoltage;
     if (v < converter.specs.batteryVoltageMin || v > converter.specs.batteryVoltageMax) {
       status = "bad";
-      messages.push(`La tensión nominal de la batería (${v}V) está fuera del rango admitido por el inversor (${converter.specs.batteryVoltageMin}-${converter.specs.batteryVoltageMax}V).`);
+      messages.push(`La tensión nominal de la batería (${compatQty(v, "V")}) está fuera del rango admitido por el inversor (${COMPAT_NF.format(converter.specs.batteryVoltageMin)} a ${compatQty(converter.specs.batteryVoltageMax, "V")}).`);
     }
   }
 
@@ -101,7 +115,7 @@ function evaluateBatteryToConverter(battery, qty, converter, systemVoltage) {
   const requiredPower = isRegulator ? null : converter.specs.ratedPowerAC;
   if (requiredPower && totalDischarge < requiredPower && status !== "bad") {
     status = "warning";
-    messages.push(`La potencia de descarga continua estimada del banco de baterías (~${Math.round(totalDischarge)}W) podría quedar justa frente a la potencia nominal del inversor (${requiredPower}W). Se recomienda sumar otra unidad.`);
+    messages.push(`La potencia de descarga continua estimada del banco de baterías (~${compatQty(Math.round(totalDischarge), "W")}) podría quedar justa frente a la potencia nominal del inversor (${compatQty(requiredPower, "W")}). Se recomienda sumar otra unidad.`);
   }
   if (status === "ok") messages.push("Compatible con la configuración elegida.");
 

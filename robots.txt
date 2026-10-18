@@ -1,0 +1,8 @@
+# AURYX. Ojo: en GitHub Pages con la dirección craken06.github.io/auryx-frontend/ los buscadores
+# leen el robots.txt de la raíz del dominio (craken06.github.io/robots.txt), no este. Este archivo
+# empieza a valer cuando el sitio tenga dominio propio (entonces, actualizar también la URL del sitemap).
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://craken06.github.io/auryx-frontend/sitemap.xml

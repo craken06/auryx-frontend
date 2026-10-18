@@ -75,7 +75,7 @@ function cfgEvalBattery(cfg, battery, converter) {
   return evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage);
 }
 
-/* Cables y protecciones de continua: sólo con datos del servidor (null = sin verificación). */
+/* Cables y protecciones de continua: solo con datos del servidor (null = sin verificación). */
 function cfgEvalExtra(cfg, product) {
   const server = cfgServerCompat(cfg);
   const id = dbIdOf(product);
@@ -84,21 +84,29 @@ function cfgEvalExtra(cfg, product) {
 
 const isMicroinverter = (p) => !!(p && p.specs && p.specs.es_microinversor === true);
 
-function configuratorSteps(cfg) {
+/* Categorías del paso de accesorios: si no hay ninguno cargado, el paso no se muestra. */
+const CFG_EXTRA_CATEGORIES = ["proteccion", "cable", "accesorio", "soporte"];
+const cfgExtraProducts = () => PRODUCTS.filter((p) => CFG_EXTRA_CATEGORIES.includes(p.category));
+
+/* Pasos como { key, label } según el tipo de sistema y lo que hay en el catálogo. */
+function cfgStepList(cfg) {
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
-  if (!systemType) return ["Tipo de sistema", "Paneles", "Inversor", "Accesorios", "Resumen"];
-  return systemType.needsBattery
-    ? ["Tipo de sistema", "Paneles", systemType.sourceCategory === "regulador" ? "Regulador" : "Inversor", "Batería", "Accesorios", "Resumen"]
-    : ["Tipo de sistema", "Paneles", "Inversor", "Accesorios", "Resumen"];
+  const list = [{ key: "type", label: "Tipo de sistema" }, { key: "panels", label: "Paneles" }];
+  list.push({ key: "converter", label: systemType && systemType.sourceCategory === "regulador" ? "Regulador" : "Inversor" });
+  if (systemType && systemType.needsBattery) list.push({ key: "battery", label: "Batería" });
+  if (cfgExtraProducts().length) list.push({ key: "extras", label: "Accesorios" });
+  list.push({ key: "summary", label: "Resumen" });
+  return list;
+}
+
+function configuratorSteps(cfg) {
+  return cfgStepList(cfg).map((s) => s.label);
 }
 
 /* Índice del paso por nombre lógico (evita comparar números mágicos). */
 function cfgStepKey(cfg) {
-  const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
-  const keys = systemType && systemType.needsBattery
-    ? ["type", "panels", "converter", "battery", "extras", "summary"]
-    : ["type", "panels", "converter", "extras", "summary"];
-  return keys[cfg.step];
+  const step = cfgStepList(cfg)[cfg.step];
+  return step ? step.key : "summary";
 }
 
 function cfgTotals(cfg) {
@@ -153,9 +161,9 @@ function worstStatus(evals) {
 
 function verdictHTML(ev, title) {
   if (!ev) return "";
-  const tone = STATUS_META[ev.status].tone;
+  const tone = (STATUS_META[ev.status] || STATUS_META.warning).tone;
   return `<div class="verdict tone-${tone}">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong class="small">${title}</strong>${statusBadgeHTML(ev.status)}</div>
+    <div class="verdict-head"><strong class="small">${title}</strong>${statusBadgeHTML(ev.status)}</div>
     <ul>${ev.messages.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
   </div>`;
 }
@@ -171,8 +179,11 @@ function optionButtonHTML({ id, action, selected, disabled, name, meta, side, ms
   </button>`;
 }
 
-function emptyStepHTML(text) {
-  return `<div class="empty">${icon("package")}<h3>Sin opciones disponibles</h3><p>${text}</p></div>`;
+/* Paso sin productos en el catálogo: en vez de un callejón sin salida, se ofrece armarlo por WhatsApp. */
+function emptyStepHTML(text, waText) {
+  const msg = waText || "Hola, quiero armar un sistema solar y no encontré los equipos en el configurador.";
+  return `<div class="empty">${icon("package")}<h3>Todavía no tenemos opciones para este paso</h3><p>${text} Armamos este sistema a medida: escribinos y te pasamos una propuesta.</p>
+    <a href="${whatsappLink(msg)}" class="btn btn-primary" target="_blank" rel="noopener" data-context="configurador">${icon("whatsapp-logo", "", "fill")} Escribinos por WhatsApp</a></div>`;
 }
 
 /* Las dos formas de diseñar: el dimensionador (automático o libre, con catálogo de ejemplo)
@@ -194,11 +205,11 @@ function renderSizerPage(state) {
   <div class="wrap page">
     <div class="page-head">
       <h1 class="page-title">Diseñá tu sistema</h1>
-      <p class="page-lead">Contanos tu consumo y qué buscás. Te sugerimos paneles, inversor y batería, con cantidades y un precio de referencia.</p>
+      <p class="page-lead">Contanos tu consumo y qué buscás. Te sugerimos paneles, inversor y batería, con cantidades y un precio orientativo.</p>
     </div>
     ${cfgToolSwitchHTML("sizer")}
     <div class="sizer-shell" id="sizer-root">${renderSizer(state.sizer, state.currency)}</div>
-    <p class="xsmall dim sizer-foot">Catálogo, especificaciones y precios de ejemplo. El proyecto final lo confirmamos con vos antes de la compra.</p>
+    <p class="xsmall dim sizer-foot">El dimensionador usa equipos de referencia para estimar el sistema. Para comprar con los equipos de la tienda, usá el <a href="#configurator/paso-a-paso">paso a paso</a> o pedinos la cotización.</p>
   </div>`;
 }
 
@@ -219,7 +230,7 @@ function renderConfigurator(state) {
 
   if (key === "type") {
     title = "¿Qué tipo de sistema querés armar?";
-    lead = "Define qué equipo convierte la energía y si vas a necesitar baterías.";
+    lead = "Según el tipo, cambia el equipo que convierte la energía y si vas a necesitar baterías.";
     body = `<div class="option-list cols-3">
       ${SYSTEM_TYPES.map((s) => `
         <button type="button" class="option" data-action="cfg-type" data-id="${s.id}" data-fid="cfg-type-${s.id}" aria-pressed="${cfg.systemTypeId === s.id}">
@@ -288,7 +299,12 @@ function renderConfigurator(state) {
     const isReg = systemType.sourceCategory === "regulador";
     title = isReg ? "Elegí el regulador de carga" : "Elegí el inversor";
     lead = "Las opciones que no soportan tu arreglo de paneles aparecen deshabilitadas, con el motivo.";
-    const converters = cfgConverterOptions(systemType);
+    // Con batería, primero los equipos que tienen alguna batería compatible en el catálogo
+    const batteries = systemType.needsBattery ? PRODUCTS.filter((p) => p.category === "bateria") : [];
+    const hasBattery = (c) => batteries.some((b) => { const ev = cfgEvalBattery(cfg, b, c); return !ev || ev.status !== "bad"; });
+    const converters = batteries.length
+      ? cfgConverterOptions(systemType).map((c, i) => ({ c, i, ok: hasBattery(c) })).sort((a, b) => (b.ok - a.ok) || (a.i - b.i)).map((x) => x.c)
+      : cfgConverterOptions(systemType);
     body = converters.length ? `<div class="option-list">${converters.map((c) => {
       const ev = cfgEvalConverter(cfg, panel, c);
       const bad = ev && ev.status === "bad";
@@ -297,11 +313,12 @@ function renderConfigurator(state) {
       return optionButtonHTML({
         id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad,
         name: `${esc(c.brand)} ${esc(c.name)}`,
-        meta: desc ? `<span style="font-family:var(--font-sans)">${esc(desc)}</span>` : "",
+        meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
         msgs: ev && (bad || cfg.converterId === c.id) ? ev.messages : null,
       });
-    }).join("")}</div>` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`);
+    }).join("")}</div>` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`,
+      `Hola, quiero armar un sistema ${systemType.name}. ¿Me ayudan a elegir ${isReg ? "el regulador" : "el inversor"}?`);
   } else if (key === "battery") {
     title = "Elegí la batería";
     lead = "Verificamos que la tensión de la batería sea compatible y que la descarga alcance para el equipo.";
@@ -312,7 +329,7 @@ function renderConfigurator(state) {
       return optionButtonHTML({
         id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad,
         name: `${esc(b.brand)} ${esc(b.name)}`,
-        meta: `${specValueText("nominalVoltage", b.specs.nominalVoltage)} / ${fmtNum(b.specs.capacityWh / 1000, 2)} kWh`,
+        meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
         side: `${priceTagHTML(b, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
         msgs: ev && (bad || cfg.batteryId === b.id) ? ev.messages : null,
       });
@@ -328,19 +345,21 @@ function renderConfigurator(state) {
             <button type="button" class="icon-btn" data-action="cfg-battery-step" data-delta="1" data-fid="battery-plus" aria-label="Sumar una batería">${icon("plus")}</button>
           </div>
         </div>
-        <p class="total">Capacidad total: <strong class="mono" id="battery-total-kwh">${fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2)}</strong>&nbsp;kWh</p>
+        <p class="total">Capacidad total: ${Number(battery.specs.capacityWh) > 0
+          ? `<strong class="mono" id="battery-total-kwh">${fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2)}</strong>&nbsp;kWh`
+          : `<strong id="battery-total-kwh">sin dato del fabricante</strong>`}</p>
       </div>` : "";
     body = list + fields;
   } else if (key === "extras") {
     title = "Protecciones, cables y accesorios";
     lead = "Opcional. Los cables y protecciones de corriente continua se verifican contra tu string: tensión en frío y 1,25 × la corriente de cortocircuito.";
-    const free = PRODUCTS.filter((p) => ["proteccion", "cable", "accesorio", "soporte"].includes(p.category));
-    body = free.length ? `<div class="panel panel-pad" style="padding-block:6px">${free.map((p) => {
+    const free = cfgExtraProducts();
+    body = free.length ? `<div class="panel panel-pad extras-panel">${free.map((p) => {
       const q = (cfg.extras && cfg.extras[p.id]) || 0;
       const ev = cfgEvalExtra(cfg, p);
       return `
       <div class="extra-row">
-        <div style="min-width:0"><p class="name">${esc(p.name)}</p>${priceTagHTML(p, cur)}${ev ? ` ${statusBadgeHTML(ev.status)}` : ""}
+        <div class="extra-info"><p class="name">${esc(p.name)}</p>${priceTagHTML(p, cur)}${ev ? ` ${statusBadgeHTML(ev.status)}` : ""}
           ${ev && ev.status !== "ok" ? `<p class="xsmall muted">${ev.messages.map(esc).join(" ")}</p>` : ""}</div>
         <div class="stepper" role="group" aria-label="Cantidad de ${esc(p.name)}">
           <button type="button" class="icon-btn" data-action="cfg-extra-step" data-id="${esc(p.id)}" data-delta="-1" data-fid="x-${esc(p.id)}-m" aria-label="Restar uno" ${q <= 0 ? "disabled" : ""}>${icon("minus")}</button>
@@ -352,12 +371,12 @@ function renderConfigurator(state) {
   } else if (key === "summary") {
     title = "Revisá tu sistema";
     lead = "Si todo está bien, agregalo al carrito para pagarlo o pedir la cotización.";
-    body = `<div style="display:grid;gap:12px">
+    body = `<div class="cfg-review">
       ${verdictHTML(panelEval, "Paneles e inversor")}
       ${verdictHTML(batteryEval, "Batería")}
       ${techNoteHTML()}
       <div class="panel panel-pad">
-        <ul class="summary-lines" style="border-top:0;padding-top:0">
+        <ul class="summary-lines summary-lines-flush">
           ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
         </ul>
         <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur, "lg")}</div>
@@ -373,18 +392,18 @@ function renderConfigurator(state) {
       <h2 class="summary-title">Tu sistema</h2>
       ${systemType ? `
         <dl class="summary-stats">
-          <div><dt>Tipo</dt><dd style="font-family:var(--font-sans)">${systemType.name}</dd></div>
+          <div><dt>Tipo</dt><dd class="dd-text">${systemType.name}</dd></div>
           <div><dt>Potencia FV</dt><dd>${fmtNum(totalPower)}&nbsp;W</dd></div>
-          ${systemType.needsBattery ? `<div><dt>Almacenamiento</dt><dd>${battery ? fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2) : "0"}&nbsp;kWh</dd></div>` : ""}
+          ${systemType.needsBattery ? `<div><dt>Almacenamiento</dt><dd>${battery && Number(battery.specs.capacityWh) > 0 ? `${fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2)}&nbsp;kWh` : battery ? "s/d" : "0&nbsp;kWh"}</dd></div>` : ""}
           ${panelEval ? `<div><dt>Compatibilidad</dt><dd>${statusBadgeHTML(worstStatus([panelEval, batteryEval]))}</dd></div>` : ""}
         </dl>` : ""}
       ${lines.length ? `
         <ul class="summary-lines">
           ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span></li>`).join("")}
         </ul>
-        <div class="summary-total"><span class="muted">Total <span class="xsmall dim">(IVA incl.)</span></span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur)}</div>
+        <div class="summary-total"><span class="muted">Total <span class="xsmall dim">(IVA incluido)</span></span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur)}</div>
       ` :`<p class="summary-empty">Todavía no elegiste componentes. A medida que avances, el resumen se completa acá.</p>`}
-      ${isLast ? `<button type="button" class="btn btn-primary btn-lg btn-block" style="margin-top:20px" data-action="cfg-add-system">${icon("shopping-cart-simple")} Agregar al carrito</button>` : ""}
+      ${isLast ? `<button type="button" class="btn btn-primary btn-lg btn-block cfg-add" data-action="cfg-add-system">${icon("shopping-cart-simple")} Agregar al carrito</button>` : ""}
     </aside>`;
 
   return `
