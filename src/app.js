@@ -805,7 +805,10 @@ const App = {
   /* Solo el resultado: mientras se tipea en un número, el formulario no se toca. */
   renderSizerOutput() {
     const out = document.getElementById("sizer-out");
-    if (out) out.innerHTML = sizerOutputHTML(this.state.sizer, this.state.currency);
+    const tech = document.getElementById("sizer-tech");
+    const parts = sizerOutputParts(this.state.sizer, this.state.currency);
+    if (out) out.innerHTML = parts.buy;
+    if (tech) tech.innerHTML = parts.tech;
     this.announceSizer();
   },
   /* El resultado se reemplaza entero en cada tecla: en vez de anunciarlo todo, un resumen breve
@@ -815,9 +818,10 @@ const App = {
     this.sizerLiveTimer = setTimeout(() => {
       const live = document.getElementById("sr-live");
       const out = document.getElementById("sizer-out");
-      if (!live || !out) return;
-      const part = (sel) => (out.querySelector(sel)?.textContent || "").replace(/\s+/g, " ").trim();
-      const text = [part(".sz-out-head"), part(".sz-figure").replace(/(\d)kWp/, "$1 kWp")].filter(Boolean).join(": ") || part("p");
+      const tech = document.getElementById("sizer-tech");
+      if (!live || !out || !tech) return;
+      const part = (el, sel) => (el.querySelector(sel)?.textContent || "").replace(/\s+/g, " ").trim();
+      const text = [part(tech, ".sz-out-head"), part(tech, ".sz-figure").replace(/(\d)kWp/, "$1 kWp"), part(out, ".sz-total")].filter(Boolean).join(": ") || part(out, "p");
       if (text && live.textContent !== text) live.textContent = text;
     }, 900);
   },

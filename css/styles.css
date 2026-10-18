@@ -532,11 +532,15 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .sz-tab[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .sz-tab:active, .sz-seg-btn:active { transform: scale(0.98); }
 
-.sz-grid { display: grid; gap: 24px; }
+.sz-grid { display: grid; gap: 24px; grid-template-areas: "inputs" "buy" "tech"; }
+/* a la derecha, materiales y retorno; el resumen técnico, debajo de los datos */
 @media (min-width: 960px) {
-  .sz-grid { grid-template-columns: 1.15fr 1fr; gap: 32px; align-items: start; }
+  .sz-grid { grid-template-columns: 1.15fr 1fr; grid-template-rows: auto 1fr; grid-template-areas: "inputs buy" "tech buy"; gap: 32px; align-items: start; }
 }
-.sz-inputs { display: grid; gap: 20px; align-content: start; min-width: 0; }
+.sz-inputs { grid-area: inputs; display: grid; gap: 20px; align-content: start; min-width: 0; }
+.sz-buy { grid-area: buy; }
+.sz-tech { grid-area: tech; }
+.sz-tech:empty { display: none; }
 .sz-row { display: grid; gap: 16px; }
 @media (min-width: 560px) {
   .sz-row { grid-template-columns: 1fr 1fr; align-items: start; }
@@ -620,6 +624,7 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .sz-bom h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 600; color: var(--text-dim); margin-bottom: 10px; }
 .sz-ref-tag { padding: 2px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); font-size: 0.75rem; font-weight: 600; }
 .sz-bom .sz-note { margin-top: 12px; }
+.sz-buy > .sz-bom:first-child { padding-top: 0; border-top: 0; }
 .sz-bom ul { display: grid; gap: 12px; }
 .sz-bom li { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: baseline; }
 .sz-qty, .sz-price { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.9375rem; }

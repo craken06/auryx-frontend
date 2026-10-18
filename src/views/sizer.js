@@ -979,11 +979,13 @@ function sizerResult(kind, st) {
   return local;
 }
 
-function sizerOutputHTML(sz, currency) {
+/* El resultado va en dos paneles: a la derecha, lo que se compra (materiales, precio y retorno),
+   que es lo primero que se ve; abajo a la izquierda, debajo de los datos, el resumen técnico. */
+function sizerOutputParts(sz, currency) {
   const kind = sz.mode;
   const r = sizerResult(kind, sz[kind]);
   if (r.empty) {
-    return `<div class="sz-empty">${icon("solar-panel")}<p>${r.empty}</p></div>`;
+    return { buy: `<div class="sz-empty">${icon("solar-panel")}<p>${r.empty}</p></div>`, tech: "" };
   }
   const quick = kind === "quick";
   const title = quick ? "Sistema sugerido" : "Resultado";
@@ -1001,7 +1003,7 @@ function sizerOutputHTML(sz, currency) {
   stats.push({ label: c.nInv > 1 ? "Inversores" : "Inversor", value: `${c.nInv > 1 ? `${c.nInv} × ` : ""}${fmtNum(c.inv.kw)} kW` });
   stats.push({ label: "Strings", value: `${c.plan.s * c.nInv} ${sizerLensText(c.plan)}` });
 
-  return `
+  const tech = `
     <div class="sz-out-head">
       <h2>${title}</h2>
       ${badge}
@@ -1015,17 +1017,20 @@ function sizerOutputHTML(sz, currency) {
     ${!quick || !r.ok ? `<div class="sz-verify">
       <h3>Compatibilidad entre componentes</h3>
       ${sizerChecksHTML(r.checks)}
-    </div>` : ""}
+    </div>` : ""}`;
+  const buy = `
     ${sizerBomHTML(r.lines, r.total, currency, !quick)}
     ${USD_ARS_RATE ? sizerRoiHTML(sizerRoi(r, sizerNum(sz[kind].cons), sz[kind].goal), sz[kind].goal, currency) : ""}
     ${notes.length ? sizerNotesHTML(notes) : ""}
     <div class="sz-actions">
       <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener" data-context="dimensionador">${icon("whatsapp-logo", "", "fill")} Pedir cotización</a>
     </div>`;
+  return { buy, tech };
 }
 
 function renderSizer(sz, currency) {
   const inputs = sz.mode === "quick" ? sizerQuickInputsHTML(sz.quick) : sizerCustomInputsHTML(sz.custom, currency);
+  const out = sizerOutputParts(sz, currency);
   const mode = (id, label, ic) => `<button type="button" class="sz-tab" data-action="sizer-mode" data-mode="${id}" data-fid="sz-mode-${id}" aria-pressed="${sz.mode === id}">${icon(ic)}${label}</button>`;
   return `
     <div class="sz-bar">
@@ -1036,6 +1041,7 @@ function renderSizer(sz, currency) {
     </div>
     <div class="sz-grid">
       <form class="sz-inputs" data-form="sizer" novalidate>${inputs}</form>
-      <div class="sz-out" id="sizer-out">${sizerOutputHTML(sz, currency)}</div>
+      <div class="sz-out sz-buy" id="sizer-out">${out.buy}</div>
+      <div class="sz-out sz-tech" id="sizer-tech">${out.tech}</div>
     </div>`;
 }
