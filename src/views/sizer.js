@@ -475,6 +475,9 @@ function sizerPanelGuessNote(pan, withArea) {
   return guess.length ? { tone: "info", text: `Del ${sizerItemName(pan)} se estimó: ${guess.join(" y ")}.` } : null;
 }
 
+/* Reconoce el aviso de datos estimados del panel (también cuando el resultado viene de la API). */
+const SIZER_GUESS_NOTE = /se estimó:/;
+
 /* Si el string más chico que arranca el MPPT ya genera mucho más que el consumo, se aclara. */
 function sizerMinimumNote(r) {
   if (r.coverage > 150 && r.config.nInv === 1 && r.config.plan.s === 1) {
@@ -804,7 +807,8 @@ function sizerCellsHTML(count, cls) {
 }
 
 /* Conexionado: strings por MPPT y armado del banco. */
-function sizerConfigHTML(c) {
+/* tech: muestra las tensiones del arreglo (el modo rápido las manda solo en el WhatsApp). */
+function sizerConfigHTML(c, tech = true) {
   const { plan, v, env, inv, nInv, bank, bat } = c;
   const mppts = plan.alloc.map((k, i) => `
     <li>
@@ -830,22 +834,22 @@ function sizerConfigHTML(c) {
       ${nInv > 1 ? `<p class="sz-config-total"><strong>Total: ${plan.s * nInv} strings y ${plan.n * nInv} paneles, repartidos en ${nInv} inversores iguales.</strong> Cada inversor lleva:</p>` : ""}
       <p><strong>${sizerPlural(plan.s, "string", "strings")} ${sizerLensText(plan)} paneles en serie</strong> (${plan.n} paneles${nInv > 1 ? " por inversor" : ""}). ${sizerWiringText(plan)}</p>
       <ul class="sz-mppts">${mppts}</ul>
-      <dl class="sz-elec">
+      ${tech ? `<dl class="sz-elec">
         <div><dt>Voc a ${fmtNum(env.tmin)} °C</dt><dd>${fmtNum(v.vocCold)} V</dd></div>
         <div><dt>Vmp a ${fmtNum(env.tcell)} °C</dt><dd>${fmtNum(v.vmpHot)} V</dd></div>
         <div><dt>Ventana MPPT</dt><dd>${inv.vmin} a ${inv.mpptMax} V</dd></div>
-      </dl>
+      </dl>` : ""}
     </div>
     ${bankHTML}
   </div>`;
 }
 
 /* Los equipos del catálogo se distinguen de los de referencia (la estructura, y lo que el catálogo no cubra). */
-function sizerBomHTML(lines, total, currency) {
-  const refs = lines.filter((l) => !l.item.real).length;
-  const note = refs
-    ? "Los marcados como referencia no están en la tienda: te cotizamos el equivalente disponible. El resto sale del catálogo, con precios sujetos a stock."
-    : "Todo sale del catálogo de la tienda, con precios sujetos a stock.";
+const sizerBomNote = (lines) => (lines.some((l) => !l.item.real)
+  ? "Los marcados como referencia no están en la tienda: te cotizamos el equivalente disponible. El resto sale del catálogo, con precios sujetos a stock."
+  : "Todo sale del catálogo de la tienda, con precios sujetos a stock.");
+
+function sizerBomHTML(lines, total, currency, withNote = true) {
   return `<div class="sz-bom">
     <h3>Lista de materiales</h3>
     <ul>${lines.map((l) => `
@@ -856,7 +860,7 @@ function sizerBomHTML(lines, total, currency) {
       </li>`).join("")}
     </ul>
     <div class="sz-total"><span>Precio orientativo</span><strong>${sizerMoney(total, currency)}</strong></div>
-    <p class="sz-note is-info">${icon("info")}<span>${note}</span></p>
+    ${withNote ? `<p class="sz-note is-info">${icon("info")}<span>${sizerBomNote(lines)}</span></p>` : ""}
   </div>`;
 }
 
@@ -911,6 +915,23 @@ function sizerInputsSummary(kind, st) {
   return rows.map(([k, v]) => `- ${k}: ${v}`).join("\n");
 }
 
+/* Detalle técnico para el WhatsApp: tensiones, compatibilidad y avisos (en pantalla el modo rápido no los muestra). */
+function sizerTechSummary(r) {
+  const c = r.config;
+  const plain = (t) => String(t).replace(/<[^>]+>/g, "");
+  const mark = { ok: "✓", warn: "⚠", bad: "✗", info: "•" };
+  const elec = [
+    `- Relación DC/AC: ${fmtNum(r.ratio, 2)}`,
+    `- Voc a ${fmtNum(c.env.tmin)} °C: ${fmtNum(c.v.vocCold)} V (máx. DC del inversor: ${c.inv.vmax} V)`,
+    `- Vmp a ${fmtNum(c.env.tcell)} °C: ${fmtNum(c.v.vmpHot)} V`,
+    `- Ventana MPPT: ${c.inv.vmin} a ${c.inv.mpptMax} V`,
+    ...(c.bank ? [`- Banco: bus de ${fmtNum(c.bank.vbus, 1)} V, ${fmtNum(c.bank.kwh, 1)} kWh, ${fmtNum(c.bank.imax)} A máx.`] : []),
+  ];
+  const checks = r.checks.map((x) => `${mark[x.tone] || "-"} ${plain(x.text)}`);
+  const notes = [...(r.notes || []).map((n) => plain(n.text)), sizerBomNote(r.lines)].map((t) => `- ${t}`);
+  return `Detalle técnico:\n${elec.join("\n")}\n\nCompatibilidad entre componentes:\n${checks.join("\n")}\n\nAvisos:\n${notes.join("\n")}`;
+}
+
 /* Mensaje de WhatsApp con lo que cargó el usuario y el sistema armado, para pedir la cotización real. */
 function sizerQuoteMessage(kind, inputs, r, currency) {
   const label = SIZER_MODE_LABEL[kind];
@@ -919,7 +940,7 @@ function sizerQuoteMessage(kind, inputs, r, currency) {
   const perMppt = c.plan.alloc.map((k, i) => (k ? `MPPT ${i + 1}: ${sizerPlural(k, "string", "strings")} de ${c.plan.lens[i]}` : "")).filter(Boolean).join("; ");
   const wiring = `Arreglo: ${c.nInv > 1 ? `${c.nInv} inversores, cada uno con ` : ""}${sizerPlural(c.plan.s, "string", "strings")} ${sizerLensText(c.plan)} paneles en serie (${perMppt})`;
   const bank = c.bank ? `\nBanco: ${sizerBankText(c.bank, c.bat)}` : "";
-  return `Hola, armé un sistema con el dimensionador de Auryx (${label}).\n\nMis datos:\n${sizerInputsSummary(kind, inputs)}\n\nSistema sugerido:\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nPrecio orientativo: ${sizerMoney(r.total, currency)}\n¿Me pasan una cotización?`;
+  return `Hola, armé un sistema con el dimensionador de Auryx (${label}).\n\nMis datos:\n${sizerInputsSummary(kind, inputs)}\n\nSistema sugerido:\n${list}\n${wiring}${bank}\nPotencia FV: ${fmtNum(r.kwp, 2)} kWp${r.storage ? `\nAlmacenamiento: ${fmtNum(r.storage, 1)} kWh` : ""}\nPrecio orientativo: ${sizerMoney(r.total, currency)}\n\n${sizerTechSummary(r)}\n\n¿Me pasan una cotización?`;
 }
 
 const SIZER_MODE_LABEL = { quick: "automático rápido", custom: "automático personalizado" };
@@ -964,7 +985,10 @@ function sizerOutputHTML(sz, currency) {
   if (r.empty) {
     return `<div class="sz-empty">${icon("solar-panel")}<p>${r.empty}</p></div>`;
   }
-  const title = kind === "quick" ? "Sistema sugerido" : "Resultado";
+  const quick = kind === "quick";
+  const title = quick ? "Sistema sugerido" : "Resultado";
+  // el rápido no muestra lo técnico (va en el WhatsApp); la compatibilidad, solo si algo no cierra
+  const notes = quick ? (r.notes || []).filter((n) => !SIZER_GUESS_NOTE.test(n.text)) : r.notes || [];
   const badge = r.ok
     ? `<span class="badge tone-ok">${icon("check-circle", "", "fill")}Compatible</span>`
     : `<span class="badge tone-bad">${icon("x-circle", "", "fill")}Revisar</span>`;
@@ -972,7 +996,7 @@ function sizerOutputHTML(sz, currency) {
   const stats = [];
   if (r.coverage !== undefined) stats.push({ label: "Cobertura del consumo", value: r.coverage > 999 ? "Más de 999 %" : `${fmtNum(r.coverage)} %` });
   stats.push({ label: "Almacenamiento", value: r.storage ? `${fmtNum(r.storage, 1)} kWh` : `<span class="sz-none">Sin batería</span>` });
-  stats.push({ label: "Relación DC/AC", value: fmtNum(r.ratio, 2) });
+  if (!quick) stats.push({ label: "Relación DC/AC", value: fmtNum(r.ratio, 2) });
   const c = r.config;
   stats.push({ label: c.nInv > 1 ? "Inversores" : "Inversor", value: `${c.nInv > 1 ? `${c.nInv} × ` : ""}${fmtNum(c.inv.kw)} kW` });
   stats.push({ label: "Strings", value: `${c.plan.s * c.nInv} ${sizerLensText(c.plan)}` });
@@ -987,14 +1011,14 @@ function sizerOutputHTML(sz, currency) {
       ${r.gen !== undefined ? `<span class="sz-gen">${fmtNum(r.gen)} kWh/mes generados</span>` : ""}
     </div>
     <dl class="sz-stats">${stats.map((s) => `<div><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}</dl>
-    ${sizerConfigHTML(r.config)}
-    <div class="sz-verify">
+    ${sizerConfigHTML(r.config, !quick)}
+    ${!quick || !r.ok ? `<div class="sz-verify">
       <h3>Compatibilidad entre componentes</h3>
       ${sizerChecksHTML(r.checks)}
-    </div>
-    ${sizerBomHTML(r.lines, r.total, currency)}
+    </div>` : ""}
+    ${sizerBomHTML(r.lines, r.total, currency, !quick)}
     ${USD_ARS_RATE ? sizerRoiHTML(sizerRoi(r, sizerNum(sz[kind].cons), sz[kind].goal), sz[kind].goal, currency) : ""}
-    ${r.notes && r.notes.length ? sizerNotesHTML(r.notes) : ""}
+    ${notes.length ? sizerNotesHTML(notes) : ""}
     <div class="sz-actions">
       <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener" data-context="dimensionador">${icon("whatsapp-logo", "", "fill")} Pedir cotización</a>
     </div>`;
