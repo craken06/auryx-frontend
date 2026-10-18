@@ -1058,19 +1058,18 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px;
   padding-bottom: 20px; border-bottom: 1px solid var(--line);
 }
-/* Instagram: fondo navy como los controles del sitio y el degradado de su marca en las líneas del ícono */
+/* Instagram: solo el ícono, con el degradado de su marca en las líneas, sobre el fondo del pie
+   (sin recuadro); el área para tocarlo sigue siendo de 44 px */
 .footer-ig {
   display: grid; place-items: center; width: 44px; height: 44px; margin-left: auto; flex: none;
-  border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface-2);
-  transition: border-color 0.18s var(--ease), background-color 0.18s var(--ease), transform 0.18s var(--ease);
+  border-radius: var(--r-control); transition: transform 0.18s var(--ease);
 }
-:root[data-theme="light"] .footer-ig { background: var(--surface); }
 .footer-ig .ph {
-  font-size: 30px;
+  font-size: 34px;
   background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.footer-ig:hover { border-color: #d6249f; transform: translateY(-2px); }
+.footer-ig:hover { transform: translateY(-2px); }
 @media (max-width: 767px) {
   .footer-revocation { order: 1; }
   .footer-ig { order: 2; }
