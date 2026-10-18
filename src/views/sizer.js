@@ -153,6 +153,25 @@ const SIZER_PR = 0.8;          // rendimiento global del sistema
 const SIZER_DOD = 0.9;         // profundidad de descarga de la batería
 const SIZER_CELL_RISE = 25;    // °C que la celda supera al ambiente a pleno sol
 
+/* Tarifa residencial efectiva ($/kWh = factura total / kWh) por nivel de consumo: promedio de las
+   distribuidoras del país, usuario sin subsidio, con impuestos. Observatorio de Tarifas IIEP-UBA:
+   facturas a 150, 600 y 1.000 kWh/mes de mayo 2026, llevadas a julio 2026 con la variación de la
+   factura de 265 kWh ($82.688 → $89.205). Actualizar cuando salga un informe nuevo. */
+const SIZER_TARIFF_DATE = "julio 2026";
+const SIZER_TARIFF_LEVELS = [
+  { max: 200, label: "hasta 200 kWh/mes", ars: 345 },          // ref. 150 kWh: $48.021 en mayo
+  { max: 400, label: "201 a 400 kWh/mes", ars: 337 },          // ref. 265 kWh: $89.205 en julio
+  { max: 800, label: "401 a 800 kWh/mes", ars: 341 },          // ref. 600 kWh: $189.769 en mayo
+  { max: Infinity, label: "más de 800 kWh/mes", ars: 343 },    // ref. 1.000 kWh: $318.291 en mayo
+];
+/* Retorno: parte de la generación que se consume en el momento (el resto se inyecta a la red). */
+const SIZER_SELF_USE = { red: 0.5, resp: 0.8, aut: 1 };
+const SIZER_INJECT_VALUE = 0.33;  // la energía inyectada se paga a precio mayorista: ~33 % de la factura
+const SIZER_INSTALL = 0.25;       // instalación, cableado y protecciones sobre el total de equipos
+const SIZER_YEARS = 25;           // vida útil de los paneles
+const SIZER_DEGRADATION = 0.005;  // pérdida anual de generación
+const SIZER_REPLACE_YEAR = 12;    // año en que se reponen inversor y baterías
+
 function defaultSizer() {
   return {
     mode: "quick",
@@ -622,6 +641,31 @@ function sizerCustomResult(cu) {
   return r;
 }
 
+/* Retorno estimado: ahorro en la factura con la tarifa promedio país del nivel de consumo, en dólares
+   constantes (sin suba real de tarifas). Inversión = equipos + instalación; en el año de reposición se
+   vuelven a comprar inversor y baterías. */
+function sizerRoi(r, cons, goal) {
+  const level = SIZER_TARIFF_LEVELS.findIndex((l) => cons <= l.max);
+  const tariff = SIZER_TARIFF_LEVELS[level];
+  const price = tariff.ars / USD_ARS_RATE;
+  const self = Math.min(r.gen * SIZER_SELF_USE[goal], cons);
+  const injected = goal === "aut" ? 0 : Math.max(0, r.gen - self);
+  // el excedente inyectado se acredita en la factura: el ahorro no pasa de lo que se paga de luz
+  const monthly = Math.min(self + injected * SIZER_INJECT_VALUE, cons) * price;
+  const invest = r.total * (1 + SIZER_INSTALL);
+  // por id: el resultado de la API llega como JSON
+  const ids = [r.config.inv.id, r.config.bat && r.config.bat.id];
+  const replace = sizerTotal(r.lines.filter((l) => ids.includes(l.item.id)));
+  let net = -invest;
+  let payback = null;
+  for (let y = 1; y <= SIZER_YEARS; y++) {
+    const prev = net;
+    net += monthly * 12 * (1 - SIZER_DEGRADATION) ** (y - 1) - (y === SIZER_REPLACE_YEAR ? replace : 0);
+    if (payback === null && net >= 0) payback = y - 1 + -prev / (net - prev);
+  }
+  return { level: level + 1, tariff, monthly, invest, replace, withBat: !!r.config.bat, nInv: r.config.nInv, payback, net, roi: (net / invest) * 100 };
+}
+
 /* ---------------------------------------------------------------------- */
 /* Render                                                                  */
 /* ---------------------------------------------------------------------- */
@@ -816,6 +860,24 @@ function sizerBomHTML(lines, total, currency) {
   </div>`;
 }
 
+function sizerRoiHTML(roi, goal, currency) {
+  const years = roi.payback === null ? `Más de ${SIZER_YEARS} años` : `${fmtNum(roi.payback, 1)} años`;
+  const stats = [
+    { label: "Ahorro mensual", value: sizerMoney(roi.monthly, currency) },
+    { label: "Recupero", value: years },
+    { label: `Retorno a ${SIZER_YEARS} años`, value: `${roi.roi > 0 ? "+" : ""}${fmtNum(roi.roi)} %` },
+  ];
+  const replace = roi.replace ? ` Descuenta la reposición de inversor${roi.nInv > 1 ? "es" : ""}${roi.withBat ? " y baterías" : ""} en el año ${SIZER_REPLACE_YEAR} (${sizerMoney(roi.replace, currency)}).` : "";
+  return `<div class="sz-roi">
+    <h3>Retorno estimado</h3>
+    <dl class="sz-stats">${stats.map((s) => `<div><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}</dl>
+    <p class="sz-roi-tariff">Nivel ${roi.level} de ${SIZER_TARIFF_LEVELS.length} (${roi.tariff.label}): <strong>$${fmtNum(roi.tariff.ars)}/kWh</strong>, promedio país sin subsidio y con impuestos (IIEP-UBA, ${SIZER_TARIFF_DATE}).</p>
+    <p class="sz-note is-info">${icon("info")}<span>Estimativo. Inversión de ${sizerMoney(roi.invest, currency)}: equipos más ${fmtNum(SIZER_INSTALL * 100)} % de instalación, cableado y protecciones.${replace} ${goal === "aut"
+      ? "Se compara contra pagar toda tu energía a la red."
+      : `Supone que consumís en el momento el ${fmtNum(SIZER_SELF_USE[goal] * 100)} % de lo que generás y que el resto se inyecta a la red a precio mayorista.`} Tarifas en dólares constantes. Con subsidio o en tu provincia el ahorro puede ser distinto.</span></p>
+  </div>`;
+}
+
 /* Datos que cargó el usuario, solo los campos que se ven en pantalla para ese modo y objetivo. */
 function sizerInputsSummary(kind, st) {
   const num = (v, dec = 0) => { const n = sizerNum(v); return fmtNum(n, Number.isInteger(n) ? 0 : dec); };
@@ -931,6 +993,7 @@ function sizerOutputHTML(sz, currency) {
       ${sizerChecksHTML(r.checks)}
     </div>
     ${sizerBomHTML(r.lines, r.total, currency)}
+    ${USD_ARS_RATE ? sizerRoiHTML(sizerRoi(r, sizerNum(sz[kind].cons), sz[kind].goal), sz[kind].goal, currency) : ""}
     ${r.notes && r.notes.length ? sizerNotesHTML(r.notes) : ""}
     <div class="sz-actions">
       <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener" data-context="dimensionador">${icon("whatsapp-logo", "", "fill")} Pedir cotización</a>
