@@ -369,7 +369,7 @@ function renderConfigurator(state) {
     const panels = PRODUCTS.filter((p) => p.category === "panel");
     const list = panels.length ? `<div class="option-list">${panels.map((p) => optionButtonHTML({
       id: p.id, action: "cfg-panel", selected: cfg.panelId === p.id,
-      name: esc(productTitle(p)),
+      name: productTitleHTML(p),
       meta: esc([
         p.specs.pmax != null ? specValueText("pmax", p.specs.pmax) : p.specs.potencia_wp != null ? specValueText("potencia_wp", p.specs.potencia_wp) : null,
         p.specs.voc != null ? `Voc ${specValueText("voc", p.specs.voc)}` : null,
@@ -441,7 +441,7 @@ function renderConfigurator(state) {
       const desc = microNote + (c.description || "");
       return optionButtonHTML({
         id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad || pending, busy: pending,
-        name: esc(productTitle(c)),
+        name: productTitleHTML(c),
         meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${cfgOptionFlag(ev)}`,
         msgs: cfgOptionMessages(ev),
@@ -464,7 +464,7 @@ function renderConfigurator(state) {
         : ev && ev.minQty > 1 ? `<span class="option-flag">Desde ${ev.minQty} unidades</span>` : "";
       return optionButtonHTML({
         id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad || pending, busy: pending,
-        name: esc(productTitle(b)),
+        name: productTitleHTML(b),
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
         side: `${priceTagHTML(b, cur)}${flag}`,
         msgs: bad && ev.messages.length ? { label: "Por qué es incompatible", messages: ev.messages } : null,
@@ -496,7 +496,7 @@ function renderConfigurator(state) {
       const ev = cfgEvalExtra(cfg, p);
       return `
       <div class="extra-row">
-        <div class="extra-info"><p class="name">${esc(p.name)}</p>${priceTagHTML(p, cur)}${ev ? ` ${statusBadgeHTML(ev.status)}` : ""}
+        <div class="extra-info"><p class="name">${productTitleHTML(p)}</p>${priceTagHTML(p, cur)}${ev ? ` ${statusBadgeHTML(ev.status)}` : ""}
           ${ev && ev.status !== "ok" ? `<p class="xsmall muted">${ev.messages.map(esc).join(" ")}</p>` : ""}</div>
         <div class="stepper" role="group" aria-label="Cantidad de ${esc(p.name)}">
           <button type="button" class="icon-btn" data-action="cfg-extra-step" data-id="${esc(p.id)}" data-delta="-1" data-fid="x-${esc(p.id)}-m" aria-label="Restar uno" ${q <= 0 ? "disabled" : ""}>${icon("minus")}</button>
@@ -514,7 +514,7 @@ function renderConfigurator(state) {
       <div class="panel panel-pad">
         <h3 class="cfg-review-title">Lista de materiales</h3>
         <ul class="summary-lines summary-lines-flush">
-          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(productTitle(l.product))}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
+          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${productTitleHTML(l.product)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
           ${inst ? `<li class="summary-line-service"><span class="name">${icon("wrench")} ${INSTALLATION_LABEL} <span class="xsmall dim">(${pct} % de los equipos)</span></span>${priceTagHTML(inst, cur)}</li>` : ""}
         </ul>
         <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.grandPriceARS, priceUSD: totals.grandPriceUSD }, cur, "lg")}</div>
@@ -548,7 +548,7 @@ function renderConfigurator(state) {
         </dl>` : ""}
       ${lines.length ? `
         <ul class="summary-lines">
-          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span></li>`).join("")}
+          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${productTitleHTML(l.product)}</span></li>`).join("")}
           ${totals.installation ? `<li><span class="name">${INSTALLATION_LABEL}</span></li>` : ""}
         </ul>
         <div class="summary-total"><span class="muted">Total <span class="xsmall dim">(IVA incluido)</span></span>${priceTagHTML({ priceARS: totals.grandPriceARS, priceUSD: totals.grandPriceUSD }, cur)}</div>

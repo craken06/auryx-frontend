@@ -50,7 +50,7 @@ function renderNav(state) {
     : `<div class="cart-preview-list">
         ${preview.map((it) => `
           <div class="cart-preview-row">
-            <span class="name"><span class="mono">${it.qty}×</span> ${esc(it.product.name)}</span>
+            <span class="name"><span class="mono">${it.qty}×</span> ${productTitleHTML(it.product)}</span>
             ${priceTagHTML(it.product, currency)}
           </div>`).join("")}
         ${cart.length > preview.length ? `<p class="xsmall dim cart-preview-more">y ${cart.length - preview.length} más</p>` : ""}

@@ -55,7 +55,7 @@ function productCardHTML(p, currency) {
     ${productThumbHTML(p, "", true)}
     <div class="card-body">
       <p class="brand">${esc(p.brand)}</p>
-      <h3><a href="#product/${encodeURIComponent(p.id)}" title="${esc(p.name)}">${esc(p.name)}</a></h3>
+      <h3><a href="#product/${encodeURIComponent(p.id)}" title="${esc(productTitle(p))}">${productTitleHTML(p)}</a></h3>
       ${spec ? `<p class="key-spec mono">${esc(spec)}</p>` : ""}
       <div class="card-foot">
         ${priceTagHTML(p, currency)}

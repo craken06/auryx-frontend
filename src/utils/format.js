@@ -71,6 +71,9 @@ function productTitle(p) {
   const re = new RegExp(`(^|[^\\p{L}\\p{N}])${brandWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "iu");
   return re.test(name) ? name : `${p.brand} ${name}`;
 }
+/* El nombre listo para el HTML: escapado y sin cortar la línea entre el número y la unidad ("5 kW"). */
+const productTitleHTML = (p) => esc(productTitle(p)).replace(/(\d) (?=(?:kWh|kWp|kW|Wp|W|V|Ah|A)\b)/g, "$1\u00a0");
+
 /* Modelo técnico del fabricante (el nombre de antes, guardado en specs.modelo al renombrar). */
 const productModel = (p) => (p && p.specs && p.specs.modelo) || "";
 

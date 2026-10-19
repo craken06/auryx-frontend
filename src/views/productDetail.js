@@ -56,14 +56,14 @@ function renderProductDetail(state) {
     <nav class="breadcrumb" aria-label="Ruta">
       <a href="#store">Productos</a> ${icon("caret-right")}
       ${catMeta ? `<a href="#store/${p.category}">${catMeta.label}</a> ${icon("caret-right")}` : ""}
-      <span aria-current="page" class="muted">${esc(p.name)}</span>
+      <span aria-current="page" class="muted">${productTitleHTML(p)}</span>
     </nav>
 
     <div class="detail-grid">
       ${productThumbHTML(p, "thumb-lg")}
       <div class="detail-info">
         <p class="small dim">${esc(p.brand)}${catMeta ? ` / ${catMeta.label}` : ""}${productModel(p) ? ` · Modelo: <span class="mono">${esc(productModel(p))}</span>` : ""}</p>
-        <h1>${esc(p.name)}</h1>
+        <h1>${productTitleHTML(p)}</h1>
         <div>${availabilityBadgeHTML(p.availability)}</div>
         ${p.description ? `<p class="muted">${esc(p.description)}</p>` : ""}
         <div class="detail-price">${priceTagHTML(p, state.currency, "lg")}</div>

@@ -43,7 +43,7 @@ function cartLineHTML({ product, qty, idx }, currency) {
   <div class="cart-line">
     ${productThumbHTML(product)}
     <div class="info">
-      <a href="#product/${encodeURIComponent(product.id)}">${esc(product.name)}</a>
+      <a href="#product/${encodeURIComponent(product.id)}">${productTitleHTML(product)}</a>
       <p class="xsmall dim">${esc(product.brand)}</p>
     </div>
     <div class="controls">
