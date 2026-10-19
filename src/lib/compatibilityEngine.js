@@ -126,4 +126,5 @@ const STATUS_META = {
   ok: { icon: "check-circle", label: "Compatible", tone: "ok" },
   warning: { icon: "warning", label: "Compatible, revisar", tone: "warn" },
   bad: { icon: "x-circle", label: "No compatible", tone: "bad" },
+  pending: { icon: "circle-notch", label: "Verificando…", tone: "pending" }, // esperando al servidor
 };

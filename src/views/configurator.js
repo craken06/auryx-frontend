@@ -6,7 +6,7 @@
    Mientras llega la respuesta, o si la API no responde, se muestra el motor
    local (lib/compatibilityEngine.js). Sólo aplica al catálogo real (ids "db-").
    --------------------------------------------------------------------------- */
-const CFG_COMPAT = { key: null, data: null, pendingKey: null };
+const CFG_COMPAT = { key: null, data: null, pendingKey: null, convKey: null };
 const DC_EXTRA_CATEGORIES = ["cable", "proteccion"];
 
 function cfgTMin(cfg) {
@@ -34,8 +34,17 @@ function cfgCompatRequest(cfg) {
     systemVoltage: systemType.sourceCategory === "regulador" ? cfg.systemVoltage : undefined,
     tMinC: cfgTMin(cfg),
   };
-  return { key: JSON.stringify(body), body };
+  // Los veredictos de inversores no dependen del elegido ni de las baterías: convKey los identifica
+  const { converterId, batteryIds, batteryQty, ...convPart } = body;
+  return { key: JSON.stringify(body), convKey: JSON.stringify(convPart), body };
 }
+
+/* Se está esperando la primera respuesta del servidor para este estado (no falló ni hay una anterior que sirva). */
+function cfgCompatPending(cfg) {
+  const req = cfgCompatRequest(cfg);
+  return !!req && CFG_COMPAT.key !== req.key && CFG_COMPAT.pendingKey === req.key;
+}
+const CFG_PENDING_EVAL = { status: "pending", messages: [] };
 
 /* Resultado del servidor para el estado actual, o null (y dispara el pedido si hace falta). */
 function cfgServerCompat(cfg) {
@@ -49,11 +58,15 @@ function cfgServerCompat(cfg) {
         if (CFG_COMPAT.pendingKey !== req.key) return; // llegó tarde: el usuario ya cambió algo
         CFG_COMPAT.key = req.key;
         CFG_COMPAT.data = data;
+        CFG_COMPAT.convKey = req.convKey;
         if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
       })
       .catch((err) => {
         console.warn("Compatibilidad: se usa el motor local.", err.message);
-        if (CFG_COMPAT.pendingKey === req.key) { CFG_COMPAT.key = req.key; CFG_COMPAT.data = null; }
+        if (CFG_COMPAT.pendingKey !== req.key) return;
+        CFG_COMPAT.key = req.key; CFG_COMPAT.data = null; CFG_COMPAT.convKey = null;
+        // sale de "Verificando…" y muestra el motor local
+        if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
       });
   }
   return null;
@@ -61,9 +74,14 @@ function cfgServerCompat(cfg) {
 
 function cfgEvalConverter(cfg, panel, converter) {
   if (!panel || !converter) return null;
-  const server = cfgServerCompat(cfg);
+  // Al elegir otro inversor se pide de nuevo (por las baterías), pero mientras tanto los
+  // veredictos de inversores anteriores siguen valiendo: así no saltan al motor local y vuelven.
+  const req = cfgCompatRequest(cfg);
+  const server = cfgServerCompat(cfg) || (req && CFG_COMPAT.data && CFG_COMPAT.convKey === req.convKey ? CFG_COMPAT.data : null);
   const id = dbIdOf(converter);
   if (server && id && server.converters && id in server.converters) return server.converters[id];
+  // Mientras llega la respuesta no se muestra el motor local: tiene menos reglas y el estado cambiaría al llegar
+  if (id && cfgCompatPending(cfg)) return CFG_PENDING_EVAL;
   return evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage, cfgTMin(cfg));
 }
 
@@ -73,6 +91,7 @@ function cfgEvalBattery(cfg, battery, converter) {
   const server = converter.id === cfg.converterId ? cfgServerCompat(cfg) : null;
   const id = dbIdOf(battery);
   if (server && id && server.batteries && id in server.batteries) return server.batteries[id];
+  if (server === null && id && converter.id === cfg.converterId && cfgCompatPending(cfg)) return CFG_PENDING_EVAL;
   return evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage);
 }
 
@@ -155,13 +174,13 @@ function stepsNavHTML(steps, current) {
   </ol>`;
 }
 
-const STATUS_RANK = { ok: 0, warning: 1, bad: 2 };
+const STATUS_RANK = { ok: 0, pending: 0.5, warning: 1, bad: 2 };
 function worstStatus(evals) {
   return evals.filter(Boolean).reduce((w, ev) => (STATUS_RANK[ev.status] > STATUS_RANK[w] ? ev.status : w), "ok");
 }
 
 function verdictHTML(ev, title) {
-  if (!ev) return "";
+  if (!ev || ev.status === "pending") return "";
   const tone = (STATUS_META[ev.status] || STATUS_META.warning).tone;
   return `<div class="verdict tone-${tone}">
     <div class="verdict-head"><strong class="small">${title}</strong>${statusBadgeHTML(ev.status)}</div>

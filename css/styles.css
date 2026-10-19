@@ -263,6 +263,7 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .tone-ok { background: var(--ok-bg); color: var(--ok); }
 .tone-warn { background: var(--warn-bg); color: var(--warn); }
 .tone-bad { background: var(--bad-bg); color: var(--bad); }
+.tone-pending { background: var(--surface-2); color: var(--text-dim); }
 
 /* ---------------------------------------------------------------- precio */
 .price { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
