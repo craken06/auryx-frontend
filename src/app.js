@@ -123,7 +123,7 @@ const App = {
     calcSection: null,
     calc: {
       consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
-      cost: { kwh: 300, pricePerKwh: 140 },
+      cost: { kwh: 300, province: "ba", dist: "edenor" },
       savings: { currentKwh: 350, solarKwh: 220, energyPrice: 140 },
       orientation: { lat: -34.6, mode: "optimal", previewAngle: 35 },
     },
@@ -702,7 +702,7 @@ const App = {
       const c = s.calc;
       const req = {
         consumo: ["/calculators/consumption", { items: c.consumption }],
-        costo: ["/calculators/cost", c.cost],
+        costo: ["/calculators/cost", { kwh: c.cost.kwh, pricePerKwh: costTotals(c.cost).perKwh }],
         ahorro: ["/calculators/savings", c.savings],
         orientacion: c.orientation.mode === "optimal" ? ["/calculators/orientation", { lat: c.orientation.lat }] : null,
       }[section];
@@ -736,8 +736,14 @@ const App = {
   },
   calcCostRecompute() {
     this.calcTrackUse("costo");
-    const { kwh, pricePerKwh } = this.state.calc.cost;
-    this.setText("cost-total", fmtARS(kwh * pricePerKwh));
+    const t = costTotals(this.state.calc.cost);
+    this.setText("cost-total", fmtARS(t.bill));
+    this.setText("cost-net", fmtARS(t.net));
+    this.setText("cost-other", fmtARS(t.other));
+    this.setText("cost-tax", fmtARS(t.tax));
+    this.setText("cost-perkwh", `${fmtARS(t.perKwh)}/kWh`);
+    this.setText("cost-yearly", fmtARS(t.yearly));
+    this.setText("cost-vs", costPct(t.vsNational));
     this.calcFetchWarnings();
   },
   calcSavingsRecompute() {
@@ -1279,6 +1285,14 @@ const INPUT_BINDINGS = {
 
 /* Change: cuando el valor queda confirmado (selects, o al salir de un número). */
 const CHANGE_BINDINGS = {
+  // provincia o distribuidora: al cambiar de provincia se toma su primera distribuidora y se redibuja la calculadora
+  "cost-sel": (el) => {
+    const c = App.state.calc.cost;
+    c[el.dataset.field] = el.value;
+    if (el.dataset.field === "province") c.dist = costProvince(el.value).dists[0];
+    App.render();
+    App.calcCostRecompute();
+  },
   "store-sort": (el) => App.setStoreSort(el.value),
   "cfg-wiring": (el) => { App.state.configurator.wiring = el.value; App.render(); },
   "cfg-voltage": (el) => { App.state.configurator.systemVoltage = Number(el.value); App.render(); },
