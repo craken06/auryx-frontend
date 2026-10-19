@@ -936,9 +936,10 @@ App.submitRevocation = async function () {
   r.status = null;
   this.render();
   try {
-    await apiRequest("/contact", { method: "POST", timeoutMs: 70000, body: { name: r.name, email, phone: phone || undefined, message } });
+    const res = await apiRequest("/contact", { method: "POST", timeoutMs: 70000, body: { name: r.name, email, phone: phone || undefined, message } });
     s.revocationSending = false;
-    s.revocation = { errors: {}, done: true };
+    // la API devuelve el código de la solicitud (ARR-000042) y también lo manda por email
+    s.revocation = { errors: {}, done: true, code: (res && typeof res.code === "string" && res.code) || null };
   } catch (err) {
     s.revocationSending = false;
     // validación (4xx): el mensaje de la API tal cual; sin respuesta o error del servidor: texto propio

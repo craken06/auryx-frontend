@@ -30,7 +30,7 @@ const WHATSAPP_DISPLAY = "+54 9 11 6685-8516";
 // Email de contacto que se publica en el sitio (Términos, Privacidad, pie). Lo pide la ley de
 // datos personales para ejercer los derechos de acceso y rectificación: cargalo antes de lanzar.
 // También es el respaldo del formulario de contacto si la API no responde (vacío = WhatsApp).
-const CONTACT_EMAIL = "";
+const CONTACT_EMAIL = "contacto@auryx.com.ar";
 
 // Client ID de Google (OAuth "Aplicación web") para "Continuar con Google". Es público: no es
 // un secreto. Vacío = el ingreso de clientes queda deshabilitado y #ingresar lo avisa.

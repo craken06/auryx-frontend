@@ -191,7 +191,9 @@ function renderRevocation(state) {
         <div><a href="${whatsappLink("Hola, quiero arrepentirme de mi compra. Pedido: ")}" class="btn btn-secondary" target="_blank" rel="noopener" data-context="arrepentimiento">${icon("whatsapp-logo", "", "fill")} Pedirlo por WhatsApp</a></div>
       </div>
       ${r.done
-        ? `<div class="panel panel-pad"><p class="form-status tone-ok" role="status">Recibimos tu solicitud de arrepentimiento. Dentro de las 24 h te respondemos por el mismo medio, con el código de tu solicitud.</p></div>`
+        ? `<div class="panel panel-pad"><p class="form-status tone-ok" role="status">${r.code
+            ? `Recibimos tu solicitud de arrepentimiento. El código de tu solicitud es <strong class="mono">${esc(r.code)}</strong>: te lo mandamos también por email. Dentro de las 24 h te escribimos para coordinar la devolución.`
+            : "Recibimos tu solicitud de arrepentimiento. Dentro de las 24 h te respondemos por el mismo medio, con el código de tu solicitud."}</p></div>`
         : `<form class="form panel panel-pad" data-form="revocation" novalidate${sending ? ' aria-busy="true"' : ""}>
         ${field("orderId", "Código de pedido", 'autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="AX-…"', "Está en el email de la compra y en Mis pedidos.")}
         ${field("name", "Nombre y apellido", 'autocomplete="name"')}
