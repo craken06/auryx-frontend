@@ -1,12 +1,22 @@
 /* AURYX: configurador "Diseñá tu sistema". Depende de: data/products.js, lib/compatibilityEngine.js, lib/api.js, utils/format.js. */
 
 /* ---------------------------------------------------------------------------
-   Compatibilidad en el servidor: en cada paso se pide en UNA llamada el
-   veredicto de todas las opciones visibles (POST /compatibility/evaluate).
-   Mientras llega la respuesta, o si la API no responde, se muestra el motor
-   local (lib/compatibilityEngine.js). Sólo aplica al catálogo real (ids "db-").
+   Compatibilidad en el servidor (POST /compatibility/evaluate), en dos pedidos
+   independientes, cada uno con su caché:
+   - "conv": inversores o reguladores, y cables y protecciones. Depende del arreglo
+     de paneles y NO del equipo elegido: elegir un inversor no lo vuelve a pedir.
+   - "batt": baterías contra el equipo elegido (solo sistemas con batería).
+   Mientras llega la primera respuesta, las opciones dicen "Verificando…" y no se
+   pueden elegir: el motor local tiene menos reglas y el estado cambiaría al llegar.
+   Si la API falla o no responde a tiempo, se usa el motor local
+   (lib/compatibilityEngine.js). Sólo aplica al catálogo real (ids "db-").
    --------------------------------------------------------------------------- */
-const CFG_COMPAT = { key: null, data: null, pendingKey: null, convKey: null };
+const CFG_COMPAT = {
+  conv: { key: null, data: null, pendingKey: null },
+  batt: { key: null, data: null, pendingKey: null },
+};
+const CFG_COMPAT_TIMEOUT_MS = 10000; // la base (Neon free) puede tardar unos segundos en despertar
+const CFG_PENDING_EVAL = { status: "pending", messages: [] };
 const DC_EXTRA_CATEGORIES = ["cable", "proteccion"];
 
 function cfgTMin(cfg) {
@@ -17,89 +27,78 @@ function cfgConverterOptions(systemType) {
   return PRODUCTS.filter((p) => p.category === systemType.sourceCategory && (p.systemTypes || []).includes(systemType.id));
 }
 
-function cfgCompatRequest(cfg) {
+function cfgCompatRequest(cfg, slot) {
   const systemType = SYSTEM_TYPES.find((s) => s.id === cfg.systemTypeId);
-  const panel = PRODUCTS.find((p) => p.id === cfg.panelId);
-  const panelId = dbIdOf(panel);
+  const panelId = dbIdOf(PRODUCTS.find((p) => p.id === cfg.panelId));
   if (!systemType || !panelId) return null;
-  const converter = PRODUCTS.find((p) => p.id === cfg.converterId);
   const ids = (list) => list.map(dbIdOf).filter(Boolean);
-  const body = {
+  const base = {
     panel: { productId: panelId, qty: cfg.panelQty, wiring: cfg.wiring },
-    converterIds: ids(cfgConverterOptions(systemType)),
-    converterId: dbIdOf(converter),
-    batteryIds: converter && systemType.needsBattery ? ids(PRODUCTS.filter((p) => p.category === "bateria")) : [],
-    batteryQty: cfg.batteryQty,
-    extraIds: ids(PRODUCTS.filter((p) => DC_EXTRA_CATEGORIES.includes(p.category))),
     systemVoltage: systemType.sourceCategory === "regulador" ? cfg.systemVoltage : undefined,
     tMinC: cfgTMin(cfg),
   };
-  // Los veredictos de inversores no dependen del elegido ni de las baterías: convKey los identifica
-  const { converterId, batteryIds, batteryQty, ...convPart } = body;
-  return { key: JSON.stringify(body), convKey: JSON.stringify(convPart), body };
-}
-
-/* Se está esperando la primera respuesta del servidor para este estado (no falló ni hay una anterior que sirva). */
-function cfgCompatPending(cfg) {
-  const req = cfgCompatRequest(cfg);
-  return !!req && CFG_COMPAT.key !== req.key && CFG_COMPAT.pendingKey === req.key;
-}
-const CFG_PENDING_EVAL = { status: "pending", messages: [] };
-
-/* Resultado del servidor para el estado actual, o null (y dispara el pedido si hace falta). */
-function cfgServerCompat(cfg) {
-  const req = cfgCompatRequest(cfg);
-  if (!req) return null;
-  if (CFG_COMPAT.key === req.key) return CFG_COMPAT.data;
-  if (CFG_COMPAT.pendingKey !== req.key) {
-    CFG_COMPAT.pendingKey = req.key;
-    apiRequest("/compatibility/evaluate", { method: "POST", body: req.body, timeoutMs: 6000 })
-      .then((data) => {
-        if (CFG_COMPAT.pendingKey !== req.key) return; // llegó tarde: el usuario ya cambió algo
-        CFG_COMPAT.key = req.key;
-        CFG_COMPAT.data = data;
-        CFG_COMPAT.convKey = req.convKey;
-        if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
-      })
-      .catch((err) => {
-        console.warn("Compatibilidad: se usa el motor local.", err.message);
-        if (CFG_COMPAT.pendingKey !== req.key) return;
-        CFG_COMPAT.key = req.key; CFG_COMPAT.data = null; CFG_COMPAT.convKey = null;
-        // sale de "Verificando…" y muestra el motor local
-        if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
-      });
+  let body;
+  if (slot === "conv") {
+    body = { ...base, converterIds: ids(cfgConverterOptions(systemType)), extraIds: ids(PRODUCTS.filter((p) => DC_EXTRA_CATEGORIES.includes(p.category))) };
+  } else {
+    const converterId = dbIdOf(PRODUCTS.find((p) => p.id === cfg.converterId));
+    if (!systemType.needsBattery || !converterId) return null;
+    body = { ...base, converterId, batteryIds: ids(PRODUCTS.filter((p) => p.category === "bateria")), batteryQty: cfg.batteryQty };
   }
-  return null;
+  return { key: JSON.stringify(body), body };
+}
+
+/* Estado del pedido `slot` para la configuración actual (y lo dispara si hace falta):
+   { status: "ready", data } | { status: "pending" } | { status: "local" } (sin datos del servidor). */
+function cfgServerCompat(cfg, slot) {
+  const req = cfgCompatRequest(cfg, slot);
+  if (!req) return { status: "local" };
+  const c = CFG_COMPAT[slot];
+  if (c.key === req.key) return c.data ? { status: "ready", data: c.data } : { status: "local" };
+  if (c.pendingKey !== req.key) {
+    c.pendingKey = req.key;
+    const settle = (data) => {
+      if (c.pendingKey !== req.key) return; // llegó tarde: el usuario ya cambió algo
+      c.key = req.key; c.data = data; c.pendingKey = null;
+      if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
+    };
+    apiRequest("/compatibility/evaluate", { method: "POST", body: req.body, timeoutMs: CFG_COMPAT_TIMEOUT_MS }).then(settle, (err) => {
+      console.warn("Compatibilidad: se usa el motor local.", err.message);
+      settle(null);
+    });
+  }
+  return { status: "pending" };
 }
 
 function cfgEvalConverter(cfg, panel, converter) {
   if (!panel || !converter) return null;
-  // Al elegir otro inversor se pide de nuevo (por las baterías), pero mientras tanto los
-  // veredictos de inversores anteriores siguen valiendo: así no saltan al motor local y vuelven.
-  const req = cfgCompatRequest(cfg);
-  const server = cfgServerCompat(cfg) || (req && CFG_COMPAT.data && CFG_COMPAT.convKey === req.convKey ? CFG_COMPAT.data : null);
   const id = dbIdOf(converter);
-  if (server && id && server.converters && id in server.converters) return server.converters[id];
-  // Mientras llega la respuesta no se muestra el motor local: tiene menos reglas y el estado cambiaría al llegar
-  if (id && cfgCompatPending(cfg)) return CFG_PENDING_EVAL;
+  if (id) {
+    const server = cfgServerCompat(cfg, "conv");
+    if (server.status === "pending") return CFG_PENDING_EVAL;
+    if (server.status === "ready" && server.data.converters && id in server.data.converters) return server.data.converters[id];
+  }
   return evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage, cfgTMin(cfg));
 }
 
 function cfgEvalBattery(cfg, battery, converter) {
   if (!battery || !converter) return null;
-  // El servidor evalúa las baterías solo contra el equipo elegido: no sirve para otro
-  const server = converter.id === cfg.converterId ? cfgServerCompat(cfg) : null;
   const id = dbIdOf(battery);
-  if (server && id && server.batteries && id in server.batteries) return server.batteries[id];
-  if (server === null && id && converter.id === cfg.converterId && cfgCompatPending(cfg)) return CFG_PENDING_EVAL;
+  // El servidor evalúa las baterías solo contra el equipo elegido: para otro equipo, motor local
+  if (id && converter.id === cfg.converterId) {
+    const server = cfgServerCompat(cfg, "batt");
+    if (server.status === "pending") return CFG_PENDING_EVAL;
+    if (server.status === "ready" && server.data.batteries && id in server.data.batteries) return server.data.batteries[id];
+  }
   return evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage);
 }
 
 /* Cables y protecciones de continua: solo con datos del servidor (null = sin verificación). */
 function cfgEvalExtra(cfg, product) {
-  const server = cfgServerCompat(cfg);
   const id = dbIdOf(product);
-  return server && id && server.extras ? server.extras[id] || null : null;
+  if (!id) return null;
+  const server = cfgServerCompat(cfg, "conv");
+  return server.status === "ready" && server.data.extras ? server.data.extras[id] || null : null;
 }
 
 const isMicroinverter = (p) => !!(p && p.specs && p.specs.es_microinversor === true);
@@ -157,8 +156,8 @@ function cfgCanAdvance(cfg) {
   switch (cfgStepKey(cfg)) {
     case "type": return !!systemType;
     case "panels": return !!panel && cfg.panelQty > 0;
-    case "converter": return !!converter && (!panelEval || panelEval.status !== "bad");
-    case "battery": return !!battery && (!batteryEval || batteryEval.status !== "bad");
+    case "converter": return !!converter && (!panelEval || !["bad", "pending"].includes(panelEval.status));
+    case "battery": return !!battery && (!batteryEval || !["bad", "pending"].includes(batteryEval.status));
     default: return true;
   }
 }
@@ -194,10 +193,10 @@ function cfgSelectedVerdictHTML(ev, product) {
   return `<div class="cfg-selected-verdict">${verdictHTML(ev, `${esc(product.brand)} ${esc(product.name)}`)}</div>`;
 }
 
-function optionButtonHTML({ id, action, selected, disabled, name, meta, side, msgs }) {
+function optionButtonHTML({ id, action, selected, disabled, busy, name, meta, side, msgs }) {
   return `
   <button type="button" class="option" data-action="${action}" data-id="${esc(id)}" data-fid="${action}-${esc(id)}"
-    aria-pressed="${selected}" ${disabled ? "disabled" : ""}>
+    aria-pressed="${selected}" ${disabled ? "disabled" : ""}${busy ? ' aria-busy="true"' : ""}>
     <span class="option-head"><span class="option-name">${name}</span></span>
     ${meta ? `<span class="option-meta mono">${meta}</span>` : ""}
     ${side ? `<span class="option-side">${side}</span>` : ""}
@@ -396,10 +395,11 @@ function renderConfigurator(state) {
     body = converters.length ? `<div class="option-list">${converters.map((c) => {
       const ev = cfgEvalConverter(cfg, panel, c);
       const bad = ev && ev.status === "bad";
+      const pending = ev && ev.status === "pending";
       const microNote = isMicroinverter(c) ? `Microinversor: se usa uno por panel (${cfg.panelQty} unidades). ` : "";
       const desc = microNote + (c.description || "");
       return optionButtonHTML({
-        id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad,
+        id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad || pending, busy: pending,
         name: `${esc(c.brand)} ${esc(c.name)}`,
         meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
@@ -414,8 +414,9 @@ function renderConfigurator(state) {
     const list = batteries.length ? `<div class="option-list">${batteries.map((b) => {
       const ev = cfgEvalBattery(cfg, b, converter);
       const bad = ev && ev.status === "bad";
+      const pending = ev && ev.status === "pending";
       return optionButtonHTML({
-        id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad,
+        id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad || pending, busy: pending,
         name: `${esc(b.brand)} ${esc(b.name)}`,
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
         side: `${priceTagHTML(b, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
