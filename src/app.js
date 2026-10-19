@@ -1737,31 +1737,49 @@ function setupBackToTop() {
    VERSIÓN NUEVA PUBLICADA
    GitHub Pages manda el HTML con Cache-Control: max-age=600 y no se puede
    cambiar: hasta 10 min después de publicar, el navegador muestra la versión
-   vieja sin preguntar. Al abrir la página se pide version.json sin caché (lo
-   escribe scripts/build-seo-pages.mjs con el ?v= de index.html); si es otra
-   versión, se recarga (la recarga sí revalida el HTML). Solo al abrir: más
-   tarde una recarga perdería lo que se está armando (configurador, checkout).
+   vieja sin preguntar. Además su CDN ignora los parámetros de la dirección y
+   el no-cache: un nodo puede seguir dando la versión vieja hasta 10 min.
+   version.json (lo escribe scripts/build-seo-pages.mjs con el ?v= de
+   index.html) se pide sin caché del navegador:
+   - al abrir la página: si hay otra versión, se recarga UNA vez (todavía no
+     se tocó nada). Si la recarga trajo la vieja (el CDN no la tiene todavía),
+     no se recarga en bucle: se avisa;
+   - con la pestaña abierta: se revisa al volver a ella y cada 5 min, y se
+     avisa con "Actualizar" (recargar sola perdería el configurador o el
+     checkout que se esté armando).
    ========================================================================= */
 const PAGE_VERSION = ((document.currentScript && document.currentScript.src) || "").match(/[?&]v=([^&]+)/)?.[1] || null;
 const RELOADED_FOR_KEY = "auryx-reloaded-for-version";
+const VERSION_CHECK_EVERY_MS = 5 * 60 * 1000;
+let versionNoticeAt = 0; // último aviso en esta pestaña (no más de uno cada 5 min)
 
-async function checkNewVersion() {
-  if (!PAGE_VERSION) return;
-  let published;
+async function publishedVersion() {
   try {
     const res = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return;
-    published = (await res.json()).v;
-  } catch (e) { return; }
-  if (!published || published === PAGE_VERSION) return;
-  // Una vez por versión: si el servidor todavía entrega el HTML viejo, no se recarga en bucle.
-  // Sin sessionStorage (modo privado estricto) no hay cómo evitarlo: no se recarga.
-  try {
-    if (sessionStorage.getItem(RELOADED_FOR_KEY) === published) return;
-    sessionStorage.setItem(RELOADED_FOR_KEY, published);
-  } catch (e) { return; }
-  location.reload();
+    return res.ok ? (await res.json()).v || null : null;
+  } catch (e) { return null; }
 }
+
+async function checkNewVersion({ onOpen = false } = {}) {
+  if (!PAGE_VERSION) return;
+  const published = await publishedVersion();
+  if (!published || published === PAGE_VERSION) return;
+  if (onOpen) {
+    // una recarga por versión y por pestaña; sin sessionStorage (modo privado estricto) no se recarga
+    let reload = false;
+    try {
+      reload = sessionStorage.getItem(RELOADED_FOR_KEY) !== published;
+      if (reload) sessionStorage.setItem(RELOADED_FOR_KEY, published);
+    } catch (e) { reload = false; }
+    if (reload) { location.reload(); return; }
+  }
+  if (Date.now() - versionNoticeAt < VERSION_CHECK_EVERY_MS) return;
+  versionNoticeAt = Date.now();
+  App.toast("Hay una versión nueva del sitio.", { label: "Actualizar", run: () => location.reload() });
+}
+
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkNewVersion(); });
+setInterval(() => { if (document.visibilityState === "visible") checkNewVersion(); }, VERSION_CHECK_EVERY_MS);
 
 /* =========================================================================
    INICIALIZACIÓN
@@ -1769,7 +1787,7 @@ async function checkNewVersion() {
    catálogo esperan a la API (con reintentos, ver App.loadCatalog).
    ========================================================================= */
 document.addEventListener("DOMContentLoaded", () => {
-  checkNewVersion();
+  checkNewVersion({ onOpen: true });
   setupBackToTop();
   setupScrollMemory();
   try {
