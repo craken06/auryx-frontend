@@ -149,7 +149,11 @@ function cfgTotals(cfg) {
   const totalPower = panel ? panel.specs.pmax * cfg.panelQty : 0;
   const totalPriceARS = lines.reduce((s, l) => s + l.product.priceARS * l.qty, 0);
   const totalPriceUSD = lines.reduce((s, l) => s + l.product.priceUSD * l.qty, 0);
-  return { panel, converter, battery, extraLines, lines, totalPower, totalPriceARS, totalPriceUSD };
+  // instalación y asesoría (opcional, se pide al final): un porcentaje de los equipos
+  const installation = cfg.installation && lines.length ? installationPrice(lines) : null;
+  const grandPriceARS = totalPriceARS + (installation ? installation.priceARS : 0);
+  const grandPriceUSD = totalPriceUSD + (installation ? installation.priceUSD : 0);
+  return { panel, converter, battery, extraLines, lines, totalPower, totalPriceARS, totalPriceUSD, installation, grandPriceARS, grandPriceUSD };
 }
 
 /* Puede avanzar desde el paso actual? (misma regla que antes, por nombre de paso) */
@@ -161,8 +165,8 @@ function cfgCanAdvance(cfg) {
   switch (cfgStepKey(cfg)) {
     case "type": return !!systemType;
     case "panels": return !!panel && cfg.panelQty > 0;
-    case "converter": return !!converter && (!panelEval || !["bad", "pending"].includes(panelEval.status));
-    case "battery": return !!battery && (!batteryEval || !["bad", "pending"].includes(batteryEval.status));
+    case "converter": return !!converter && (!panelEval || panelEval.status === "ok");
+    case "battery": return !!battery && (!batteryEval || batteryEval.status === "ok");
     default: return true;
   }
 }
@@ -178,26 +182,26 @@ function stepsNavHTML(steps, current) {
   </ol>`;
 }
 
-const STATUS_RANK = { ok: 0, pending: 0.5, warning: 1, bad: 2 };
-function worstStatus(evals) {
-  return evals.filter(Boolean).reduce((w, ev) => (STATUS_RANK[ev.status] > STATUS_RANK[w] ? ev.status : w), "ok");
-}
+/* Compatible o no, sin término medio: lo que el motor marca para "revisar" (tensión fuera del
+   MPPT, recorte por corriente, sobredimensionado, etc.) tampoco se puede elegir. */
+const cfgIncompatible = (ev) => !!ev && (ev.status === "bad" || ev.status === "warning");
 
-function verdictHTML(ev, title) {
-  if (!ev || ev.status === "pending") return "";
-  const tone = (STATUS_META[ev.status] || STATUS_META.warning).tone;
-  return `<div class="verdict tone-${tone}">
-    <div class="verdict-head"><strong class="small">${title}</strong>${statusBadgeHTML(ev.status)}</div>
-    <ul>${ev.messages.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
-  </div>`;
-}
-
-/* Motivos de una opción: por qué no es compatible o qué hay que revisar (null si está todo bien). */
+/* Motivos de una opción incompatible (null si se puede elegir). */
 function cfgOptionMessages(ev) {
-  if (!ev || !ev.messages.length) return null;
-  if (ev.status === "bad") return { label: "Por qué no es compatible", messages: ev.messages };
-  if (ev.status === "warning") return { label: "Qué hay que revisar", messages: ev.messages };
-  return null;
+  return cfgIncompatible(ev) && ev.messages.length ? { label: "Por qué es incompatible", messages: ev.messages } : null;
+}
+
+/* Lo que va junto al precio: "Incompatible" en gris, "Verificando…" mientras llega la respuesta, y
+   nada si es compatible (se puede elegir: no hace falta decirlo). */
+function cfgOptionFlag(ev) {
+  if (cfgIncompatible(ev)) return '<span class="option-flag">Incompatible</span>';
+  return ev && ev.status === "pending" ? statusBadgeHTML("pending") : "";
+}
+
+/* Ninguna opción se puede elegir: en vez de una grilla gris sin salida, se ofrece armarlo a medida. */
+function cfgNoneCompatibleHTML(what, waText) {
+  return `<div class="cfg-none">${icon("info")}<p>Ninguna de las opciones de ${what} del catálogo es compatible con lo que elegiste.
+    Probá con otra cantidad de paneles o con otra conexión, o <a href="${whatsappLink(waText)}" target="_blank" rel="noopener" data-context="configurador-sin-opciones">escribinos y lo armamos a medida</a>.</p></div>`;
 }
 
 /* Tarjeta de opción. Los motivos van en un "!" junto a la etiqueta, que los muestra al pasar el
@@ -399,20 +403,20 @@ function renderConfigurator(state) {
   } else if (key === "converter") {
     const isReg = systemType.sourceCategory === "regulador";
     title = isReg ? "Elegí el regulador de carga" : "Elegí el inversor";
-    lead = "Las opciones que no soportan tu arreglo de paneles aparecen deshabilitadas, con el motivo.";
+    lead = "Las que no son compatibles con tu arreglo de paneles aparecen en gris: el \u201c!\u201d te dice por qué.";
     // Con batería, primero los equipos que tienen alguna batería compatible en el catálogo.
     // Con el motor local, para que el orden no cambie al elegir un equipo.
     const batteries = systemType.needsBattery ? PRODUCTS.filter((p) => p.category === "bateria") : [];
-    const hasBattery = (c) => batteries.some((b) => {
-      const ev = evaluateBatteryToConverter(b, cfg.batteryQty, c, cfg.systemVoltage);
-      return !ev || ev.status !== "bad";
-    });
+    const hasBattery = (c) => batteries.some((b) => !cfgIncompatible(evaluateBatteryToConverter(b, cfg.batteryQty, c, cfg.systemVoltage)));
     const converters = batteries.length
       ? cfgConverterOptions(systemType).map((c, i) => ({ c, i, ok: hasBattery(c) })).sort((a, b) => (b.ok - a.ok) || (a.i - b.i)).map((x) => x.c)
       : cfgConverterOptions(systemType);
-    body = converters.length ? `<div class="option-list">${converters.map((c) => {
-      const ev = cfgEvalConverter(cfg, panel, c);
-      const bad = ev && ev.status === "bad";
+    const convEvals = converters.map((c) => cfgEvalConverter(cfg, panel, c));
+    const noneOk = convEvals.length && convEvals.every(cfgIncompatible);
+    body = converters.length ? `${noneOk ? cfgNoneCompatibleHTML(isReg ? "regulador" : "inversor",
+      `Hola, quiero armar un sistema ${systemType.name} con ${cfg.panelQty} paneles ${panel ? `${panel.brand} ${panel.name}` : ""} y no encontré ${isReg ? "regulador" : "inversor"} compatible en la web.`) : ""}<div class="option-list">${converters.map((c, i) => {
+      const ev = convEvals[i];
+      const bad = cfgIncompatible(ev);
       const pending = ev && ev.status === "pending";
       const microNote = isMicroinverter(c) ? `Microinversor: se usa uno por panel (${cfg.panelQty} unidades). ` : "";
       const desc = microNote + (c.description || "");
@@ -420,7 +424,7 @@ function renderConfigurator(state) {
         id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad || pending, busy: pending,
         name: `${esc(c.brand)} ${esc(c.name)}`,
         meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
-        side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
+        side: `${priceTagHTML(c, cur)}${cfgOptionFlag(ev)}`,
         msgs: cfgOptionMessages(ev),
       });
     }).join("")}</div>` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`,
@@ -429,15 +433,18 @@ function renderConfigurator(state) {
     title = "Elegí la batería";
     lead = "Verificamos que la tensión de la batería sea compatible y que la descarga alcance para el equipo.";
     const batteries = PRODUCTS.filter((p) => p.category === "bateria");
-    const list = batteries.length ? `<div class="option-list">${batteries.map((b) => {
-      const ev = cfgEvalBattery(cfg, b, converter);
-      const bad = ev && ev.status === "bad";
+    const battEvals = batteries.map((b) => cfgEvalBattery(cfg, b, converter));
+    const noneOk = battEvals.length && battEvals.every(cfgIncompatible);
+    const list = batteries.length ? `${noneOk ? cfgNoneCompatibleHTML("batería",
+      `Hola, quiero armar un sistema ${systemType.name} con el inversor ${converter ? `${converter.brand} ${converter.name}` : ""} y no encontré batería compatible en la web.`) : ""}<div class="option-list">${batteries.map((b, i) => {
+      const ev = battEvals[i];
+      const bad = cfgIncompatible(ev);
       const pending = ev && ev.status === "pending";
       return optionButtonHTML({
         id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad || pending, busy: pending,
         name: `${esc(b.brand)} ${esc(b.name)}`,
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
-        side: `${priceTagHTML(b, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
+        side: `${priceTagHTML(b, cur)}${cfgOptionFlag(ev)}`,
         msgs: cfgOptionMessages(ev),
       });
     }).join("")}</div>` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
@@ -477,17 +484,25 @@ function renderConfigurator(state) {
     }).join("")}</div>` : emptyStepHTML("No hay accesorios cargados en el catálogo.");
   } else if (key === "summary") {
     title = "Revisá tu sistema";
-    lead = "Si todo está bien, agregalo al carrito para pagarlo o pedir la cotización.";
+    lead = "Estos son los materiales de tu sistema. Si querés, sumá la instalación y agregalo al carrito.";
+    const pct = Math.round(INSTALLATION_RATE * 100);
+    const inst = totals.installation;
     body = `<div class="cfg-review">
-      ${verdictHTML(panelEval, "Paneles e inversor")}
-      ${verdictHTML(batteryEval, "Batería")}
-      ${techNoteHTML()}
       <div class="panel panel-pad">
+        <h3 class="cfg-review-title">Lista de materiales</h3>
         <ul class="summary-lines summary-lines-flush">
-          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
+          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.brand)} ${esc(l.product.name)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
+          ${inst ? `<li class="summary-line-service"><span class="name">${icon("wrench")} ${INSTALLATION_LABEL} <span class="xsmall dim">(${pct} % de los equipos)</span></span>${priceTagHTML(inst, cur)}</li>` : ""}
         </ul>
-        <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur, "lg")}</div>
+        <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.grandPriceARS, priceUSD: totals.grandPriceUSD }, cur, "lg")}</div>
+        <div class="cfg-install">
+          ${inst
+            ? `<button type="button" class="btn btn-secondary" data-action="cfg-installation" data-fid="cfg-installation" aria-pressed="true">${icon("x")} Quitar instalación y asesoría</button>`
+            : `<button type="button" class="btn btn-secondary" data-action="cfg-installation" data-fid="cfg-installation" aria-pressed="false">${icon("wrench")} Pedir instalación y asesoría <span class="cfg-install-pct">+${pct} %</span></button>`}
+          <p class="xsmall dim">Instalación por nuestro equipo y asesoría para el proyecto. Coordinamos la visita técnica después de la compra.</p>
+        </div>
       </div>
+      ${techNoteHTML()}
     </div>`;
   }
 
@@ -507,13 +522,13 @@ function renderConfigurator(state) {
           <div><dt>Tipo</dt><dd class="dd-text">${systemType.name}</dd></div>
           <div><dt>Potencia FV</dt><dd>${fmtNum(totalPower)}&nbsp;W</dd></div>
           ${systemType.needsBattery ? `<div><dt>Almacenamiento</dt><dd>${battery && Number(battery.specs.capacityWh) > 0 ? `${fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2)}&nbsp;kWh` : battery ? "s/d" : "0&nbsp;kWh"}</dd></div>` : ""}
-          ${panelEval ? `<div><dt>Compatibilidad</dt><dd>${statusBadgeHTML(worstStatus([panelEval, batteryEval]))}</dd></div>` : ""}
         </dl>` : ""}
       ${lines.length ? `
         <ul class="summary-lines">
           ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.name)}</span></li>`).join("")}
+          ${totals.installation ? `<li><span class="name">${INSTALLATION_LABEL}</span></li>` : ""}
         </ul>
-        <div class="summary-total"><span class="muted">Total <span class="xsmall dim">(IVA incluido)</span></span>${priceTagHTML({ priceARS: totals.totalPriceARS, priceUSD: totals.totalPriceUSD }, cur)}</div>
+        <div class="summary-total"><span class="muted">Total <span class="xsmall dim">(IVA incluido)</span></span>${priceTagHTML({ priceARS: totals.grandPriceARS, priceUSD: totals.grandPriceUSD }, cur)}</div>
       ` :`<p class="summary-empty">Todavía no elegiste componentes. A medida que avances, el resumen se completa acá.</p>`}
       ${isLast ? `<button type="button" class="btn btn-primary btn-lg btn-block cfg-add" data-action="cfg-add-system">${icon("shopping-cart-simple")} Agregar al carrito</button>` : ""}
     </aside>`;

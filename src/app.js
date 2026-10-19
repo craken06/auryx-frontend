@@ -17,6 +17,7 @@ function defaultConfigurator() {
   return {
     step: 0, systemTypeId: null, panelId: null, panelQty: 2, wiring: "series",
     systemVoltage: 24, converterId: null, batteryId: null, batteryQty: 1, extras: {},
+    installation: false, // "Pedir instalación y asesoría" del último paso
     tMinC: null, // null = la temperatura de diseño por defecto del backend
   };
 }
@@ -76,7 +77,7 @@ const clampQty = (n, min = 1) => Math.max(min, Math.min(MAX_QTY, Math.round(Numb
 let unresolvedCart = [];
 
 function persistCart(cart) {
-  const resolved = cart.map((it) => ({ id: it.product.id, qty: it.qty, systemId: it.systemId || null }));
+  const resolved = cart.map((it) => ({ id: it.product.id, qty: it.qty, systemId: it.systemId || null, ...(it.installation ? { installation: true } : {}) }));
   storageSet(CART_KEY, JSON.stringify([...resolved, ...unresolvedCart]));
 }
 
@@ -89,9 +90,10 @@ function restoreCart() {
   saved.forEach((it) => {
     const qty = clampQty(it && it.qty);
     const product = it && PRODUCTS.find((p) => p.id === it.id);
-    if (!product) { if (it && it.id) unresolvedCart.push({ id: it.id, qty, systemId: it.systemId || null }); return; }
+    if (!product) { if (it && it.id) unresolvedCart.push({ id: it.id, qty, systemId: it.systemId || null, ...(it.installation ? { installation: true } : {}) }); return; }
     const line = { product, qty };
     if (it.systemId) line.systemId = it.systemId;
+    if (it.systemId && it.installation === true) line.installation = true; // solo los sistemas llevan instalación
     cart.push(line);
   });
   return cart;
@@ -553,10 +555,10 @@ const App = {
     if (added < n) this.toast(`Podés comprar hasta ${MAX_QTY} unidades por producto. Si necesitás más, escribinos.`, { label: "Ver carrito", href: "#cart" });
     else this.toast(`Agregaste ${product.name} al carrito.`, { label: "Ver carrito", href: "#cart" });
   },
-  addSystemToCart(items) {
+  addSystemToCart(items, { installation = false } = {}) {
     const systemId = `sys-${Date.now()}`;
     const lines = items.map((it) => ({ product: it.product, qty: clampQty(it.qty) }));
-    lines.forEach((it) => this.state.cart.push({ ...it, systemId }));
+    lines.forEach((it) => this.state.cart.push({ ...it, systemId, ...(installation ? { installation: true } : {}) }));
     Track.event("add_to_cart", gaItemsParams(lines));
     this.state.configurator = defaultConfigurator();
     navigate("cart");
@@ -685,7 +687,12 @@ const App = {
     const { lines } = cfgTotals(cfg);
     const value = lines.reduce((sum, l) => sum + l.product.priceARS * l.qty, 0);
     Track.event("configurator_complete", { value, currency: "ARS", system_type: cfg.systemTypeId || "" });
-    this.addSystemToCart(lines.map((l) => ({ product: l.product, qty: l.qty })));
+    this.addSystemToCart(lines.map((l) => ({ product: l.product, qty: l.qty })), { installation: !!cfg.installation });
+  },
+  /* Instalación y asesoría de un sistema del carrito: la marca va en cada línea del sistema. */
+  cartSetInstallation(systemId, on) {
+    this.state.cart.forEach((it) => { if (it.systemId === systemId) { if (on) it.installation = true; else delete it.installation; } });
+    this.render();
   },
 
   /* ---------------------------------------------------------------- calculadoras (actualización puntual) */
@@ -1031,7 +1038,7 @@ function trackPurchase(order, id) {
   const key = `auryx-purchase-sent-${code}`;
   if (storageGet(key)) return;
   const items = (order.items || []).map((i) => ({
-    item_id: i.productId != null ? `db-${i.productId}` : i.productName, item_name: i.productName,
+    item_id: i.productId ? `db-${i.productId}` : i.productId === 0 ? "instalacion" : i.productName, item_name: i.productName,
     price: Number(i.unitPriceArs) || 0, quantity: Number(i.quantity) || 1,
   }));
   const sent = Track.event("purchase", { transaction_id: code, value: Number(order.totalArs) || 0, currency: "ARS", items });
@@ -1203,6 +1210,8 @@ const ACTIONS = {
   "cfg-back": () => App.cfgGoStep(App.state.configurator.step - 1),
   "cfg-goto": (d) => App.cfgGoStep(Number(d.step)),
   "cfg-add-system": () => App.cfgAddSystemToCart(),
+  "cfg-installation": () => { const c = App.state.configurator; c.installation = !c.installation; App.render(); },
+  "cart-installation": (d) => App.cartSetInstallation(d.system, d.on === "1"),
 
   "calc-consumption-add": () => {
     App.state.calc.consumption.push({ name: "", power: 0, qty: 1, hours: 1 });

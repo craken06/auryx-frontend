@@ -1,17 +1,39 @@
 /* AURYX: carrito, checkout (Mercado Pago) y estado del pedido. Depende de: utils/format.js, lib/api.js, lib/session.js; usa avatarHTML, googleSlotHTML y loginStatusHTML de views/account.js en tiempo de ejecución. */
 
 function cartTotals(cart) {
+  // instalación y asesoría: un porcentaje de los equipos de los sistemas que la pidieron
+  const installed = cart.filter((it) => it.installation);
+  const installation = installed.length ? installationPrice(installed) : null;
   return {
-    priceARS: cart.reduce((s, it) => s + it.product.priceARS * it.qty, 0),
-    priceUSD: cart.reduce((s, it) => s + it.product.priceUSD * it.qty, 0),
+    priceARS: cart.reduce((s, it) => s + it.product.priceARS * it.qty, 0) + (installation ? installation.priceARS : 0),
+    priceUSD: cart.reduce((s, it) => s + it.product.priceUSD * it.qty, 0) + (installation ? installation.priceUSD : 0),
     units: cart.reduce((s, it) => s + Number(it.qty), 0),
+    installation,
   };
+}
+
+/* Fila de la instalación al pie de un sistema del carrito: con precio y "Quitar", o la oferta de sumarla. */
+function cartInstallationHTML(systemId, items, currency) {
+  const pct = Math.round(INSTALLATION_RATE * 100);
+  if (!items.some((it) => it.installation)) {
+    return `<button type="button" class="cart-install-add" data-action="cart-installation" data-system="${esc(systemId)}" data-on="1">${icon("wrench")} Pedir instalación y asesoría para este sistema <span class="cfg-install-pct">+${pct} %</span></button>`;
+  }
+  return `
+  <div class="cart-line cart-line-service">
+    <span class="thumb">${icon("wrench")}</span>
+    <div class="info"><p class="name">${INSTALLATION_LABEL}</p><p class="xsmall dim">${pct} % de los equipos del sistema. Coordinamos la visita técnica después de la compra.</p></div>
+    <div class="controls">
+      ${priceTagHTML(installationPrice(items.filter((it) => it.installation)), currency)}
+      <button type="button" class="icon-btn icon-btn-danger" data-action="cart-installation" data-system="${esc(systemId)}" data-on="0" aria-label="Quitar la instalación y asesoría">${icon("trash")}</button>
+    </div>
+  </div>`;
 }
 
 /* Texto del pedido: lo usan el botón de WhatsApp y el formulario de contacto. */
 function quoteMessage(state) {
   const t = cartTotals(state.cart);
   const lines = state.cart.map((it) => `- ${it.qty} x ${it.product.brand} ${it.product.name}`);
+  if (t.installation) lines.push(`- ${INSTALLATION_LABEL} (${Math.round(INSTALLATION_RATE * 100)} % de los equipos del sistema)`);
   const total = state.currency === "USD" ? fmtUSD(t.priceUSD) : fmtARS(t.priceARS);
   return `Hola, quiero pedir una cotización por:\n${lines.join("\n")}\n\nTotal estimado en la web: ${total} (IVA incluido)`;
 }
@@ -71,6 +93,7 @@ function renderCart(state) {
     return `<section class="cart-group" aria-label="${isSystem ? "Sistema configurado" : "Productos sueltos"}">
       <h2 class="cart-group-title">${title}</h2>
       ${items.map((it) => cartLineHTML(it, state.currency)).join("")}
+      ${isSystem ? cartInstallationHTML(key, items, state.currency) : ""}
     </section>`;
   }).join("");
 
@@ -89,7 +112,7 @@ function renderCart(state) {
           <a class="btn btn-secondary btn-block" href="${whatsappLink(quoteMessage(state))}" target="_blank" rel="noopener" data-context="carrito">${icon("whatsapp-logo", "", "fill")} Pedir cotización por WhatsApp</a>
           <button type="button" class="btn btn-ghost btn-block checkout-alt-form" data-action="cart-quote">Prefiero usar el formulario</button>
         </div>
-        <p class="xsmall dim cart-note">Precios finales con IVA incluido. No incluyen envío ni instalación: los coordinamos con vos después del pedido. Podés arrepentirte de la compra dentro de los ${REVOCATION_TERM} (<a href="#arrepentimiento">Botón de arrepentimiento</a>).</p>
+        <p class="xsmall dim cart-note">Precios finales con IVA incluido. ${t.installation ? "No incluyen envío: lo coordinamos con vos después del pedido, igual que la visita técnica de la instalación." : "No incluyen envío ni instalación: los coordinamos con vos después del pedido."} Podés arrepentirte de la compra dentro de los ${REVOCATION_TERM} (<a href="#arrepentimiento">Botón de arrepentimiento</a>).</p>
       </aside>
     </div>
     <section class="process process-compact" aria-labelledby="cart-process-title">
@@ -321,6 +344,8 @@ function checkoutErrors(c) {
 function checkoutBody(c, cart) {
   const body = {
     items: checkoutItems(cart),
+    // la API cobra la instalación sobre estos equipos, con sus precios
+    ...(cart.some((it) => it.installation) ? { installation: checkoutItems(cart.filter((it) => it.installation)) } : {}),
     phone: trimStr(c.phone),
     delivery: { method: c.delivery },
     saveDetails: !!c.saveDetails,

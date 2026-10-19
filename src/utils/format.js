@@ -60,6 +60,14 @@ function whatsappLink(text) {
 /* Aviso técnico general: se muestra donde el usuario ve resultados de compatibilidad o cálculo. */
 const TECH_DISCLAIMER = "Los resultados son orientativos. La verificación de compatibilidad usa los datos de la hoja del fabricante y corrige la tensión por la temperatura mínima indicada; las calculadoras son estimaciones con los valores que cargás. Ninguna considera sombras, pérdidas de cableado ni normativa local. No reemplazan un proyecto firmado por un profesional matriculado. El dimensionamiento final lo confirmamos con vos antes de la compra, y la instalación debe hacerla personal matriculado.";
 
+/* Instalación y asesoría sobre ciertas líneas ({ product, qty }): solo para mostrarla; lo que se
+   cobra lo calcula la API con los precios de la base. */
+function installationPrice(lines) {
+  const pct = (k) => Math.round(lines.reduce((s, l) => s + l.product[k] * l.qty, 0) * INSTALLATION_RATE * 100) / 100;
+  return { priceARS: pct("priceARS"), priceUSD: pct("priceUSD") };
+}
+const INSTALLATION_LABEL = "Instalación y asesoría";
+
 function techNoteHTML(extraClass = "") {
   return `<p class="tech-note${extraClass ? " " + extraClass : ""}">${icon("info")}<span><strong>Aviso técnico.</strong> ${TECH_DISCLAIMER}</span></p>`;
 }
