@@ -172,7 +172,7 @@
 
 <!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
 <!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
-<script src="/src/lib/theme-init.js?v=20261044"></script>
+<script src="/src/lib/theme-init.js?v=20261045"></script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://images.unsplash.com" />
@@ -188,7 +188,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20261044" />
+<link rel="stylesheet" href="/css/styles.css?v=20261045" />
 </head>
 <body>
   <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -247,6 +247,21 @@
           </label>
         </div>
         <div class="product-grid">
+  <article class="product-card">
+    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
+    <div class="card-body">
+      <p class="brand">BYD</p>
+      <h3><a href="/productos/byd-battery-box-premium-lvs-4-0/" title="Battery-Box Premium LVS 4.0">Battery-Box Premium LVS 4.0</a></h3>
+      <p class="key-spec mono">4.000 Wh  /  51,2 V  /  6.000 ciclos</p>
+      <div class="card-foot">
+        <span class="price">$ 5.235</span>
+        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-44" data-fid="add-db-44"
+          aria-label="Agregar Battery-Box Premium LVS 4.0 al carrito" >
+          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
+        </button>
+      </div>
+    </div>
+  </article>
   <article class="product-card">
     <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
     <div class="card-body">
@@ -347,21 +362,6 @@
         <span class="price">$ 3.100.000</span>
         <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-46" data-fid="add-db-46"
           aria-label="Agregar Lithium Smart 12.8V 200Ah al carrito" >
-          <i class="ph ph-plus" aria-hidden="true"></i> Agregar
-        </button>
-      </div>
-    </div>
-  </article>
-  <article class="product-card">
-    <div class="thumb "><i class="ph ph-battery-high" aria-hidden="true"></i><span class="badge tone-ok">Disponible</span></div>
-    <div class="card-body">
-      <p class="brand">BYD</p>
-      <h3><a href="/productos/byd-battery-box-premium-lvs-4-0/" title="Battery-Box Premium LVS 4.0">Battery-Box Premium LVS 4.0</a></h3>
-      <p class="key-spec mono">4.000 Wh  /  51,2 V  /  6.000 ciclos</p>
-      <div class="card-foot">
-        <span class="price">$ 4.100.000</span>
-        <button disabled type="button" class="btn btn-secondary btn-sm" data-action="cart-add" data-id="db-44" data-fid="add-db-44"
-          aria-label="Agregar Battery-Box Premium LVS 4.0 al carrito" >
           <i class="ph ph-plus" aria-hidden="true"></i> Agregar
         </button>
       </div>
@@ -489,45 +489,45 @@
        Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
        página tardaba segundos en armarse; con defer se piden todos juntos. -->
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
-  <script defer src="/src/config.js?v=20261044"></script>
+  <script defer src="/src/config.js?v=20261045"></script>
   <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
-  <script defer src="/src/lib/analytics.js?v=20261044"></script>
+  <script defer src="/src/lib/analytics.js?v=20261045"></script>
 
   <!-- Datos y lógica de negocio -->
-  <script defer src="/src/data/products.js?v=20261044"></script>
-  <script defer src="/src/data/tariffs.js?v=20261044"></script>
+  <script defer src="/src/data/products.js?v=20261045"></script>
+  <script defer src="/src/data/tariffs.js?v=20261045"></script>
   <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
-  <script defer src="/src/data/catalog-summary.js?v=20261044"></script>
+  <script defer src="/src/data/catalog-summary.js?v=20261045"></script>
   <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
-  <script defer src="/src/lib/routes.js?v=20261044"></script>
-  <script defer src="/src/lib/compatibilityEngine.js?v=20261044"></script>
-  <script defer src="/src/utils/format.js?v=20261044"></script>
-  <script defer src="/src/utils/calculatorHelpers.js?v=20261044"></script>
+  <script defer src="/src/lib/routes.js?v=20261045"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261045"></script>
+  <script defer src="/src/utils/format.js?v=20261045"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261045"></script>
 
   <!-- Vistas -->
-  <script defer src="/src/views/nav.js?v=20261044"></script>
-  <script defer src="/src/views/footer.js?v=20261044"></script>
-  <script defer src="/src/views/sizer.js?v=20261044"></script>
-  <script defer src="/src/views/home.js?v=20261044"></script>
-  <script defer src="/src/views/store.js?v=20261044"></script>
-  <script defer src="/src/views/productDetail.js?v=20261044"></script>
-  <script defer src="/src/views/configurator.js?v=20261044"></script>
-  <script defer src="/src/views/calculators/consumption.js?v=20261044"></script>
-  <script defer src="/src/views/calculators/cost.js?v=20261044"></script>
-  <script defer src="/src/views/calculators/savings.js?v=20261044"></script>
-  <script defer src="/src/views/calculators/orientation.js?v=20261044"></script>
-  <script defer src="/src/views/calculators/index.js?v=20261044"></script>
-  <script defer src="/src/views/cart.js?v=20261044"></script>
-  <script defer src="/src/views/infoContact.js?v=20261044"></script>
-  <script defer src="/src/views/legal.js?v=20261044"></script>
-  <script defer src="/src/views/account.js?v=20261044"></script>
-  <script defer src="/src/views/cookies.js?v=20261044"></script>
+  <script defer src="/src/views/nav.js?v=20261045"></script>
+  <script defer src="/src/views/footer.js?v=20261045"></script>
+  <script defer src="/src/views/sizer.js?v=20261045"></script>
+  <script defer src="/src/views/home.js?v=20261045"></script>
+  <script defer src="/src/views/store.js?v=20261045"></script>
+  <script defer src="/src/views/productDetail.js?v=20261045"></script>
+  <script defer src="/src/views/configurator.js?v=20261045"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261045"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261045"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261045"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261045"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261045"></script>
+  <script defer src="/src/views/cart.js?v=20261045"></script>
+  <script defer src="/src/views/infoContact.js?v=20261045"></script>
+  <script defer src="/src/views/legal.js?v=20261045"></script>
+  <script defer src="/src/views/account.js?v=20261045"></script>
+  <script defer src="/src/views/cookies.js?v=20261045"></script>
 
   <!-- Sesión del cliente y cliente de la API -->
-  <script defer src="/src/lib/session.js?v=20261044"></script>
-  <script defer src="/src/lib/api.js?v=20261044"></script>
+  <script defer src="/src/lib/session.js?v=20261045"></script>
+  <script defer src="/src/lib/api.js?v=20261045"></script>
 
   <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
-  <script defer src="/src/app.js?v=20261044"></script>
+  <script defer src="/src/app.js?v=20261045"></script>
 </body>
 </html>

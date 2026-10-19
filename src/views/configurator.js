@@ -213,6 +213,64 @@ function renderSizerPage(state) {
   </div>`;
 }
 
+/* Mini esquema conceptual de la instalación. La parte que se elige en el paso actual se pinta
+   con el acento; las ya elegidas quedan en tono medio y las pendientes, tenues. */
+function cfgSchematicHTML(cfg, systemType, totals, key) {
+  const keys = cfgStepList(cfg).map((s) => s.key);
+  const passed = (k) => keys.includes(k) && keys.indexOf(k) < cfg.step;
+  const done = { dest: !!systemType, panels: !!totals.panel, converter: !!totals.converter, battery: !!totals.battery, extras: passed("extras") };
+  const activeFor = { type: "dest", panels: "panels", converter: "converter", battery: "battery", extras: "extras" };
+  const cls = (part) => `part${key === "summary" || activeFor[key] === part ? " is-active" : done[part] ? " is-done" : ""}`;
+
+  const isReg = systemType && systemType.sourceCategory === "regulador";
+  const hasBattery = !systemType || systemType.needsBattery;
+  const hasGrid = !systemType || systemType.id !== "offgrid";
+  const label = (x, y, text) => `<text x="${x}" y="${y}" text-anchor="middle">${text}</text>`;
+
+  return `<figure class="cfg-schematic">
+    <svg viewBox="0 0 320 168" aria-hidden="true" focusable="false">
+      <g class="${cls("extras")}">
+        <path d="M84 42 H110 V50 H130" />
+        <path d="M170 50 H200" /><path d="M224 50 H252" />
+        ${hasBattery ? `<path d="M150 74 V100" />` : ""}
+        ${hasGrid ? `<path d="M276 72 V104" />` : ""}
+        <rect class="body" x="200" y="38" width="24" height="24" rx="3" />
+        <path d="M206 56 L218 44" /><circle cx="206" cy="56" r="1.6" /><circle cx="218" cy="56" r="1.6" />
+        ${label(212, 80, "Protecciones")}
+      </g>
+      <g class="${cls("panels")}">
+        <polygon class="body" points="12,62 28,22 92,22 76,62" />
+        <path d="M20 42 H84" /><path d="M33.3 62 L49.3 22" /><path d="M54.7 62 L70.7 22" />
+        <path d="M44 62 V72" /><path d="M36 72 H52" />
+        ${label(50, 88, "Paneles")}
+      </g>
+      <g class="${cls("converter")}">
+        <rect class="body" x="130" y="26" width="40" height="48" rx="4" />
+        <path d="M134 70 L166 30" />
+        <path d="M138 36 H148" /><path d="M138 40 H148" stroke-dasharray="2.5 1.5" />
+        ${isReg
+          ? `<path d="M152 60 H162" /><path d="M152 64 H162" stroke-dasharray="2.5 1.5" />`
+          : `<path d="M151 62 q2.75 -5 5.5 0 t5.5 0" />`}
+        ${label(150, 16, isReg ? "Regulador" : "Inversor")}
+      </g>
+      ${hasBattery ? `<g class="${cls("battery")}">
+        <rect class="body" x="128" y="100" width="44" height="30" rx="3" />
+        <path d="M138 100 V96 H146 V100" /><path d="M154 100 V96 H162 V100" />
+        <path d="M139 115 H145" /><path d="M142 112 V118" /><path d="M155 115 H161" />
+        ${label(150, 146, "Batería")}
+      </g>` : ""}
+      <g class="${cls("dest")}">
+        <path class="body" d="M252 72 V48 L276 30 L300 48 V72 Z" />
+        <rect x="270" y="56" width="12" height="16" />
+        ${hasGrid ? `
+          <path d="M276 104 L266 152 M276 104 L286 152 M269.5 135 H282.5 M264 112 H288 M266 120 H286" />
+          ${label(276, 164, "Red")}` : ""}
+        ${label(276, 22, hasGrid ? "Consumo" : "Consumos DC")}
+      </g>
+    </svg>
+  </figure>`;
+}
+
 function renderConfigurator(state) {
   if (state.cfgTool !== "steps") return renderSizerPage(state);
   const cfg = state.configurator;
@@ -354,7 +412,7 @@ function renderConfigurator(state) {
     title = "Protecciones, cables y accesorios";
     lead = "Opcional. Los cables y protecciones de corriente continua se verifican contra tu string: tensión en frío y 1,25 × la corriente de cortocircuito.";
     const free = cfgExtraProducts();
-    body = free.length ? `<div class="panel panel-pad extras-panel">${free.map((p) => {
+    body = free.length ? `<div class="extra-grid">${free.map((p) => {
       const q = (cfg.extras && cfg.extras[p.id]) || 0;
       const ev = cfgEvalExtra(cfg, p);
       return `
@@ -389,6 +447,7 @@ function renderConfigurator(state) {
 
   const summary = `
     <aside class="cfg-summary panel panel-pad" aria-label="Resumen del sistema">
+      ${cfgSchematicHTML(cfg, systemType, totals, key)}
       <h2 class="summary-title">Tu sistema</h2>
       ${systemType ? `
         <dl class="summary-stats">

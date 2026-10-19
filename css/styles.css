@@ -861,10 +861,10 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .step-title { font-size: 1.5rem; font-weight: 700; font-stretch: 85%; margin-bottom: 6px; }
 .step-lead { color: var(--text-mid); margin-bottom: 24px; max-width: 60ch; }
 
-.option-list { display: grid; gap: 12px; }
+.option-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 .option-list.cols-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .option {
-  position: relative; display: grid; gap: 6px; width: 100%; text-align: left; cursor: pointer;
+  position: relative; display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; cursor: pointer;
   padding: 18px 20px; border-radius: var(--r-surface);
   background: var(--surface); border: 1.5px solid var(--line); color: var(--text);
   transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease);
@@ -886,7 +886,7 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .option-name { font-weight: 650; font-size: 1.0625rem; }
 .option-meta { font-size: 0.8125rem; color: var(--text-mid); }
 .option-meta-text, .dd-text { font-family: var(--font-sans); }
-.option-side { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.option-side { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 6px; }
 .option .ph-type { font-size: 28px; color: var(--accent-ink); margin-bottom: 6px; }
 .option-msgs { display: grid; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.875rem; color: var(--text-mid); }
 
@@ -898,13 +898,26 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .extra-row + .extra-row { border-top: 1px solid var(--line); }
 .extra-row .name { font-weight: 550; }
 .extra-info { min-width: 0; }
-.extras-panel { padding-block: 6px; }
+.extra-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.extra-grid .extra-row { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px 18px; border-radius: var(--r-surface); background: var(--surface); border: 1.5px solid var(--line); }
 .cfg-review { display: grid; gap: 12px; }
 .cfg-add { margin-top: 20px; }
 
 .cfg-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--line); }
 
 .summary-title { font-size: 1.125rem; font-weight: 700; margin-bottom: 16px; }
+
+/* Esquema de la instalación arriba de "Tu sistema": la parte del paso actual se pinta con el acento */
+.cfg-schematic { margin: -4px 0 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.cfg-schematic svg { display: block; width: 100%; height: auto; }
+.cfg-schematic .part { color: var(--line-strong); fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: color 0.3s var(--ease); }
+.cfg-schematic .part.is-done { color: var(--text-dim); }
+.cfg-schematic .part.is-active { color: var(--accent); stroke-width: 2; }
+.cfg-schematic .part .body { fill: currentColor; fill-opacity: 0.08; }
+.cfg-schematic .part.is-active .body { fill-opacity: 0.14; }
+.cfg-schematic .part circle { fill: currentColor; }
+.cfg-schematic text { fill: currentColor; stroke: none; font-family: var(--font-sans); font-size: 11px; font-weight: 600; }
+.cfg-schematic .part:not(.is-active) text { fill: var(--text-dim); font-weight: 500; }
 .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 .summary-stats dt { font-size: 0.75rem; color: var(--text-dim); }
 .summary-stats dd { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 1.0625rem; }
