@@ -123,6 +123,20 @@ const crumbs = (items) => ({
   "@type": "BreadcrumbList",
   itemListElement: items.map(([name, u], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE + u })),
 });
+/* Devolución por arrepentimiento (Ley 24.240, art. 34), con los mismos datos que los Términos y el Botón
+   de arrepentimiento (views/legal.js): plazo desde que se recibe, gastos de devolución a cargo de AURYX
+   y reintegro completo. El plazo sale de REVOCATION_TERM para que nunca difiera de lo que dice el sitio. */
+const RETURN_DAYS = Number((run("REVOCATION_TERM").match(/(\d+)\s*días/) || [])[1]);
+if (!RETURN_DAYS) throw new Error("No se pudo leer el plazo de devolución de REVOCATION_TERM (views/legal.js)");
+const RETURN_POLICY = {
+  "@type": "MerchantReturnPolicy",
+  applicableCountry: "AR",
+  returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+  merchantReturnDays: RETURN_DAYS,
+  returnFees: "https://schema.org/FreeReturn",
+  refundType: "https://schema.org/FullRefund",
+  url: SITE + routeToPath("arrepentimiento"),
+};
 const SCHEMA_AVAILABILITY = { disponible: "https://schema.org/InStock", "a pedido": "https://schema.org/BackOrder", "sin stock": "https://schema.org/OutOfStock" };
 const storeState = (cat) => ({ storeCategory: cat, storeFilters: { brand: null, tech: null, systemType: null }, storeSort: "none", currency: "ARS", filtersOpen: false });
 const renderStore = (cat) => { ctx.__s = storeState(cat); return run("renderStore(__s)"); };
@@ -185,6 +199,7 @@ for (const p of PRODUCTS) {
         availability: SCHEMA_AVAILABILITY[p.availability] || "https://schema.org/InStock",
         itemCondition: "https://schema.org/NewCondition",
         seller: { "@id": `${SITE}/#organizacion` },
+        hasMerchantReturnPolicy: RETURN_POLICY,
       },
     }],
     body,
