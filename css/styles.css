@@ -872,14 +872,16 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
   transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease);
 }
 .option:hover:not(:disabled) { border-color: var(--line-strong); }
-.option[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
-/* tilde de seleccionado: círculo de acento (::before) y tilde con máscara en --on-accent (::after) */
+/* elegida: amarillo pleno, el de los botones de la página, con el texto oscuro de esos botones */
+.option[aria-pressed="true"]:not(:disabled) { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.option[aria-pressed="true"]:not(:disabled) :is(.option-name, .option-meta, .option-flag, .muted, .price, .ph-type) { color: var(--on-accent); }
+/* tilde de seleccionado: círculo --on-accent (::before) y tilde con máscara en --accent (::after) */
 .option[aria-pressed="true"]::before, .option[aria-pressed="true"]::after {
   content: ""; position: absolute; top: 16px; right: 16px; width: 22px; height: 22px; border-radius: 999px;
 }
-.option[aria-pressed="true"]::before { background: var(--accent); }
+.option[aria-pressed="true"]::before { background: var(--on-accent); }
 .option[aria-pressed="true"]::after {
-  background: var(--on-accent);
+  background: var(--accent);
   -webkit-mask: no-repeat center / 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
   mask: no-repeat center / 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
 }
