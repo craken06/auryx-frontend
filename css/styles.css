@@ -889,6 +889,7 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .option:disabled:not([aria-busy="true"]) .option-name, .option:disabled:not([aria-busy="true"]) .option-meta,
 .option:disabled:not([aria-busy="true"]) .price { color: var(--text-dim); }
 .option-flag { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }
+.cfg-hint { grid-column: 1 / -1; font-size: 0.875rem; color: var(--warn); }
 .cfg-none { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; padding: 14px 16px; border-radius: var(--r-surface); background: var(--bg-raised); border: 1px solid var(--line); font-size: 0.9375rem; color: var(--text-mid); }
 .cfg-none .ph { font-size: 20px; flex: none; margin-top: 1px; color: var(--accent-ink); }
 .cfg-none a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }

@@ -43,7 +43,8 @@ function cfgCompatRequest(cfg, slot) {
   } else {
     const converterId = dbIdOf(PRODUCTS.find((p) => p.id === cfg.converterId));
     if (!systemType.needsBattery || !converterId) return null;
-    body = { ...base, converterId, batteryIds: ids(PRODUCTS.filter((p) => p.category === "bateria")), batteryQty: cfg.batteryQty };
+    // sin la cantidad: la API devuelve minQty por batería, así cambiar la cantidad no vuelve a pedir
+    body = { ...base, converterId, batteryIds: ids(PRODUCTS.filter((p) => p.category === "bateria")) };
   }
   return { key: JSON.stringify(body), body };
 }
@@ -86,6 +87,19 @@ function cfgEvalConverter(cfg, panel, converter) {
   return evaluatePanelToConverter(panel, cfg.panelQty, cfg.wiring, converter, cfg.systemVoltage, cfgTMin(cfg));
 }
 
+/* Cantidad mínima de baterías con la que el banco es compatible (null = con ninguna), con el motor
+   local. Mismo tope que MAX_BATTERY_QTY del motor de la API. */
+const CFG_MAX_BATTERY_QTY = 8;
+function cfgLocalMinBatteryQty(battery, converter, systemVoltage) {
+  for (let q = 1; q <= CFG_MAX_BATTERY_QTY; q++) {
+    const ev = evaluateBatteryToConverter(battery, q, converter, systemVoltage);
+    if (ev && ev.status === "ok") return q;
+  }
+  return null;
+}
+
+/* Veredicto de una batería con minQty: cuántas unidades hacen falta (lo que depende de la cantidad,
+   como la descarga frente a la potencia del inversor, se resuelve sumando baterías). */
 function cfgEvalBattery(cfg, battery, converter) {
   if (!battery || !converter) return null;
   const id = dbIdOf(battery);
@@ -93,10 +107,15 @@ function cfgEvalBattery(cfg, battery, converter) {
   if (id && converter.id === cfg.converterId) {
     const server = cfgServerCompat(cfg, "batt");
     if (server.status === "pending") return CFG_PENDING_EVAL;
-    if (server.status === "ready" && server.data.batteries && id in server.data.batteries) return server.data.batteries[id];
+    const ev = server.status === "ready" && server.data.batteries ? server.data.batteries[id] : null;
+    if (ev && ev.minQty !== undefined) return ev;
   }
-  return evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage);
+  const ev = evaluateBatteryToConverter(battery, 1, converter, cfg.systemVoltage);
+  return ev && { ...ev, minQty: cfgLocalMinBatteryQty(battery, converter, cfg.systemVoltage) };
 }
+
+/* Una batería es incompatible solo si no sirve con ninguna cantidad (p. ej. tensión fuera de rango). */
+const cfgBatteryIncompatible = (ev) => !!ev && ev.status !== "pending" && ev.minQty == null;
 
 /* Cables y protecciones de continua: solo con datos del servidor (null = sin verificación). */
 function cfgEvalExtra(cfg, product) {
@@ -166,7 +185,7 @@ function cfgCanAdvance(cfg) {
     case "type": return !!systemType;
     case "panels": return !!panel && cfg.panelQty > 0;
     case "converter": return !!converter && (!panelEval || panelEval.status === "ok");
-    case "battery": return !!battery && (!batteryEval || batteryEval.status === "ok");
+    case "battery": return !!battery && (!batteryEval || (batteryEval.status !== "pending" && batteryEval.minQty != null && cfg.batteryQty >= batteryEval.minQty));
     default: return true;
   }
 }
@@ -407,7 +426,7 @@ function renderConfigurator(state) {
     // Con batería, primero los equipos que tienen alguna batería compatible en el catálogo.
     // Con el motor local, para que el orden no cambie al elegir un equipo.
     const batteries = systemType.needsBattery ? PRODUCTS.filter((p) => p.category === "bateria") : [];
-    const hasBattery = (c) => batteries.some((b) => !cfgIncompatible(evaluateBatteryToConverter(b, cfg.batteryQty, c, cfg.systemVoltage)));
+    const hasBattery = (c) => batteries.some((b) => cfgLocalMinBatteryQty(b, c, cfg.systemVoltage) != null);
     const converters = batteries.length
       ? cfgConverterOptions(systemType).map((c, i) => ({ c, i, ok: hasBattery(c) })).sort((a, b) => (b.ok - a.ok) || (a.i - b.i)).map((x) => x.c)
       : cfgConverterOptions(systemType);
@@ -434,18 +453,21 @@ function renderConfigurator(state) {
     lead = "Verificamos que la tensión de la batería sea compatible y que la descarga alcance para el equipo.";
     const batteries = PRODUCTS.filter((p) => p.category === "bateria");
     const battEvals = batteries.map((b) => cfgEvalBattery(cfg, b, converter));
-    const noneOk = battEvals.length && battEvals.every(cfgIncompatible);
+    const noneOk = battEvals.length && battEvals.every(cfgBatteryIncompatible);
     const list = batteries.length ? `${noneOk ? cfgNoneCompatibleHTML("batería",
       `Hola, quiero armar un sistema ${systemType.name} con el inversor ${converter ? `${converter.brand} ${converter.name}` : ""} y no encontré batería compatible en la web.`) : ""}<div class="option-list">${batteries.map((b, i) => {
       const ev = battEvals[i];
-      const bad = cfgIncompatible(ev);
+      const bad = cfgBatteryIncompatible(ev);
       const pending = ev && ev.status === "pending";
+      const flag = bad ? '<span class="option-flag">Incompatible</span>'
+        : pending ? statusBadgeHTML("pending")
+        : ev && ev.minQty > 1 ? `<span class="option-flag">Desde ${ev.minQty} unidades</span>` : "";
       return optionButtonHTML({
         id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad || pending, busy: pending,
         name: `${esc(b.brand)} ${esc(b.name)}`,
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
-        side: `${priceTagHTML(b, cur)}${cfgOptionFlag(ev)}`,
-        msgs: cfgOptionMessages(ev),
+        side: `${priceTagHTML(b, cur)}${flag}`,
+        msgs: bad && ev.messages.length ? { label: "Por qué es incompatible", messages: ev.messages } : null,
       });
     }).join("")}</div>` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
     const fields = battery ? `
@@ -453,7 +475,7 @@ function renderConfigurator(state) {
         <div class="field">
           <span class="field-label" id="battery-qty-label">Cantidad de baterías</span>
           <div class="stepper" role="group" aria-labelledby="battery-qty-label">
-            <button type="button" class="icon-btn" data-action="cfg-battery-step" data-delta="-1" data-fid="battery-minus" aria-label="Restar una batería" ${cfg.batteryQty <= 1 ? "disabled" : ""}>${icon("minus")}</button>
+            <button type="button" class="icon-btn" data-action="cfg-battery-step" data-delta="-1" data-fid="battery-minus" aria-label="Restar una batería" ${cfg.batteryQty <= Math.max(1, (batteryEval && batteryEval.minQty) || 1) ? "disabled" : ""}>${icon("minus")}</button>
             <input id="battery-qty-input" class="input num-input" type="number" inputmode="numeric" min="1" value="${cfg.batteryQty}"
               name="battery-quantity" autocomplete="off" aria-labelledby="battery-qty-label" data-bind="cfg-battery-qty" />
             <button type="button" class="icon-btn" data-action="cfg-battery-step" data-delta="1" data-fid="battery-plus" aria-label="Sumar una batería">${icon("plus")}</button>
@@ -462,6 +484,7 @@ function renderConfigurator(state) {
         <p class="total">Capacidad total: ${Number(battery.specs.capacityWh) > 0
           ? `<strong class="mono" id="battery-total-kwh">${fmtNum((battery.specs.capacityWh * cfg.batteryQty) / 1000, 2)}</strong>&nbsp;kWh`
           : `<strong id="battery-total-kwh">sin dato del fabricante</strong>`}</p>
+        ${batteryEval && batteryEval.minQty > cfg.batteryQty ? `<p class="cfg-hint">Con este inversor hacen falta al menos ${batteryEval.minQty} baterías para entregar su potencia.</p>` : ""}
       </div>` : "";
     body = list + fields;
   } else if (key === "extras") {

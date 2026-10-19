@@ -689,6 +689,15 @@ const App = {
     Track.event("configurator_complete", { value, currency: "ARS", system_type: cfg.systemTypeId || "" });
     this.addSystemToCart(lines.map((l) => ({ product: l.product, qty: l.qty })), { installation: !!cfg.installation });
   },
+  /* Elegir una batería: si con la cantidad actual no alcanza, se sube a la mínima compatible. */
+  cfgSelectBattery(id) {
+    const c = this.state.configurator;
+    c.batteryId = id;
+    const { battery, converter } = cfgTotals(c);
+    const ev = cfgEvalBattery(c, battery, converter);
+    if (ev && ev.minQty > c.batteryQty) c.batteryQty = ev.minQty;
+    this.render();
+  },
   /* Instalación y asesoría de un sistema del carrito: la marca va en cada línea del sistema. */
   cartSetInstallation(systemId, on) {
     this.state.cart.forEach((it) => { if (it.systemId === systemId) { if (on) it.installation = true; else delete it.installation; } });
@@ -1194,9 +1203,15 @@ const ACTIONS = {
   "cfg-type": (d) => App.cfgSelectSystemType(d.id),
   "cfg-panel": (d) => { App.state.configurator.panelId = d.id; App.render(); },
   "cfg-converter": (d) => { App.state.configurator.converterId = d.id; App.render(); },
-  "cfg-battery": (d) => { App.state.configurator.batteryId = d.id; App.render(); },
+  "cfg-battery": (d) => App.cfgSelectBattery(d.id),
   "cfg-panel-step": (d) => { const c = App.state.configurator; c.panelQty = clampQty(c.panelQty + Number(d.delta)); App.render(); },
-  "cfg-battery-step": (d) => { const c = App.state.configurator; c.batteryQty = clampQty(c.batteryQty + Number(d.delta)); App.render(); },
+  "cfg-battery-step": (d) => {
+    const c = App.state.configurator;
+    const { battery, converter } = cfgTotals(c);
+    const ev = cfgEvalBattery(c, battery, converter);
+    c.batteryQty = clampQty(c.batteryQty + Number(d.delta), Math.max(1, (ev && ev.minQty) || 1)); // no baja del mínimo
+    App.render();
+  },
   "cfg-extra-step": (d) => {
     const c = App.state.configurator;
     c.extras[d.id] = clampQty((c.extras[d.id] || 0) + Number(d.delta), 0);

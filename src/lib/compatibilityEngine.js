@@ -22,11 +22,15 @@ function evaluatePanelToConverter(panel, qty, wiring, converter, systemVoltage, 
   const isMicro = converter.specs.es_microinversor === true;
   const seriesCount = isMicro ? 1 : wiring === "series" ? qty : Math.ceil(qty / 2);
   const stringCount = isMicro ? 1 : wiring === "series" ? 1 : 2;
+  // Corrientes por MPPT: con 2 strings y un equipo de 2 MPPT va un string por MPPT; sin el dato,
+  // los dos en la misma entrada (como el motor de la API, src/compatibility/engine.ts).
+  const mppts = Number.isInteger(Number(converter.specs.mpptCount)) && Number(converter.specs.mpptCount) > 0 ? Number(converter.specs.mpptCount) : 1;
+  const stringsPerMppt = Math.ceil(stringCount / mppts);
   const tMin = Number.isFinite(tMinC) ? tMinC : (typeof COMPAT_PARAMS !== "undefined" ? COMPAT_PARAMS.tMinC : -10);
   const coef = panel.specs.coef_temp_voc != null ? Number(panel.specs.coef_temp_voc) : -0.3;
   const totalVoc = +(panel.specs.voc * seriesCount * (1 + (coef / 100) * (tMin - 25))).toFixed(1);
-  const totalIsc = +(panel.specs.isc * stringCount).toFixed(1);
-  const totalImp = panel.specs.imp != null ? +(panel.specs.imp * stringCount).toFixed(1) : null;
+  const totalIsc = +(panel.specs.isc * stringsPerMppt).toFixed(1);
+  const totalImp = panel.specs.imp != null ? +(panel.specs.imp * stringsPerMppt).toFixed(1) : null;
   const totalPower = panel.specs.pmax * qty;
   const checkedPower = isMicro ? panel.specs.pmax : totalPower; // micro: un panel por equipo
 
