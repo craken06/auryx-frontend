@@ -63,3 +63,27 @@ const TARIFF_PROVINCES = [
   { id: "tdf", name: "Tierra del Fuego", dists: ["dpe"] },
   { id: "tucuman", name: "Tucumán", dists: ["edet"] },
 ];
+
+/* Cuadros tarifarios oficiales (residencial sin subsidio, sin impuestos). cats: [tope en kWh/mes, cargo fijo $/mes,
+   cargo variable $/kWh]; el consumo del mes cae en la primera categoría cuyo tope alcanza y todo se cobra al precio
+   de esa categoría. bimonthly: la distribuidora categoriza por bimestre (los topes y el cargo fijo ya están pasados
+   a mes). other: impuestos y tasas provinciales y municipales sobre el neto, además del IVA; calibrado con la factura
+   que publica el IIEP a 265 kWh (por provincia cuando la distribuidora atiende dos). Las distribuidoras que no
+   están acá se estiman con los puntos del IIEP (TARIFF_DISTRIBUTORS). */
+const TARIFF_IVA = 0.21;
+const TARIFF_CUADROS = {
+  edenor: { date: "septiembre 2026", source: "ENReGE, cuadro tarifario de Edenor vigente desde el 1/9/2026", other: { caba: 0.064, ba: 0.184 },
+    cats: [[150, 1770.2, 156.65], [400, 3775.55, 157.295], [500, 12398.09, 169.229], [600, 19834.16, 173.112], [700, 41804.79, 173.403], [Infinity, 65205.49, 188.976]] },
+  edesur: { date: "octubre 2026", source: "Resolución ENReGE 709/26, vigente desde el 1/10/2026", other: { caba: 0.064, ba: 0.184 },
+    cats: [[150, 1771.06, 157.116], [400, 3717.51, 157.692], [500, 12168.59, 169.922], [600, 19843.84, 174.056], [700, 42905.86, 186.593], [Infinity, 65106.92, 203.605]] },
+  edelap: { date: "septiembre 2026", source: "OCEBA, Resolución MIySP 682/26, anexo 43, vigente desde el 1/9/2026", other: 0.19,
+    cats: [[150, 5762.32, 174.2926], [325, 17892.17, 165.1251], [400, 20501.33, 166.5695], [450, 24983.37, 174.9039], [500, 28242.17, 179.3775], [600, 42132.81, 192.6088], [700, 55370, 204.4843], [1400, 75518.56, 209.9216], [Infinity, 89317.04, 211.0473]] },
+  edea: { date: "septiembre 2026", source: "OCEBA, Resolución MIySP 682/26, anexo 44, vigente desde el 1/9/2026", other: 0.184,
+    cats: [[100, 4184.62, 211.103], [200, 6433.79, 220.034], [400, 8795.2, 226.995], [500, 10931.57, 232.1185], [700, 17565.62, 242.4968], [1400, 28472.23, 253.4679], [Infinity, 34769.05, 271.4165]] },
+  eden: { date: "septiembre 2026", source: "OCEBA, Resolución MIySP 682/26, anexo 45, vigente desde el 1/9/2026", other: 0.181,
+    cats: [[100, 5240.4, 227.7806], [200, 8049.7, 235.0049], [400, 10997.62, 249.1032], [500, 13665.46, 260.0835], [700, 21951.19, 270.273], [1400, 35571.83, 285.0233], [Infinity, 43435.19, 305.1694]] },
+  edes: { date: "septiembre 2026", source: "OCEBA, Resolución MIySP 682/26, anexo 46, vigente desde el 1/9/2026", other: 0.182,
+    cats: [[100, 5852.09, 229.2413], [200, 8977.07, 243.0037], [400, 12259.05, 255.2269], [500, 15227.62, 263.2928], [700, 24448.12, 277.6572], [1400, 39606.03, 294.1319], [Infinity, 48356.83, 316.4873]] },
+  edemsa: { date: "septiembre 2026", source: "Resolución EPRE 189/2026, anexo I, vigente desde el 1/9/2026 (categorías por consumo bimestral)", bimonthly: true, other: 0.281,
+    cats: [[149.5, 3781.4615, 280.5412], [299.5, 4167.0055, 270.4639], [Infinity, 24746.72, 241.6774]] },
+};

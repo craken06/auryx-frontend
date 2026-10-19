@@ -736,14 +736,12 @@ const App = {
   },
   calcCostRecompute() {
     this.calcTrackUse("costo");
+    // la categoría (y con ella las filas) cambia con el consumo: se reemplaza la tarjeta entera
     const t = costTotals(this.state.calc.cost);
-    this.setText("cost-total", fmtARS(t.bill));
-    this.setText("cost-net", fmtARS(t.net));
-    this.setText("cost-other", fmtARS(t.other));
-    this.setText("cost-tax", fmtARS(t.tax));
-    this.setText("cost-perkwh", `${fmtARS(t.perKwh)}/kWh`);
-    this.setText("cost-yearly", fmtARS(t.yearly));
-    this.setText("cost-vs", costPct(t.vsNational));
+    const card = document.getElementById("cost-result");
+    if (card) card.outerHTML = costResultHTML(t);
+    const note = document.getElementById("cost-footnote");
+    if (note) note.textContent = costFootnote(t);
     this.calcFetchWarnings();
   },
   calcSavingsRecompute() {

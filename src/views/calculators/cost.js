@@ -23,15 +23,69 @@ function tariffNational(kwh) {
   return list.reduce((s, d) => s + tariffBill(d, kwh), 0) / list.length;
 }
 
+/* Nombre de la categoría por su rango de consumo (las que categorizan por bimestre, en kWh por bimestre). */
+function cuadroCatLabel(ct, i) {
+  const k = ct.bimonthly ? 2 : 1, unit = ct.bimonthly ? "kWh por bimestre" : "kWh/mes";
+  const top = (j) => Math.floor(ct.cats[j][0] * k);
+  if (i === 0) return `hasta ${top(0)} ${unit}`;
+  if (ct.cats[i][0] === Infinity) return `más de ${top(i - 1)} ${unit}`;
+  return `${top(i - 1) + 1} a ${top(i)} ${unit}`;
+}
+
+/* Con cuadro oficial: categoría por consumo, cargo fijo + todo el consumo al precio de esa categoría, IVA y tasas.
+   Sin cuadro: estimación con las facturas del IIEP y la parte de impuestos medida en el informe. */
 function costTotals(c) {
-  const d = TARIFF_DISTRIBUTORS[costDistId(c)];
+  const id = costDistId(c);
+  const d = TARIFF_DISTRIBUTORS[id];
+  const ct = TARIFF_CUADROS[id];
   const q = Math.max(0, Number(c.kwh) || 0);
-  const bill = tariffBill(d, q);
   const national = tariffNational(q);
-  return {
-    dist: d, bill, net: bill * d.net, other: bill * d.other, tax: bill * d.tax,
-    perKwh: q > 0 ? bill / q : 0, yearly: bill * 12, vsNational: national > 0 ? (bill / national - 1) * 100 : 0,
-  };
+  let t;
+  if (ct) {
+    const i = ct.cats.findIndex((cat) => q <= cat[0]);
+    const [, fixed, price] = ct.cats[i];
+    const energy = q * price, net = fixed + energy;
+    const otherRate = typeof ct.other === "number" ? ct.other : ct.other[costProvince(c.province).id] ?? ct.other.ba;
+    const iva = net * TARIFF_IVA, other = net * otherRate;
+    t = { official: true, ct, category: cuadroCatLabel(ct, i), price, fixed, energy, iva, otherTax: other, otherRate, bill: net + iva + other };
+  } else {
+    const bill = tariffBill(d, q);
+    t = { official: false, bill, net: bill * d.net, otherCharges: bill * d.other, tax: bill * d.tax };
+  }
+  return { ...t, dist: d, perKwh: q > 0 ? t.bill / q : 0, yearly: t.bill * 12, vsNational: national > 0 ? (t.bill / national - 1) * 100 : 0 };
+}
+
+/* Tarjeta de resultado: con cuadro oficial muestra la categoría y cada componente; si no, el desglose estimado. */
+function costResultHTML(t) {
+  const pct = (r) => fmtNum(r * 100, 1);
+  const rest = t.official ? [
+    { label: `Categoría: ${t.category}`, value: `${fmtARS(t.price)}/kWh` },
+    { label: "Cargo fijo", value: fmtARS(t.fixed) },
+    { label: "Energía consumida", value: fmtARS(t.energy) },
+    { label: "IVA (21 %)", value: fmtARS(t.iva) },
+    { label: `Impuestos provinciales y municipales (${pct(t.otherRate)} %)`, value: fmtARS(t.otherTax) },
+  ] : [
+    { label: "Energía y distribución", value: fmtARS(t.net) },
+    { label: "Otros cargos", value: fmtARS(t.otherCharges) },
+    { label: `Impuestos (IVA, provinciales y municipales), ${fmtNum(t.dist.tax * 100)} %`, value: fmtARS(t.tax) },
+  ];
+  rest.push(
+    { label: "Precio efectivo del kWh", value: `${fmtARS(t.perKwh)}/kWh` },
+    { label: "En un año", value: fmtARS(t.yearly) },
+    { label: "Contra el promedio del país", value: costPct(t.vsNational) },
+  );
+  return resultCardHTML({
+    id: "cost-result",
+    title: t.official ? "Tu factura, con el cuadro tarifario oficial" : "Tu factura estimada",
+    main: { id: "cost-total", label: "Por mes, con impuestos", value: fmtARS(t.bill) },
+    rest: rest.map((r, i) => ({ ...r, id: `cost-row-${i}` })),
+  });
+}
+
+function costFootnote(t) {
+  return t.official
+    ? `Usuario residencial sin subsidio. Tarifa: ${t.ct.source}. Impuestos provinciales y municipales calibrados con la factura que publica el Observatorio de Tarifas IIEP-UBA; las tasas municipales cambian según tu localidad.`
+    : `Usuario residencial sin subsidio. Estimación con las facturas que publica el Observatorio de Tarifas IIEP-UBA (${TARIFF_DATE}); todavía no cargamos el cuadro tarifario oficial de esta distribuidora. Tu factura puede variar según la categoría, las tasas de tu municipio y los subsidios.`;
 }
 
 const costPct = (n) => (Math.round(n) === 0 ? "Igual" : `${n > 0 ? "+" : "−"}${fmtNum(Math.abs(n))} %`);
@@ -51,25 +105,13 @@ function renderCostCalculator(state) {
   const prov = costProvince(c.province);
   const t = costTotals(c);
   const dists = prov.dists.map((id) => ({ id, name: TARIFF_DISTRIBUTORS[id].name }));
+  const distHint = TARIFF_CUADROS[costDistId(c)] ? `Cuadro tarifario oficial de ${TARIFF_CUADROS[costDistId(c)].date}.` : "Estimada con datos del IIEP-UBA.";
   const inputs = `
     ${explainerHTML(`La factura no es solo <strong class="mono">consumo × precio del kWh</strong>: suma cargos fijos, el costo de distribución de cada empresa e impuestos (IVA, provinciales y municipales). Por eso el mismo consumo cuesta muy distinto según dónde vivas.`)}
     ${fieldHTML({ id: "cost-kwh", label: "Consumo mensual", unit: "kWh/mes", value: c.kwh, bind: "cost", field: "kwh", hint: "Figura en tu factura. Si es bimestral, dividilo por 2." })}
     ${costSelectHTML({ id: "cost-province", label: "Provincia", field: "province", value: prov.id, options: TARIFF_PROVINCES })}
     ${costSelectHTML({ id: "cost-dist", label: "Distribuidora", field: "dist", value: costDistId(c), options: dists,
-      disabled: dists.length === 1, hint: dists.length === 1 ? "La principal de la provincia." : "" })}`;
-  const result = resultCardHTML({
-    id: "cost-result",
-    title: "Tu factura estimada",
-    main: { id: "cost-total", label: "Por mes, con impuestos", value: fmtARS(t.bill) },
-    rest: [
-      { id: "cost-net", label: "Energía y distribución", value: fmtARS(t.net) },
-      { id: "cost-other", label: "Otros cargos", value: fmtARS(t.other) },
-      { id: "cost-tax", label: `Impuestos (IVA, provinciales y municipales), ${fmtNum(t.dist.tax * 100)} %`, value: fmtARS(t.tax) },
-      { id: "cost-perkwh", label: "Precio efectivo del kWh", value: `${fmtARS(t.perKwh)}/kWh` },
-      { id: "cost-yearly", label: "En un año", value: fmtARS(t.yearly) },
-      { id: "cost-vs", label: "Contra el promedio del país", value: costPct(t.vsNational) },
-    ],
-  });
-  return calcSectionHTML("costo", "Costo de energía", "Cuánto pagás de luz por mes según tu consumo y tu distribuidora.", inputs, result,
-    `Usuario residencial sin subsidio. Estimación con las facturas que publica el Observatorio de Tarifas IIEP-UBA (${TARIFF_DATE}). Tu factura puede variar según la categoría, las tasas de tu municipio y los subsidios.`);
+      disabled: dists.length === 1, hint: dists.length === 1 ? `La principal de la provincia. ${distHint}` : distHint })}`;
+  return calcSectionHTML("costo", "Costo de energía", "Cuánto pagás de luz por mes según tu consumo y tu distribuidora.", inputs,
+    costResultHTML(t), `<span id="cost-footnote">${costFootnote(t)}</span>`);
 }
