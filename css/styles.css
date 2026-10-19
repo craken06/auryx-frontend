@@ -931,6 +931,7 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .summary-empty { font-size: 0.875rem; color: var(--text-dim); padding-block: 8px; }
 
 .verdict { display: grid; gap: 8px; padding: 16px 18px; border-radius: var(--r-surface); }
+.cfg-selected-verdict { margin-top: 16px; }
 .verdict ul { display: grid; gap: 4px; font-size: 0.9375rem; }
 .verdict-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .verdict.tone-ok, .verdict.tone-warn, .verdict.tone-bad { color: var(--text); }

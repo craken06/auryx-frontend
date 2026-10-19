@@ -69,7 +69,8 @@ function cfgEvalConverter(cfg, panel, converter) {
 
 function cfgEvalBattery(cfg, battery, converter) {
   if (!battery || !converter) return null;
-  const server = cfgServerCompat(cfg);
+  // El servidor evalúa las baterías solo contra el equipo elegido: no sirve para otro
+  const server = converter.id === cfg.converterId ? cfgServerCompat(cfg) : null;
   const id = dbIdOf(battery);
   if (server && id && server.batteries && id in server.batteries) return server.batteries[id];
   return evaluateBatteryToConverter(battery, cfg.batteryQty, converter, cfg.systemVoltage);
@@ -166,6 +167,12 @@ function verdictHTML(ev, title) {
     <div class="verdict-head"><strong class="small">${title}</strong>${statusBadgeHTML(ev.status)}</div>
     <ul>${ev.messages.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
   </div>`;
+}
+
+/* Detalle de compatibilidad del equipo elegido, debajo de la grilla de opciones. */
+function cfgSelectedVerdictHTML(ev, product) {
+  if (!ev || !product || !ev.messages.length) return "";
+  return `<div class="cfg-selected-verdict">${verdictHTML(ev, `${esc(product.brand)} ${esc(product.name)}`)}</div>`;
 }
 
 function optionButtonHTML({ id, action, selected, disabled, name, meta, side, msgs }) {
@@ -357,9 +364,13 @@ function renderConfigurator(state) {
     const isReg = systemType.sourceCategory === "regulador";
     title = isReg ? "Elegí el regulador de carga" : "Elegí el inversor";
     lead = "Las opciones que no soportan tu arreglo de paneles aparecen deshabilitadas, con el motivo.";
-    // Con batería, primero los equipos que tienen alguna batería compatible en el catálogo
+    // Con batería, primero los equipos que tienen alguna batería compatible en el catálogo.
+    // Con el motor local, para que el orden no cambie al elegir un equipo.
     const batteries = systemType.needsBattery ? PRODUCTS.filter((p) => p.category === "bateria") : [];
-    const hasBattery = (c) => batteries.some((b) => { const ev = cfgEvalBattery(cfg, b, c); return !ev || ev.status !== "bad"; });
+    const hasBattery = (c) => batteries.some((b) => {
+      const ev = evaluateBatteryToConverter(b, cfg.batteryQty, c, cfg.systemVoltage);
+      return !ev || ev.status !== "bad";
+    });
     const converters = batteries.length
       ? cfgConverterOptions(systemType).map((c, i) => ({ c, i, ok: hasBattery(c) })).sort((a, b) => (b.ok - a.ok) || (a.i - b.i)).map((x) => x.c)
       : cfgConverterOptions(systemType);
@@ -373,9 +384,9 @@ function renderConfigurator(state) {
         name: `${esc(c.brand)} ${esc(c.name)}`,
         meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
-        msgs: ev && (bad || cfg.converterId === c.id) ? ev.messages : null,
+        msgs: bad ? ev.messages : null,
       });
-    }).join("")}</div>` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`,
+    }).join("")}</div>${cfgSelectedVerdictHTML(cfgEvalConverter(cfg, panel, converter), converter)}` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`,
       `Hola, quiero armar un sistema ${systemType.name}. ¿Me ayudan a elegir ${isReg ? "el regulador" : "el inversor"}?`);
   } else if (key === "battery") {
     title = "Elegí la batería";
@@ -389,9 +400,9 @@ function renderConfigurator(state) {
         name: `${esc(b.brand)} ${esc(b.name)}`,
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
         side: `${priceTagHTML(b, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
-        msgs: ev && (bad || cfg.batteryId === b.id) ? ev.messages : null,
+        msgs: bad ? ev.messages : null,
       });
-    }).join("")}</div>` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
+    }).join("")}</div>${cfgSelectedVerdictHTML(cfgEvalBattery(cfg, battery, converter), battery)}` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
     const fields = battery ? `
       <div class="cfg-fields">
         <div class="field">
