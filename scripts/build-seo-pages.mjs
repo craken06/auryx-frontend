@@ -264,4 +264,13 @@ ${urls.map((u) => `  <url>
 </urlset>
 `);
 
+/* ---------------------------------------------------------------- version.json */
+/* El sitio lo pide sin caché al abrir (ver checkNewVersion en app.js): si la versión publicada es
+   otra que el ?v= de la página que cargó, recarga. GitHub Pages deja el HTML hasta 10 min en la
+   caché del navegador (Cache-Control: max-age=600, no se puede cambiar). */
+// el de app.js: es el que compara la página (el primer ?v= del HTML es el comentario con el formato)
+const siteVersion = (read("index.html").match(/\/src\/app\.js\?v=([\w.-]+)/) || [])[1];
+if (!siteVersion) throw new Error("index.html no tiene /src/app.js?v=: no se puede escribir version.json");
+fs.writeFileSync(path.join(ROOT, "version.json"), JSON.stringify({ v: siteVersion }) + "\n");
+
 console.log(`Listo: ${PRODUCTS.length} productos, ${categories.length} categorías, ${STATIC_PAGES.length} páginas fijas, ${urls.length} URLs en sitemap.xml.`);

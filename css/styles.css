@@ -891,7 +891,31 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .option-meta-text, .dd-text { font-family: var(--font-sans); }
 .option-side { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 6px; }
 .option .ph-type { font-size: 28px; color: var(--accent-ink); margin-bottom: 6px; }
-.option-msgs { display: grid; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.875rem; color: var(--text-mid); }
+/* Motivos de compatibilidad: "!" junto a la etiqueta y el texto en un globo (hover, foco o toque) */
+.option-wrap { position: relative; display: grid; }
+.option.has-info .option-side { padding-right: 34px; }
+.option-info { position: absolute; right: 18px; bottom: 19px; } /* a la altura de la fila de precio y etiqueta */
+.info-btn {
+  display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent); font: 800 0.8125rem/1 var(--font-sans); cursor: help;
+}
+.info-btn:hover { background: var(--accent-hover); }
+.info-tip {
+  position: absolute; right: -8px; bottom: calc(100% + 10px); z-index: 20;
+  display: grid; gap: 6px; width: max-content; max-width: min(300px, calc(100vw - 48px));
+  padding: 10px 12px; border-radius: var(--r-control); background: var(--surface); border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow); color: var(--text); font-size: 0.8125rem; line-height: 1.45; text-align: left;
+  opacity: 0; visibility: hidden; transform: translateY(4px); pointer-events: none;
+  transition: opacity 0.15s var(--ease), transform 0.15s var(--ease), visibility 0.15s;
+}
+.info-tip::after { /* flecha hacia el "!" */
+  content: ""; position: absolute; right: 13px; top: 100%; width: 10px; height: 10px; margin-top: -5px;
+  background: var(--surface); border: solid var(--line-strong); border-width: 0 1px 1px 0; transform: rotate(45deg);
+}
+.option-info:hover .info-tip, .info-btn:focus-visible + .info-tip, .option-info.is-open .info-tip {
+  opacity: 1; visibility: visible; transform: none;
+}
+.option-info.is-dismissed .info-tip { opacity: 0; visibility: hidden; }
 
 .cfg-fields { display: grid; gap: 20px; margin-top: 20px; padding: 20px; border-radius: var(--r-surface); background: var(--bg-raised); border: 1px solid var(--line); }
 @media (min-width: 640px) { .cfg-fields { grid-template-columns: 1fr 1fr; } }

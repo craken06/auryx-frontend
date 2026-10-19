@@ -1121,6 +1121,10 @@ function setAccountMenu(dropdown, open) {
   const btn = dropdown.querySelector('[data-action="toggle-account-menu"]');
   if (btn) btn.setAttribute("aria-expanded", String(open));
 }
+/* "!" de los motivos en el paso a paso: con un toque se abre (en táctiles no hay hover). */
+function closeInfoTips(except) {
+  document.querySelectorAll(".option-info.is-open").forEach((box) => { if (box !== except) box.classList.remove("is-open"); });
+}
 function closeAccountMenus(except) {
   document.querySelectorAll(".dropdown.is-open").forEach((d) => { if (d !== except) setAccountMenu(d, false); });
 }
@@ -1129,6 +1133,12 @@ function closeAccountMenus(except) {
    DELEGACIÓN DE EVENTOS
    ========================================================================= */
 const ACTIONS = {
+  "toggle-info": (d, el) => {
+    const box = el.closest(".option-info");
+    const open = !box.classList.contains("is-open");
+    closeInfoTips();
+    box.classList.toggle("is-open", open);
+  },
   "nav-toggle": () => App.toggleMobileNav(),
   "currency-toggle": () => App.toggleCurrency(),
   "theme-toggle": () => App.toggleTheme(),
@@ -1320,8 +1330,9 @@ const CHANGE_BINDINGS = {
 };
 
 document.addEventListener("click", (e) => {
-  // menú de la cuenta abierto: un clic afuera lo cierra
+  // menú de la cuenta o motivos abiertos: un clic afuera los cierra
   closeAccountMenus(e.target.closest(".dropdown.is-open"));
+  closeInfoTips(e.target.closest(".option-info"));
 
   // clic a WhatsApp (cualquier link a wa.me): generate_lead con el lugar desde donde se hizo
   const wa = e.target.closest('a[href^="https://wa.me"]');
@@ -1429,6 +1440,14 @@ document.addEventListener("submit", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  const openTip = document.querySelector(".option-info.is-open") || document.querySelector(".info-btn:focus-visible")?.closest(".option-info");
+  if (openTip) {
+    closeInfoTips();
+    // con el foco en el "!" el motivo sigue visible: se oculta hasta que salga el foco
+    openTip.classList.add("is-dismissed");
+    openTip.addEventListener("focusout", () => openTip.classList.remove("is-dismissed"), { once: true });
+    return;
+  }
   const openMenu = document.querySelector(".dropdown.is-open");
   if (openMenu) {
     setAccountMenu(openMenu, false);
@@ -1691,11 +1710,42 @@ function setupBackToTop() {
 }
 
 /* =========================================================================
+   VERSIÓN NUEVA PUBLICADA
+   GitHub Pages manda el HTML con Cache-Control: max-age=600 y no se puede
+   cambiar: hasta 10 min después de publicar, el navegador muestra la versión
+   vieja sin preguntar. Al abrir la página se pide version.json sin caché (lo
+   escribe scripts/build-seo-pages.mjs con el ?v= de index.html); si es otra
+   versión, se recarga (la recarga sí revalida el HTML). Solo al abrir: más
+   tarde una recarga perdería lo que se está armando (configurador, checkout).
+   ========================================================================= */
+const PAGE_VERSION = ((document.currentScript && document.currentScript.src) || "").match(/[?&]v=([^&]+)/)?.[1] || null;
+const RELOADED_FOR_KEY = "auryx-reloaded-for-version";
+
+async function checkNewVersion() {
+  if (!PAGE_VERSION) return;
+  let published;
+  try {
+    const res = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    published = (await res.json()).v;
+  } catch (e) { return; }
+  if (!published || published === PAGE_VERSION) return;
+  // Una vez por versión: si el servidor todavía entrega el HTML viejo, no se recarga en bucle.
+  // Sin sessionStorage (modo privado estricto) no hay cómo evitarlo: no se recarga.
+  try {
+    if (sessionStorage.getItem(RELOADED_FOR_KEY) === published) return;
+    sessionStorage.setItem(RELOADED_FOR_KEY, published);
+  } catch (e) { return; }
+  location.reload();
+}
+
+/* =========================================================================
    INICIALIZACIÓN
    Las páginas que no dependen del catálogo se muestran enseguida; las de
    catálogo esperan a la API (con reintentos, ver App.loadCatalog).
    ========================================================================= */
 document.addEventListener("DOMContentLoaded", () => {
+  checkNewVersion();
   setupBackToTop();
   setupScrollMemory();
   try {

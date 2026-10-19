@@ -192,21 +192,34 @@ function verdictHTML(ev, title) {
   </div>`;
 }
 
-/* Motivos dentro de la tarjeta: por qué no es compatible o qué hay que revisar. Siempre visibles
-   (no solo al elegirla): así la tarjeta no cambia de tamaño con el clic. */
+/* Motivos de una opción: por qué no es compatible o qué hay que revisar (null si está todo bien). */
 function cfgOptionMessages(ev) {
-  return ev && (ev.status === "bad" || ev.status === "warning") ? ev.messages : null;
+  if (!ev || !ev.messages.length) return null;
+  if (ev.status === "bad") return { label: "Por qué no es compatible", messages: ev.messages };
+  if (ev.status === "warning") return { label: "Qué hay que revisar", messages: ev.messages };
+  return null;
 }
 
+/* Tarjeta de opción. Los motivos van en un "!" junto a la etiqueta, que los muestra al pasar el
+   mouse, con el foco o con un toque. Está fuera del botón de la tarjeta: así funciona aunque la
+   opción esté deshabilitada y tocarlo no la elige. */
 function optionButtonHTML({ id, action, selected, disabled, busy, name, meta, side, msgs }) {
-  return `
-  <button type="button" class="option" data-action="${action}" data-id="${esc(id)}" data-fid="${action}-${esc(id)}"
+  const button = `
+  <button type="button" class="option${msgs ? " has-info" : ""}" data-action="${action}" data-id="${esc(id)}" data-fid="${action}-${esc(id)}"
     aria-pressed="${selected}" ${disabled ? "disabled" : ""}${busy ? ' aria-busy="true"' : ""}>
     <span class="option-head"><span class="option-name">${name}</span></span>
     ${meta ? `<span class="option-meta mono">${meta}</span>` : ""}
     ${side ? `<span class="option-side">${side}</span>` : ""}
-    ${msgs && msgs.length ? `<span class="option-msgs">${msgs.map((m) => `<span>${esc(m)}</span>`).join("")}</span>` : ""}
   </button>`;
+  if (!msgs) return button;
+  const tipId = `tip-${action}-${esc(id)}`;
+  return `<div class="option-wrap">${button}
+    <span class="option-info">
+      <button type="button" class="info-btn" data-action="toggle-info" data-fid="info-${action}-${esc(id)}"
+        aria-label="${msgs.label}" aria-describedby="${tipId}">!</button>
+      <span class="info-tip" role="tooltip" id="${tipId}">${msgs.messages.map((m) => `<span>${esc(m)}</span>`).join("")}</span>
+    </span>
+  </div>`;
 }
 
 /* Paso sin productos en el catálogo: en vez de un callejón sin salida, se ofrece armarlo por WhatsApp. */
