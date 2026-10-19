@@ -60,7 +60,12 @@ function cfgServerCompat(cfg, slot) {
     const settle = (data) => {
       if (c.pendingKey !== req.key) return; // llegó tarde: el usuario ya cambió algo
       c.key = req.key; c.data = data; c.pendingKey = null;
-      if (App.state.view === "configurator" && App.state.cfgTool === "steps") App.render();
+      if (App.state.view !== "configurator" || App.state.cfgTool !== "steps") return;
+      // Mientras se escribe una cantidad no se redibuja (se perdería el cursor):
+      // lo hace el "change" del campo o el próximo clic
+      const active = document.activeElement;
+      if (active && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)) { App.renderPending = true; return; }
+      App.deferRender();
     };
     apiRequest("/compatibility/evaluate", { method: "POST", body: req.body, timeoutMs: CFG_COMPAT_TIMEOUT_MS }).then(settle, (err) => {
       console.warn("Compatibilidad: se usa el motor local.", err.message);
@@ -187,10 +192,10 @@ function verdictHTML(ev, title) {
   </div>`;
 }
 
-/* Detalle de compatibilidad del equipo elegido, debajo de la grilla de opciones. */
-function cfgSelectedVerdictHTML(ev, product) {
-  if (!ev || !product || !ev.messages.length) return "";
-  return `<div class="cfg-selected-verdict">${verdictHTML(ev, `${esc(product.brand)} ${esc(product.name)}`)}</div>`;
+/* Motivos dentro de la tarjeta: por qué no es compatible o qué hay que revisar. Siempre visibles
+   (no solo al elegirla): así la tarjeta no cambia de tamaño con el clic. */
+function cfgOptionMessages(ev) {
+  return ev && (ev.status === "bad" || ev.status === "warning") ? ev.messages : null;
 }
 
 function optionButtonHTML({ id, action, selected, disabled, busy, name, meta, side, msgs }) {
@@ -403,9 +408,9 @@ function renderConfigurator(state) {
         name: `${esc(c.brand)} ${esc(c.name)}`,
         meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
-        msgs: bad ? ev.messages : null,
+        msgs: cfgOptionMessages(ev),
       });
-    }).join("")}</div>${cfgSelectedVerdictHTML(cfgEvalConverter(cfg, panel, converter), converter)}` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`,
+    }).join("")}</div>` : emptyStepHTML(`No hay ${isReg ? "reguladores" : "inversores"} cargados para sistemas ${systemType.name}.`,
       `Hola, quiero armar un sistema ${systemType.name}. ¿Me ayudan a elegir ${isReg ? "el regulador" : "el inversor"}?`);
   } else if (key === "battery") {
     title = "Elegí la batería";
@@ -420,9 +425,9 @@ function renderConfigurator(state) {
         name: `${esc(b.brand)} ${esc(b.name)}`,
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
         side: `${priceTagHTML(b, cur)}${ev ? statusBadgeHTML(ev.status) : ""}`,
-        msgs: bad ? ev.messages : null,
+        msgs: cfgOptionMessages(ev),
       });
-    }).join("")}</div>${cfgSelectedVerdictHTML(cfgEvalBattery(cfg, battery, converter), battery)}` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
+    }).join("")}</div>` : emptyStepHTML("No hay baterías cargadas en el catálogo.");
     const fields = battery ? `
       <div class="cfg-fields">
         <div class="field">
@@ -472,6 +477,10 @@ function renderConfigurator(state) {
       </div>
     </div>`;
   }
+
+  // La compatibilidad se pide antes de llegar al paso que la muestra: al llegar ya está
+  if (key === "panels" && panel) cfgServerCompat(cfg, "conv");
+  if (converter && systemType && systemType.needsBattery) cfgServerCompat(cfg, "batt");
 
   const canNext = cfgCanAdvance(cfg);
   const isLast = cfg.step === steps.length - 1;
