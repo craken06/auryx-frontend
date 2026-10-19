@@ -60,6 +60,20 @@ function whatsappLink(text) {
 /* Aviso técnico general: se muestra donde el usuario ve resultados de compatibilidad o cálculo. */
 const TECH_DISCLAIMER = "Los resultados son orientativos. La verificación de compatibilidad usa los datos de la hoja del fabricante y corrige la tensión por la temperatura mínima indicada; las calculadoras son estimaciones con los valores que cargás. Ninguna considera sombras, pérdidas de cableado ni normativa local. No reemplazan un proyecto firmado por un profesional matriculado. El dimensionamiento final lo confirmamos con vos antes de la compra, y la instalación debe hacerla personal matriculado.";
 
+/* Nombre para mostrar. Los nombres del catálogo siguen el patrón "{Qué es} {Marca} {Tecnología} –
+   {Línea o modelo} – {Dato clave}" (ej. "Panel Solar Jinko N-Type TOPCon – Tiger Neo – 585 W") y ya
+   llevan la marca; los que todavía no, la llevan adelante. Mismo criterio que productTitle de la API
+   (src/products/title.ts): los pedidos y el dimensionador tienen que nombrar igual. */
+function productTitle(p) {
+  const name = String((p && p.name) || "");
+  const brandWord = String((p && p.brand) || "").trim().split(/\s+/)[0];
+  if (!brandWord) return name;
+  const re = new RegExp(`(^|[^\\p{L}\\p{N}])${brandWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "iu");
+  return re.test(name) ? name : `${p.brand} ${name}`;
+}
+/* Modelo técnico del fabricante (el nombre de antes, guardado en specs.modelo al renombrar). */
+const productModel = (p) => (p && p.specs && p.specs.modelo) || "";
+
 /* Instalación y asesoría sobre ciertas líneas ({ product, qty }): solo para mostrarla; lo que se
    cobra lo calcula la API con los precios de la base. */
 function installationPrice(lines) {

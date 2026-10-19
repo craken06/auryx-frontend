@@ -172,19 +172,22 @@ for (const p of PRODUCTS) {
   const body = run("renderProductDetail(__s)");
   ctx.__p = p;
   const specs = run("keySpecLine(__p)").replace(/\s+\/\s+/g, ", ");
+  const title = run("productTitle(__p)"); // "Panel Solar Jinko N-Type TOPCon – Tiger Neo – 585 W"
+  const model = run("productModel(__p)"); // código del fabricante, si se guardó al renombrar
   const description = clip(p.description
     ? p.description.replace(/\s+/g, " ").trim()
-    : `${p.name} de ${p.brand}${specs ? ` (${specs})` : ""}. ${CATEGORY_SINGULAR[p.category] || "Equipo"} con precio en pesos y compatibilidad verificada. Comprá online en AURYX.`, 160);
+    : `${title}${specs ? ` (${specs})` : ""}. ${CATEGORY_SINGULAR[p.category] || "Equipo"} con precio en pesos y compatibilidad verificada. Comprá online en AURYX.`, 160);
   const urlPath = productUrl(p);
   const crumbItems = [["Productos", "/productos/"], ...(cat ? [[cat.label, categoryUrl(p.category)]] : []), [p.name, urlPath]];
   page({
     urlPath, ogType: "product",
-    title: `${p.name}${p.brand ? ` · ${p.brand}` : ""} | AURYX`,
+    title: `${title} | AURYX`,
     description, image: p.image || null,
     graph: [ORG, crumbs(crumbItems), {
       "@type": "Product",
       "@id": `${SITE}${urlPath}#producto`,
-      name: p.name,
+      name: title,
+      ...(model ? { model } : {}),
       ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
       ...(api?.sku ? { sku: api.sku, mpn: api.sku } : {}),
       ...(cat ? { category: cat.label } : {}),

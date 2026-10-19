@@ -629,12 +629,12 @@ function sizerCustomResult(cu) {
   const acKw = nInv * inv.kw;
 
   const extra = [];
-  if (plan.impossible) extra.push({ tone: "bad", text: `Con ${fmtNum(env.tmin)} °C y ${fmtNum(env.tmax)} °C no hay una cantidad de paneles en serie que entre en la ventana de tensión del ${inv.brand} ${inv.name}.` });
+  if (plan.impossible) extra.push({ tone: "bad", text: `Con ${fmtNum(env.tmin)} °C y ${fmtNum(env.tmax)} °C no hay una cantidad de paneles en serie que entre en la ventana de tensión del ${productTitle(inv)}.` });
   extra.push({ tone: n <= t.nArea ? "ok" : "bad", text: `Superficie: ${n} paneles ocupan ${fmtNum(n * pan.area, 1)} m² de ${fmtNum(sizerNum(cu.area))} m² libres.` });
   if (t.nReq > t.nArea) extra.push({ tone: "warn", text: `El techo limita: para el objetivo harían falta ${t.nReq} paneles (${fmtNum(t.nReq * pan.area)} m²).` });
   if (n < t.nTarget && !plan.impossible) extra.push({ tone: "warn", text: nInv > 1
     ? `Se usan ${n} de los ${t.nTarget} paneles posibles, para que los ${nInv} inversores queden iguales y sin sumar uno más.`
-    : `Se usan ${n} de los ${t.nTarget} paneles posibles: es lo que admite un ${inv.brand} ${inv.name} y evita sumar otro inversor.` });
+    : `Se usan ${n} de los ${t.nTarget} paneles posibles: es lo que admite un ${productTitle(inv)} y evita sumar otro inversor.` });
   if (backup) extra.push({ tone: acKw >= crit ? "ok" : "bad", text: `Potencia AC de ${fmtNum(acKw)} kW para ${fmtNum(crit, 1)} kW de cargas críticas.` });
   if (inv.type !== "off" && cu.phase !== inv.phase) extra.push({ tone: "bad", text: "La fase del inversor no coincide con la conexión." });
   if (cu.phase === "mono" && acKw > 10) extra.push({ tone: "warn", text: `${fmtNum(acKw)} kW de inversores en una conexión monofásica: lo habitual es no pasar de 10 kW. Consultá con tu distribuidora o pasá a trifásica.` });
@@ -682,7 +682,7 @@ function sizerRoi(r, cons, goal) {
 /* Render                                                                  */
 /* ---------------------------------------------------------------------- */
 const sizerMoney = (usd, currency) => (currency === "USD" ? fmtUSD(usd) : fmtARS(usd * USD_ARS_RATE));
-const sizerItemName = (it) => `${it.brand} ${it.name}`;
+const sizerItemName = (it) => productTitle(it);
 
 function sizerOptions(list, selected, label) {
   return list.map((x) => `<option value="${esc(x.id ?? x.value)}" ${String(x.id ?? x.value) === String(selected) ? "selected" : ""}${x.disabled ? " disabled" : ""}>${esc(label(x))}</option>`).join("");

@@ -1009,7 +1009,7 @@ function pageTitle(s) {
     case "store": return named(CATEGORY_META[s.storeCategory] ? CATEGORY_META[s.storeCategory].label : "Productos");
     case "product-detail": {
       const p = findProduct(s.selectedProductId);
-      return named(p ? `${p.name}${p.brand ? ` · ${p.brand}` : ""}` : "Producto");
+      return named(p ? productTitle(p) : "Producto");
     }
     case "configurator": return named(s.cfgTool === "steps" ? "Configurador paso a paso" : "Diseñá tu sistema");
     case "calculators": {

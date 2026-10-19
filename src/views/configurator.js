@@ -369,7 +369,7 @@ function renderConfigurator(state) {
     const panels = PRODUCTS.filter((p) => p.category === "panel");
     const list = panels.length ? `<div class="option-list">${panels.map((p) => optionButtonHTML({
       id: p.id, action: "cfg-panel", selected: cfg.panelId === p.id,
-      name: `${esc(p.brand)} ${esc(p.name)}`,
+      name: esc(productTitle(p)),
       meta: esc([
         p.specs.pmax != null ? specValueText("pmax", p.specs.pmax) : p.specs.potencia_wp != null ? specValueText("potencia_wp", p.specs.potencia_wp) : null,
         p.specs.voc != null ? `Voc ${specValueText("voc", p.specs.voc)}` : null,
@@ -433,7 +433,7 @@ function renderConfigurator(state) {
     const convEvals = converters.map((c) => cfgEvalConverter(cfg, panel, c));
     const noneOk = convEvals.length && convEvals.every(cfgIncompatible);
     body = converters.length ? `${noneOk ? cfgNoneCompatibleHTML(isReg ? "regulador" : "inversor",
-      `Hola, quiero armar un sistema ${systemType.name} con ${cfg.panelQty} paneles ${panel ? `${panel.brand} ${panel.name}` : ""} y no encontré ${isReg ? "regulador" : "inversor"} compatible en la web.`) : ""}<div class="option-list">${converters.map((c, i) => {
+      `Hola, quiero armar un sistema ${systemType.name} con ${cfg.panelQty} paneles ${panel ? productTitle(panel) : ""} y no encontré ${isReg ? "regulador" : "inversor"} compatible en la web.`) : ""}<div class="option-list">${converters.map((c, i) => {
       const ev = convEvals[i];
       const bad = cfgIncompatible(ev);
       const pending = ev && ev.status === "pending";
@@ -441,7 +441,7 @@ function renderConfigurator(state) {
       const desc = microNote + (c.description || "");
       return optionButtonHTML({
         id: c.id, action: "cfg-converter", selected: cfg.converterId === c.id, disabled: bad || pending, busy: pending,
-        name: `${esc(c.brand)} ${esc(c.name)}`,
+        name: esc(productTitle(c)),
         meta: desc ? `<span class="option-meta-text">${esc(desc)}</span>` : "",
         side: `${priceTagHTML(c, cur)}${cfgOptionFlag(ev)}`,
         msgs: cfgOptionMessages(ev),
@@ -455,7 +455,7 @@ function renderConfigurator(state) {
     const battEvals = batteries.map((b) => cfgEvalBattery(cfg, b, converter));
     const noneOk = battEvals.length && battEvals.every(cfgBatteryIncompatible);
     const list = batteries.length ? `${noneOk ? cfgNoneCompatibleHTML("batería",
-      `Hola, quiero armar un sistema ${systemType.name} con el inversor ${converter ? `${converter.brand} ${converter.name}` : ""} y no encontré batería compatible en la web.`) : ""}<div class="option-list">${batteries.map((b, i) => {
+      `Hola, quiero armar un sistema ${systemType.name} con el inversor ${converter ? productTitle(converter) : ""} y no encontré batería compatible en la web.`) : ""}<div class="option-list">${batteries.map((b, i) => {
       const ev = battEvals[i];
       const bad = cfgBatteryIncompatible(ev);
       const pending = ev && ev.status === "pending";
@@ -464,7 +464,7 @@ function renderConfigurator(state) {
         : ev && ev.minQty > 1 ? `<span class="option-flag">Desde ${ev.minQty} unidades</span>` : "";
       return optionButtonHTML({
         id: b.id, action: "cfg-battery", selected: cfg.batteryId === b.id, disabled: bad || pending, busy: pending,
-        name: `${esc(b.brand)} ${esc(b.name)}`,
+        name: esc(productTitle(b)),
         meta: esc(`${b.specs.nominalVoltage != null ? specValueText("nominalVoltage", b.specs.nominalVoltage) : "s/d"} / ${Number(b.specs.capacityWh) > 0 ? `${fmtNum(b.specs.capacityWh / 1000, 2)} kWh` : "capacidad s/d"}`),
         side: `${priceTagHTML(b, cur)}${flag}`,
         msgs: bad && ev.messages.length ? { label: "Por qué es incompatible", messages: ev.messages } : null,
@@ -514,7 +514,7 @@ function renderConfigurator(state) {
       <div class="panel panel-pad">
         <h3 class="cfg-review-title">Lista de materiales</h3>
         <ul class="summary-lines summary-lines-flush">
-          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(l.product.brand)} ${esc(l.product.name)}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
+          ${lines.map((l) => `<li><span class="name"><span class="mono">${l.qty}×</span> ${esc(productTitle(l.product))}</span>${priceTagHTML({ priceARS: l.product.priceARS * l.qty, priceUSD: l.product.priceUSD * l.qty }, cur)}</li>`).join("")}
           ${inst ? `<li class="summary-line-service"><span class="name">${icon("wrench")} ${INSTALLATION_LABEL} <span class="xsmall dim">(${pct} % de los equipos)</span></span>${priceTagHTML(inst, cur)}</li>` : ""}
         </ul>
         <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.grandPriceARS, priceUSD: totals.grandPriceUSD }, cur, "lg")}</div>

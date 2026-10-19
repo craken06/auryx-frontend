@@ -27,7 +27,9 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80).replace(/-+$/, "");
 }
 
-/* Slug de cada producto: marca + nombre; si dos coinciden, el más nuevo lleva el número al final. */
+/* Slug de cada producto: marca + modelo técnico (specs.modelo, el nombre de antes) o, si no hay, el
+   nombre; si dos coinciden, el más nuevo lleva el número al final. Con el modelo, renombrar un
+   producto no le cambia la dirección (la que ya indexó Google). */
 let productSlugCache = { list: null, byId: new Map(), bySlug: new Map() };
 function productSlugMaps() {
   if (productSlugCache.list === PRODUCTS) return productSlugCache;
@@ -35,7 +37,7 @@ function productSlugMaps() {
   const bySlug = new Map();
   const num = (p) => Number(String(p.id).replace(/\D/g, "")) || 0;
   [...PRODUCTS].sort((a, b) => num(a) - num(b)).forEach((p) => {
-    let slug = slugify(`${p.brand || ""} ${p.name}`) || String(p.id);
+    let slug = slugify(`${p.brand || ""} ${(p.specs && p.specs.modelo) || p.name}`) || String(p.id);
     if (bySlug.has(slug)) slug = `${slug}-${num(p)}`;
     byId.set(p.id, slug);
     bySlug.set(slug, p.id);

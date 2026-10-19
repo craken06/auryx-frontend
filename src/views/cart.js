@@ -32,7 +32,7 @@ function cartInstallationHTML(systemId, items, currency) {
 /* Texto del pedido: lo usan el botón de WhatsApp y el formulario de contacto. */
 function quoteMessage(state) {
   const t = cartTotals(state.cart);
-  const lines = state.cart.map((it) => `- ${it.qty} x ${it.product.brand} ${it.product.name}`);
+  const lines = state.cart.map((it) => `- ${it.qty} x ${productTitle(it.product)}`);
   if (t.installation) lines.push(`- ${INSTALLATION_LABEL} (${Math.round(INSTALLATION_RATE * 100)} % de los equipos del sistema)`);
   const total = state.currency === "USD" ? fmtUSD(t.priceUSD) : fmtARS(t.priceARS);
   return `Hola, quiero pedir una cotización por:\n${lines.join("\n")}\n\nTotal estimado en la web: ${total} (IVA incluido)`;

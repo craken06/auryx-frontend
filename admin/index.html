@@ -275,7 +275,7 @@
 
   <div class="row">
     <div><label for="brand">Marca</label><input id="brand" placeholder="Canadian Solar…" autocomplete="off"></div>
-    <div><label for="name">Nombre / Modelo</label><input id="name" placeholder="CS6R-550MS…" autocomplete="off"></div>
+    <div><label for="name">Nombre</label><input id="name" placeholder="Panel Solar Jinko N-Type TOPCon – Tiger Neo – 585 W" title="Patrón: {Qué es} {Marca} {Tecnología} – {Línea o modelo} – {Dato clave}. El código técnico va en specs.modelo." autocomplete="off"></div>
   </div>
 
   <div class="row">
@@ -558,7 +558,8 @@ async function cargarCategorias() {
 function cargarPlantilla() {
   const sel = document.getElementById('category_id');
   const slug = sel.options[sel.selectedIndex]?.dataset.slug;
-  document.getElementById('specs').value = JSON.stringify(plantillas[slug] || {}, null, 2);
+  // modelo: código técnico del fabricante (se ve en la ficha y arma la dirección del producto)
+  document.getElementById('specs').value = JSON.stringify({ modelo: '', ...(plantillas[slug] || {}) }, null, 2);
 }
 
 const FIELDS = ['brand', 'name', 'sku', 'price', 'currency', 'stock_status', 'active', 'description', 'datasheet_url', 'specs'];

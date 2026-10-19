@@ -11,7 +11,7 @@ const DETAIL_SPEC_ALIASES = {
   capacidad_kwh: "capacityWh", vida_util_ciclos: "cycles", corriente_max_entrada: "maxInputCurrentPerMppt",
 };
 /* Claves que no se muestran en la tabla (systemTypes ya se ve en el filtro de la tienda y en el configurador). */
-const DETAIL_SPEC_HIDDEN = ["systemTypes", "system_types"];
+const DETAIL_SPEC_HIDDEN = ["systemTypes", "system_types", "modelo"]; // modelo: va junto a la marca
 /* Valores de texto que llegan sin tilde o en minúscula. */
 const DETAIL_SPEC_VALUE_TEXT = { monofasico: "Monofásico", trifasico: "Trifásico", monofásico: "Monofásico", trifásico: "Trifásico", bifasico: "Bifásico" };
 
@@ -62,7 +62,7 @@ function renderProductDetail(state) {
     <div class="detail-grid">
       ${productThumbHTML(p, "thumb-lg")}
       <div class="detail-info">
-        <p class="small dim">${esc(p.brand)}${catMeta ? ` / ${catMeta.label}` : ""}</p>
+        <p class="small dim">${esc(p.brand)}${catMeta ? ` / ${catMeta.label}` : ""}${productModel(p) ? ` · Modelo: <span class="mono">${esc(productModel(p))}</span>` : ""}</p>
         <h1>${esc(p.name)}</h1>
         <div>${availabilityBadgeHTML(p.availability)}</div>
         ${p.description ? `<p class="muted">${esc(p.description)}</p>` : ""}
