@@ -58,6 +58,7 @@ function adaptApiProduct(apiProduct) {
     // imageAlt: el texto alternativo que se carga en el admin (vacío = productThumbHTML decide).
     image: firstImage?.url || null,
     imageAlt: (firstImage && typeof firstImage.altText === "string" && firstImage.altText.trim()) || "",
+    inStore: apiProduct.showInStore !== false, // false: fuera de la tienda, solo para el dimensionador
     _fromApi: true,
   };
 }

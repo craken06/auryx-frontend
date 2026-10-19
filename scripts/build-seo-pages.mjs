@@ -57,7 +57,7 @@ const [apiProducts, rate] = await Promise.all([getJSON("/products"), getJSON("/e
 if (!Array.isArray(apiProducts) || apiProducts.length === 0) throw new Error("La API devolvió un catálogo vacío: no se toca nada.");
 if (!(Number(rate.usdArs) > 0)) throw new Error("Cotización inválida: no se toca nada.");
 ctx.__api = apiProducts;
-run(`USD_ARS_RATE = ${Number(rate.usdArs)}; PRODUCTS = __api.map(adaptApiProduct);`);
+run(`USD_ARS_RATE = ${Number(rate.usdArs)}; setCatalog(__api.map(adaptApiProduct));`); // sin los ocultos en la tienda
 const PRODUCTS = run("PRODUCTS");
 const CATEGORY_META = run("CATEGORY_META");
 const CALCULATOR_LINKS = run("CALCULATOR_LINKS");

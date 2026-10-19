@@ -36,6 +36,20 @@ async function apiFetch(token, path, options = {}) {
   return data;
 }
 
+// Dónde se usa un producto (columnas active y showInStore de la API):
+// tienda = tienda + dimensionador; dimensionador = oculto en la tienda (tienda, ficha, paso a paso y pedidos),
+// el dimensionador lo sigue usando; ninguno = desactivado, no se usa en ningún lado.
+const VISIBILITY = {
+  tienda: { active: true, showInStore: true },
+  dimensionador: { active: true, showInStore: false },
+  ninguno: { active: false },
+};
+const visibilityOf = (p) => (p.active === false ? 'ninguno' : p.showInStore === false ? 'dimensionador' : 'tienda');
+function visibilityPayload(v) {
+  if (!VISIBILITY[v]) throw new ApiError('Valor inválido para "dónde se usa"', 400);
+  return VISIBILITY[v];
+}
+
 function productToAdminRow(p) {
   const specs = p.specs || {};
   return {
@@ -46,7 +60,7 @@ function productToAdminRow(p) {
     price: p.price,
     currency: p.currency,
     stock_status: p.stockStatus,
-    active: p.active,
+    visibility: visibilityOf(p),
     category_name: p.category ? p.category.name : '',
     images: (p.images || []).length,
     in_configurator: Array.isArray(specs.systemTypes) && specs.systemTypes.length > 0,
@@ -64,7 +78,7 @@ function productToAdminDetail(p) {
     price: p.price,
     currency: p.currency,
     stock_status: p.stockStatus,
-    active: p.active,
+    visibility: visibilityOf(p),
     description: p.description,
     specs: p.specs,
     datasheet_url: p.datasheetUrl,
@@ -90,7 +104,7 @@ function adminBodyToApiPayload(body) {
     description: body.description || undefined,
     specs,
     datasheetUrl: body.datasheet_url || undefined,
-    ...(body.active === undefined ? {} : { active: body.active === true || body.active === 'true' }),
+    ...(body.visibility === undefined ? {} : visibilityPayload(body.visibility)),
   };
 }
 
@@ -122,6 +136,11 @@ const ROUTES = [
     if (!category_id || !brand || !name || !price) throw new ApiError('Faltan campos obligatorios: categoría, marca, nombre y precio', 400);
     const product = await apiFetch(c.t, '/products', json('POST', adminBodyToApiPayload(c.b)));
     return { success: true, id: product.id };
+  }],
+  // cambio rápido desde la lista: manda solo active/showInStore (el PUT de abajo pisa todos los campos)
+  ['PUT', '/api/products/:id/visibility', async (c) => {
+    const product = await apiFetch(c.t, `/products/${enc(c.p.id)}`, json('PUT', visibilityPayload((c.b || {}).visibility)));
+    return { success: true, id: product.id, visibility: visibilityOf(product) };
   }],
   ['PUT', '/api/products/:id', async (c) => {
     const product = await apiFetch(c.t, `/products/${enc(c.p.id)}`, json('PUT', adminBodyToApiPayload(c.b || {})));

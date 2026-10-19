@@ -1094,7 +1094,7 @@ App.loadCatalog = async function () {
       },
     });
     if (products) {
-      PRODUCTS = products;
+      setCatalog(products);
       s.catalog = "ready";
       if (!this.cartReady) {
         s.cart = restoreCart();

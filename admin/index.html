@@ -209,6 +209,9 @@
     display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-right: 10px;
   }
   .avatar.big { width: 64px; height: 64px; font-size: 28px; margin-right: 0; }
+  .vis { display: block; width: auto; min-width: 170px; min-height: 32px; padding-block: 4px; margin-bottom: 4px; font-size: 0.8125rem; font-weight: 600; }
+  .vis-dimensionador { background-color: var(--warn-bg); color: var(--warn); }
+  .vis-ninguno { background-color: var(--bad-bg); color: var(--bad); }
   .ful { display: grid; gap: 6px; min-width: 170px; }
   .ful select, .ful input { min-height: 34px; padding-block: 5px; }
   .ful button.small { justify-self: start; margin: 0 !important; }
@@ -292,8 +295,12 @@
         <option value="a_pedido">A pedido</option>
         <option value="sin_stock">Sin stock</option>
       </select></div>
-    <div><label for="active">Visible en la tienda</label>
-      <select id="active"><option value="true">Sí</option><option value="false">No (oculto)</option></select></div>
+    <div><label for="visibility">Dónde se usa</label>
+      <select id="visibility">
+        <option value="tienda">En la tienda y en el dimensionador</option>
+        <option value="dimensionador">Solo en el dimensionador (oculto en la tienda)</option>
+        <option value="ninguno">Desactivado (no se usa en ningún lado)</option>
+      </select></div>
     <div><label for="datasheet_url">URL Datasheet</label><input id="datasheet_url" type="url" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
   </div>
 
@@ -333,7 +340,7 @@
   </div>
   <div class="table-wrap">
     <table id="tabla">
-      <thead><tr><th>ID</th><th>Categoría</th><th>Marca</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>ID</th><th>Categoría</th><th>Marca</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Dónde se usa</th><th>Acciones</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -437,7 +444,7 @@
 </div>
 
 <script src="../src/config.js?v=20261023"></script>
-<script src="backend.js?v=20261023"></script>
+<script src="backend.js?v=20261024"></script>
 <script>
 let categorias = [];
 let editingImages = [];
@@ -562,7 +569,7 @@ function cargarPlantilla() {
   document.getElementById('specs').value = JSON.stringify({ modelo: '', ...(plantillas[slug] || {}) }, null, 2);
 }
 
-const FIELDS = ['brand', 'name', 'sku', 'price', 'currency', 'stock_status', 'active', 'description', 'datasheet_url', 'specs'];
+const FIELDS = ['brand', 'name', 'sku', 'price', 'currency', 'stock_status', 'visibility', 'description', 'datasheet_url', 'specs'];
 
 async function guardarProducto() {
   const editingId = document.getElementById('editing_id').value;
@@ -587,7 +594,7 @@ async function editarProducto(id) {
   document.getElementById('price').value = p.price || '';
   document.getElementById('currency').value = p.currency || 'ARS';
   document.getElementById('stock_status').value = p.stock_status || 'disponible';
-  document.getElementById('active').value = String(p.active !== false);
+  document.getElementById('visibility').value = p.visibility || 'tienda';
   document.getElementById('description').value = p.description || '';
   document.getElementById('datasheet_url').value = p.datasheet_url || '';
   document.getElementById('specs').value = JSON.stringify(p.specs || {}, null, 2);
@@ -603,7 +610,7 @@ async function editarProducto(id) {
 function cancelarEdicion() {
   document.getElementById('editing_id').value = '';
   ['brand', 'name', 'sku', 'price', 'description', 'datasheet_url', 'specs'].forEach((f) => { document.getElementById(f).value = ''; });
-  document.getElementById('active').value = 'true';
+  document.getElementById('visibility').value = 'tienda';
   document.getElementById('images_box').classList.add('hidden');
   document.getElementById('btn_guardar').textContent = 'Guardar producto';
   document.getElementById('form_title').textContent = 'Cargar producto';
@@ -639,9 +646,26 @@ async function borrarImagen(imageId) {
 }
 
 async function borrarProducto(id) {
-  if (!confirm(`¿Borrar el producto ID ${id}? No se puede deshacer. (Para ocultarlo sin borrarlo, editalo y poné "Visible: No".)`)) return;
+  if (!confirm(`¿Borrar el producto ID ${id}? No se puede deshacer. (Para sacarlo de la tienda sin borrarlo, cambiá "Dónde se usa" a "Solo dimensionador" o "Desactivado".)`)) return;
   try { await api(`/api/products/${id}`, { method: 'DELETE' }); flash('msg', `Producto ${id} borrado`); cargarProductos(); }
   catch (err) { flash('msg', err.message, false); }
+}
+
+// Dónde se usa (ver VISIBILITY en backend.js): se cambia desde la lista sin abrir el formulario.
+const VISIBILITY_LABEL = { tienda: 'En la tienda', dimensionador: 'Solo dimensionador', ninguno: 'Desactivado' };
+const visibilitySelect = (p) => `<select class="vis vis-${esc(p.visibility)}" aria-label="Dónde se usa el producto ${Number(p.id)}" onchange="cambiarVisibilidad(${Number(p.id)}, this)">
+  ${Object.entries(VISIBILITY_LABEL).map(([v, label]) => `<option value="${v}"${v === p.visibility ? ' selected' : ''}>${label}</option>`).join('')}</select>`;
+
+async function cambiarVisibilidad(id, sel) {
+  sel.disabled = true;
+  try {
+    const r = await api(`/api/products/${id}/visibility`, { method: 'PUT', body: JSON.stringify({ visibility: sel.value }) });
+    sel.className = `vis vis-${r.visibility}`;
+    flash('msg', `Producto ${id}: ${VISIBILITY_LABEL[r.visibility].toLowerCase()}`);
+  } catch (err) {
+    flash('msg', err.message, false);
+    cargarProductos(); // vuelve a mostrar el valor guardado
+  } finally { sel.disabled = false; }
 }
 
 const STOCK = { disponible: ['Disponible', 'ok'], a_pedido: ['A pedido', 'warn'], sin_stock: ['Sin stock', 'bad'] };
@@ -653,7 +677,7 @@ async function cargarProductos() {
     <tr>
       <td>${p.id}</td><td>${esc(p.category_name)}</td><td>${esc(p.brand)}</td><td>${esc(p.name)}</td>
       <td style="white-space:nowrap">${esc(Number(p.price).toLocaleString('es-AR'))} ${esc(p.currency)}</td><td>${stockTag(p.stock_status)}</td>
-      <td>${p.active ? '' : '<span class="tag warn">oculto</span>'}${p.images ? `<span class="tag">${p.images} img</span>` : ''}${p.in_configurator ? '<span class="tag ok">configurador</span>' : ''}</td>
+      <td>${visibilitySelect(p)}${p.images ? `<span class="tag">${p.images} img</span>` : ''}${p.in_configurator ? '<span class="tag ok">configurador</span>' : ''}</td>
       <td><button class="secondary small" onclick="editarProducto(${Number(p.id)})"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Editar</button>
           <button class="danger small icon-only" onclick="borrarProducto(${Number(p.id)})" aria-label="Borrar producto ${Number(p.id)}"><i class="ph ph-trash" aria-hidden="true"></i></button></td>
     </tr>`).join('');

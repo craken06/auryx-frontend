@@ -100,7 +100,15 @@ const DEMO_PRODUCTS = [
   },
 ];
 // Catálogo en uso: vacío hasta que responde la API (o DEMO_PRODUCTS en modo demo local).
+// PRODUCTS = lo que se ve en la tienda, la ficha, el paso a paso y el carrito.
+// SIZER_PRODUCTS = todo el catálogo activo, incluidos los ocultos en la tienda (inStore false, se marca
+// en el admin): con eso calcula el dimensionador, igual que la API (POST /sizer).
 let PRODUCTS = [];
+let SIZER_PRODUCTS = [];
+function setCatalog(list) {
+  SIZER_PRODUCTS = list;
+  PRODUCTS = list.filter((p) => p.inStore !== false);
+}
 
 /* Productos por categoría: del catálogo si ya cargó; si no, el resumen del último build
    (data/catalog-summary.js), así la home y el pie no esperan a la API. */

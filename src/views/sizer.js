@@ -1,7 +1,7 @@
 /* AURYX: dimensionador FV+BESS de "Diseñá tu sistema" (automático: rápido o personalizado).
    Calcula y muestra la configuración eléctrica: strings, serie/paralelo por MPPT y armado del banco de
    baterías, y verifica la compatibilidad entre cada par de componentes.
-   Usa los equipos del catálogo de la tienda (PRODUCTS) que tienen los datos que pide el cálculo; si para
+   Usa los equipos del catálogo (SIZER_PRODUCTS: incluye los ocultos en la tienda) que tienen los datos que pide el cálculo; si para
    un tipo no hay ninguno, cae a los equipos de referencia de abajo. Precios en USD.
    El resultado que vale es el de la API (POST /sizer, src/sizer/sizer.ts de compragamer-api); este cálculo
    es la copia que se muestra al instante y queda de respaldo: los cambios de cálculo van en los dos lados.
@@ -99,10 +99,10 @@ function sizerBatteryFromProduct(p) {
     min: 1, max: sizerPos(s.maxParallel), imax, usd: p.priceUSD, real: true };
 }
 
-/* Se recalcula solo cuando cambia el catálogo (al cargar desde la API se reemplaza PRODUCTS). */
+/* Se recalcula solo cuando cambia el catálogo (al cargar desde la API se reemplaza SIZER_PRODUCTS). */
 let SIZER_CATALOG = null;
 function sizerCatalog() {
-  const src = typeof PRODUCTS !== "undefined" ? PRODUCTS : [];
+  const src = typeof SIZER_PRODUCTS !== "undefined" ? SIZER_PRODUCTS : [];
   if (SIZER_CATALOG && SIZER_CATALOG.src === src) return SIZER_CATALOG;
   const pick = (cat, adapt) => src.filter((p) => p.category === cat).map(adapt).filter(Boolean);
   const panels = pick("panel", sizerPanelFromProduct);
@@ -965,7 +965,7 @@ const SIZER_SERVER = { key: null, data: null, pendingKey: null, timer: null };
 
 function sizerResult(kind, st) {
   const local = kind === "quick" ? sizerQuickResult(st) : sizerCustomResult(st);
-  if ((typeof DEMO_MODE !== "undefined" && DEMO_MODE) || !PRODUCTS.some((p) => p._fromApi)) return local;
+  if ((typeof DEMO_MODE !== "undefined" && DEMO_MODE) || !SIZER_PRODUCTS.some((p) => p._fromApi)) return local;
   const body = { mode: kind, inputs: { ...st } };
   const key = JSON.stringify(body);
   if (SIZER_SERVER.key === key) return SIZER_SERVER.data || local;
