@@ -40,10 +40,10 @@ igual; tienda, ficha, carrito y dimensionador con catálogo real se prueban en e
 | Diseñá tu sistema (dimensionador / paso a paso) | `/disena-tu-sistema/`, `/disena-tu-sistema/paso-a-paso/` | `views/sizer.js`, `views/configurator.js` |
 | Calculadoras (índice y una página por calculadora) | `/calculadoras/`, `/calculadoras/{consumo,costo,ahorro,orientacion}/` | `views/calculators/*` |
 | Guías | `/guias/`, `/guias/<slug>/` | `views/guides.js` |
-| Para instaladores (link solo en el pie) | `/para-instaladores/` | `views/installers.js` |
+| Para instaladores | `/para-instaladores/` | `views/installers.js` |
 | Tienda, categorías, ficha, carrito | `/productos/`, `/categorias/<slug>/`, `/productos/<slug>/`, `/carrito/` | `views/store.js`, `views/productDetail.js`, `views/cart.js` |
 | Cuenta y pedidos | `/ingresar/`, `/mi-cuenta/`, `/mis-pedidos/`, `/pedido/<código>/` | `views/account.js` |
-| Información, contacto, legales, arrepentimiento | `/informacion/`, `/contacto/`, `/terminos/`, `/privacidad/`, `/arrepentimiento/` | `views/infoContact.js`, `views/legal.js` |
+| Información, contacto, legales, arrepentimiento (en el pie) | `/informacion/`, `/contacto/`, `/terminos/`, `/privacidad/`, `/arrepentimiento/` | `views/infoContact.js`, `views/legal.js` |
 | Administración | `/admin/` | `admin/index.html` + `admin/backend.js` |
 
 ## Estructura

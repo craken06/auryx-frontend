@@ -17,6 +17,43 @@ const CALCULATOR_LINKS = [
   { id: "orientacion", icon: "compass", name: "Orientación y ángulo", text: "Hacia dónde y con qué inclinación instalar los paneles." },
 ];
 
+/* Lo que hace AURYX. El dimensionamiento va destacado: es lo que nos diferencia. El texto de "Asesoría"
+   y de la instalación no promete zona ni plazos (no están definidos). */
+const HOME_SERVICES = [
+  { id: "sizing", icon: "lightning", title: "Dimensionamiento automatizado", featured: true,
+    text: "Cargás tu consumo y tu zona. El dimensionador elige paneles, inversor y baterías, arma los strings y verifica que todo sea compatible.",
+    points: ["Equipos reales con precio en pesos", "Compatibilidad eléctrica verificada", "Ahorro y retorno estimados"],
+    href: "#configurator", link: "Diseñar mi sistema" },
+  { id: "sale", icon: "solar-panel", title: "Venta de equipos",
+    text: "Paneles, inversores, baterías, protecciones y estructuras de marcas reconocidas, con IVA incluido.",
+    href: "#store", link: "Ver productos" },
+  { id: "advice", icon: "chat-circle-text", title: "Asesoría",
+    text: `Una persona de <span translate="no">AURYX</span> revisa tu consumo, tu techo y los equipos antes de que compres.`,
+    wa: "Hola, quiero que me asesoren con un sistema solar.", link: "Hablar con un asesor" },
+  { id: "install", icon: "wrench", title: "Instalación",
+    text: "La sumás al armar tu sistema y la coordinamos nosotros, con personal matriculado.",
+    href: "#info", link: "Cómo trabajamos" },
+];
+
+function homeServiceLink(s) {
+  return s.wa
+    ? `<a class="link-arrow" href="${whatsappLink(s.wa)}" target="_blank" rel="noopener" data-context="home-asesoria">${s.link} ${icon("arrow-right")}</a>`
+    : `<a class="link-arrow" href="${s.href}">${s.link} ${icon("arrow-right")}</a>`;
+}
+
+function homeServicesHTML() {
+  return `<div class="services">
+    ${HOME_SERVICES.map((s, i) => `
+    <article class="service${s.featured ? " service-featured" : ""} service-${s.id}" data-reveal style="--i:${i}">
+      <span class="service-icon">${icon(s.icon)}</span>
+      <h3>${s.title}</h3>
+      <p>${s.text}</p>
+      ${s.points ? `<ul class="service-points">${s.points.map((p) => `<li>${icon("check")}${p}</li>`).join("")}</ul>` : ""}
+      ${s.featured ? `<a href="${s.href}" class="btn btn-primary">${s.link} ${icon("arrow-right")}</a>` : homeServiceLink(s)}
+    </article>`).join("")}
+  </div>`;
+}
+
 /* Qué pasa después de armar el sistema. Lo usan la home, el carrito y la página de información. */
 const PROCESS_STEPS = [
   { icon: "solar-panel", title: "Armás tu sistema", text: "En el configurador o eligiendo productos sueltos. Para armarlo no hace falta registrarte; para pagar online ingresás con Google." },
@@ -67,17 +104,24 @@ function renderHome(state) {
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <p class="eyebrow" style="--i:0">Energía solar para casas y PyMEs</p>
-        <h1 id="hero-title" class="hero-title" style="--i:1">Armá tu sistema solar, <em>componente por componente.</em></h1>
-        <p class="hero-sub" style="--i:2">Elegí panel, inversor y batería. Verificamos tensión, corriente y potencia de cada combinación antes de que compres.</p>
+        <h1 id="hero-title" class="hero-title" style="--i:1">Tu sistema solar, <em>de punta a punta.</em></h1>
+        <p class="hero-sub" style="--i:2">Vendemos los equipos, dimensionamos el sistema, te asesoramos y coordinamos la instalación.</p>
         <div class="hero-ctas" style="--i:3">
           <a href="#configurator" class="btn btn-primary btn-lg">Diseñar mi sistema ${icon("arrow-right")}</a>
-          <a href="#store" class="btn btn-secondary btn-lg">Ver productos</a>
+          <a href="${whatsappLink("Hola, quiero que me asesoren con un sistema solar.")}" class="btn btn-secondary btn-lg" target="_blank" rel="noopener" data-context="home-hero">${icon("whatsapp-logo", "", "fill")} Hablar con un asesor</a>
         </div>
       </div>
       <div class="hero-media">
         <img src="${HOME_IMAGES.hero}" srcset="${heroSrcset()}" sizes="(min-width: 900px) 45vw, 100vw"
           alt="Paneles solares instalados en hileras sobre una ladera con árboles" width="1200" height="1800" fetchpriority="high" decoding="async" />
       </div>
+    </div>
+  </section>
+
+  <section class="home-band" aria-labelledby="services-title">
+    <div class="wrap">
+      <h2 id="services-title" class="band-title">Qué hacemos</h2>
+      ${homeServicesHTML()}
     </div>
   </section>
 
@@ -102,7 +146,7 @@ function renderHome(state) {
     <div class="wrap">
       <div class="band-head">
         <h2 id="process-title" class="band-title">Cómo sigue después de armarlo</h2>
-        <a class="link-arrow" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener" data-context="home">Consultanos por WhatsApp ${icon("arrow-right")}</a>
+        <a class="link-arrow" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener" data-context="home">Hablar con un asesor ${icon("arrow-right")}</a>
       </div>
       <p class="band-lead">Pagá online con Mercado Pago o pedí una cotización sin compromiso. Los precios publicados incluyen IVA.</p>
       ${processStepsHTML("process-steps-tight")}

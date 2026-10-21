@@ -670,6 +670,39 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .home-revocation a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 600; color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
 .home-revocation a .ph { font-size: 16px; }
 
+/* Qué hacemos: el dimensionamiento destacado (alto, a la izquierda) y los otros tres servicios al lado;
+   instalación ocupa el ancho de los dos de arriba. En celular, una columna. */
+.services { display: grid; gap: 12px; }
+@media (min-width: 760px) {
+  .services { grid-template-columns: repeat(2, 1fr); }
+  .service-featured, .service-install { grid-column: 1 / -1; }
+}
+@media (min-width: 1000px) {
+  .services { grid-template-columns: 1.3fr 1fr 1fr; }
+  .service-featured { grid-column: 1; grid-row: 1 / span 2; }
+  .service-install { grid-column: 2 / span 2; }
+}
+.service {
+  display: grid; gap: 12px; align-content: start; padding: 22px; border-radius: var(--r-surface);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.service h3 { font-size: 1.125rem; font-weight: 700; line-height: 1.25; text-wrap: balance; }
+.service p { color: var(--text-mid); font-size: 0.9375rem; max-width: 56ch; }
+.service-icon {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: var(--r-control); background: var(--accent-soft); color: var(--accent-ink); font-size: 22px;
+}
+.service-featured {
+  gap: 16px; padding: 28px; align-content: center; border-color: var(--line-strong);
+  background: linear-gradient(160deg, var(--accent-soft), transparent 70%), var(--surface);
+}
+.service-featured h3 { font-size: clamp(1.375rem, 2.2vw, 1.75rem); font-weight: 750; font-stretch: 84%; letter-spacing: -0.01em; }
+.service-featured p { font-size: 1rem; }
+.service-featured .btn { justify-self: start; margin-top: 4px; }
+.service-points { display: grid; gap: 8px; list-style: none; color: var(--text); font-size: 0.9375rem; }
+.service-points li { display: flex; align-items: center; gap: 10px; }
+.service-points .ph { color: var(--accent-ink); font-size: 18px; flex: none; }
+
 /* tipos de sistema: tres accesos directos al configurador */
 .system-links { display: grid; gap: 12px; }
 @media (min-width: 900px) { .system-links { grid-template-columns: repeat(3, 1fr); } }

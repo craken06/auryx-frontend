@@ -11,9 +11,9 @@ const NAV_LINKS = [
   { id: "store", href: "#store", label: "Productos" },
   { id: "configurator", href: "#configurator", label: "Diseñá tu sistema" },
   { id: "calculators", href: "#calculators", label: "Calculadoras" },
-  { id: "info", href: "#info", label: "Información" },
-  { id: "contact", href: "#contact", label: "Contacto" },
-];
+  { id: "guides", href: "#guides", label: "Guías" },
+  { id: "installers", href: "#installers", label: "Instaladores" },
+]; // Información y Contacto están en el pie (views/footer.js)
 
 function navCurrent(linkId, view) {
   if (linkId === "store" && view === "product-detail") return true;

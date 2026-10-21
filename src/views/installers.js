@@ -1,7 +1,7 @@
 /* AURYX: página "Para instaladores" (/para-instaladores/). Qué ofrece AURYX a instaladores y electricistas y
    cómo darse de alta por WhatsApp (Ref: <origen>-INSTALADORES, ver lib/analytics.js). Las condiciones
    comerciales (precios de gremio, referidos) NO se publican: se consultan por WhatsApp.
-   Link en el pie, no en la home. Depende de: utils/format.js. */
+   Link en el menú superior ("Instaladores"). Depende de: utils/format.js. */
 
 const INSTALLER_WA_TEXT = "Hola, soy instalador/a o electricista y quiero darme de alta en AURYX.";
 
