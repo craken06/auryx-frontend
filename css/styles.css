@@ -647,8 +647,10 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .sz-note { display: flex; gap: 8px; font-size: 0.8125rem; color: var(--text-dim); }
 .sz-note .ph { font-size: 16px; margin-top: 2px; }
 .sz-note.is-warn { color: var(--warn); }
-.sz-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.sz-actions .btn { flex: 1 1 auto; }
+/* Compartir el resultado y mandarlo por WhatsApp (calculadoras y dimensionador) */
+.share-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.share-actions .btn { flex: 1 1 auto; }
+.calc-result .share-actions { margin-top: 14px; flex-direction: column; }
 
 .sz-empty { display: grid; justify-items: center; gap: 10px; padding: 40px 16px; text-align: center; color: var(--text-mid); }
 .sz-empty .ph { font-size: 36px; color: var(--accent-ink); }

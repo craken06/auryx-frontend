@@ -211,6 +211,13 @@ const App = {
       ? document.querySelector(focusSelector)
       : fid ? (fid.startsWith("#") ? document.getElementById(fid.slice(1)) : document.querySelector(`[data-fid="${CSS.escape(fid)}"]`)) : null;
     if (target && !target.disabled) target.focus({ preventScroll: true });
+
+    // link compartido: se muestra el resultado (después de que applyRoute vuelve arriba)
+    if (this.pendingShareScroll && !waitingCatalog) {
+      const el = document.querySelector(this.pendingShareScroll);
+      this.pendingShareScroll = null;
+      if (el) requestAnimationFrame(() => el.scrollIntoView({ block: "center" }));
+    }
   },
 
   /* Reveal de secciones en la home: anima la primera vez que se ve la
@@ -1101,6 +1108,7 @@ App.loadCatalog = async function () {
     if (products) {
       setCatalog(products);
       s.catalog = "ready";
+      sizerNormalizeCustom(s.sizer.custom); // un link compartido puede traer equipos que ya no están
       if (!this.cartReady) {
         s.cart = restoreCart();
         this.cartReady = true;
@@ -1265,7 +1273,20 @@ const ACTIONS = {
     App.renderSizer();
   },
   "sizer-pick": (d) => { App.sizerSet(d.scope, d.field, d.value); App.renderSizer(); },
+
+  // compartir el resultado de una calculadora o del dimensionador (lib/share.js)
+  "share-result": (d) => App.shareResult(d.tool),
+  "share-wa": (d, el) => { el.href = shareWhatsappLink(d.tool, App.state); }, // generate_lead sale con el clic a wa.me
 };
+
+/* El link de "Mandame este sistema" se arma con los datos de ese momento: también al apretar o enfocarlo,
+   así abrirlo con la rueda del mouse o "Abrir en otra pestaña" lleva el mensaje completo. */
+const refreshShareWa = (e) => {
+  const a = e.target.closest && e.target.closest('[data-action="share-wa"]');
+  if (a) a.href = shareWhatsappLink(a.dataset.tool, App.state);
+};
+document.addEventListener("pointerdown", refreshShareWa);
+document.addEventListener("focusin", refreshShareWa);
 
 /* Inputs: actualización en vivo sin re-render (no se pierde el cursor). */
 /* Checkout y Mis datos: los campos de dirección van en form.address; touched = ya tipeó (la precarga no lo pisa). */
@@ -1562,7 +1583,10 @@ function applyRoute({ keepScroll = false } = {}) {
   } else if (view === "configurator") {
     s.view = "configurator";
     s.cfgTool = param === "paso-a-paso" ? "steps" : "sizer";
-    if (s.cfgTool === "sizer") s.sizer.mode = params.get("modo") === "personalizado" ? "custom" : "quick";
+    if (s.cfgTool === "sizer") {
+      s.sizer.mode = params.get("modo") === "personalizado" ? "custom" : "quick";
+      if (applySharedResult("dimensionador", params, raw, "#sizer-out") && s.catalog === "ready") sizerNormalizeCustom(s.sizer.custom);
+    }
     const tipo = params.get("tipo");
     if (tipo && SYSTEM_TYPES.some((t) => t.id === tipo)) {
       s.cfgTool = "steps";
@@ -1583,6 +1607,7 @@ function applyRoute({ keepScroll = false } = {}) {
   } else if (view === "calculators") {
     s.view = "calculators";
     s.calcSection = param || null;
+    if (CALCULATOR_RENDERERS[s.calcSection]) applySharedResult(s.calcSection, params, raw, `#calc-${s.calcSection} .result-card`);
   } else if (view === "guides") {
     if (param && !guideBySlug(param)) s.view = "not-found";
     else {
@@ -1649,6 +1674,57 @@ function applyRoute({ keepScroll = false } = {}) {
     // con "Atrás"/"Adelante" se vuelve a la posición en la que estaba esa página (ver setupScrollMemory)
     const saved = history.state && Number.isFinite(history.state.scrollY) ? history.state.scrollY : 0;
     window.scrollTo({ top: saved, behavior: "auto" });
+  }
+}
+
+/* Link compartido (?consumo=…): se cargan los datos (validados en lib/share.js) y, al dibujar, se lleva la
+   vista al resultado. Una vez por dirección: si después cambia un valor, volver a aplicar la ruta (catálogo
+   que llega, "Atrás" a otra página y vuelta) no pisa lo que tipeó. */
+function applySharedResult(tool, params, raw, resultSelector) {
+  if (App.lastShareRaw === raw) return false;
+  App.lastShareRaw = raw;
+  if (!SHARE_TOOLS[tool].parse(params, App.state)) return false;
+  App.pendingShareScroll = resultSelector;
+  return true;
+}
+
+/* "Compartir mi resultado": menú de compartir del sistema o, si no hay, se copia el link. La barra de
+   direcciones queda con el link del resultado. */
+App.shareResult = async function (tool) {
+  const url = shareUrl(tool, this.state);
+  history.replaceState(history.state, "", url.slice(location.origin.length));
+  this.lastShareRaw = currentRoute();
+  const params = { content_type: tool === "dimensionador" ? "dimensionador" : "calculadora", item_id: tool };
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: document.title, text: "Mirá mi resultado en AURYX", url });
+      Track.event("share", { method: "web_share", ...params });
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // cerró el menú sin compartir
+    }
+  }
+  const copied = await copyText(url);
+  if (copied) Track.event("share", { method: "clipboard", ...params });
+  this.toast(copied ? "Copiamos el link de tu resultado. Pegalo donde quieras." : "No pudimos copiar el link: copialo de la barra de direcciones.");
+};
+
+/* Copia texto al portapapeles (API moderna o, si no está o no hay permiso, la forma vieja). */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+    ta.remove();
+    return ok;
   }
 }
 

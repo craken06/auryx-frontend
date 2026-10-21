@@ -1035,9 +1035,7 @@ function sizerOutputParts(sz, currency) {
     ${sizerBomHTML(r.lines, r.total, currency, !quick)}
     ${USD_ARS_RATE ? sizerRoiHTML(sizerRoi(r, sizerNum(sz[kind].cons), sz[kind].goal), sz[kind].goal, currency) : ""}
     ${notes.length ? sizerNotesHTML(notes) : ""}
-    <div class="sz-actions">
-      <a class="btn btn-primary" href="${whatsappLink(sizerQuoteMessage(kind, sz[kind], r, currency))}" target="_blank" rel="noopener" data-context="dimensionador">${icon("whatsapp-logo", "", "fill")} Pedir cotización</a>
-    </div>`;
+    ${shareActionsHTML("dimensionador")}`;
   return { buy, tech };
 }
 

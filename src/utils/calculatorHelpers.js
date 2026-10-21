@@ -41,7 +41,7 @@ function calcSectionHTML(id, inputs, result, footnote = "") {
   return `<section id="calc-${id}" class="calc" aria-labelledby="calc-page-title">
     <div class="calc-grid">
       <div class="calc-inputs">${inputs}</div>
-      <div class="calc-result">${result}<div id="calc-warn-${id}" class="calc-warnings" aria-live="polite"></div>${footnote ? `<p class="xsmall dim calc-footnote">${footnote}</p>` : ""}</div>
+      <div class="calc-result">${result}${shareActionsHTML(id)}<div id="calc-warn-${id}" class="calc-warnings" aria-live="polite"></div>${footnote ? `<p class="xsmall dim calc-footnote">${footnote}</p>` : ""}</div>
     </div>
   </section>`;
 }

@@ -35,7 +35,7 @@ for (const f of ["src/config.js", "src/data/products.js", "src/data/tariffs.js",
   "src/utils/calculatorHelpers.js", "src/lib/api.js", "src/views/sizer.js",
   "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js",
   "src/views/calculators/consumption.js", "src/views/calculators/cost.js", "src/views/calculators/savings.js",
-  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js"]) {
+  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js", "src/lib/share.js"]) {
   vm.runInContext(read(f), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
