@@ -36,12 +36,9 @@ function resultCardHTML({ id, title = "Resultado", main, rest = [] }) {
   </div>`;
 }
 
-function calcSectionHTML(id, title, subtitle, inputs, result, footnote = "") {
-  return `<section id="calc-${id}" class="calc" aria-labelledby="calc-${id}-title">
-    <div class="calc-head">
-      <h2 id="calc-${id}-title">${title}</h2>
-      <p class="muted">${subtitle}</p>
-    </div>
+/* Cada calculadora tiene su página: el título (h1) y la bajada los dibuja renderCalculators. */
+function calcSectionHTML(id, inputs, result, footnote = "") {
+  return `<section id="calc-${id}" class="calc" aria-labelledby="calc-page-title">
     <div class="calc-grid">
       <div class="calc-inputs">${inputs}</div>
       <div class="calc-result">${result}<div id="calc-warn-${id}" class="calc-warnings" aria-live="polite"></div>${footnote ? `<p class="xsmall dim calc-footnote">${footnote}</p>` : ""}</div>

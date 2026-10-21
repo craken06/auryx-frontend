@@ -59,6 +59,6 @@ function renderOrientationCalculator(state) {
     main: { id: "orient-angle", label: optimal ? "Inclinación recomendada" : "Inclinación elegida", value: `≈ ${angle}°` },
     rest: optimal ? [{ id: "orient-azimuth", label: "Orientación (azimut)", value: azimuth }] : [],
   });
-  return calcSectionHTML("orientacion", "Orientación y ángulo óptimo", "Hacia dónde y con qué inclinación conviene instalar los paneles.", inputs, result,
+  return calcSectionHTML("orientacion", inputs, result,
     "Es un punto de partida para autoconsumo anual. No reemplaza un análisis con datos de irradiancia del sitio.");
 }

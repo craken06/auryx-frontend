@@ -11,26 +11,26 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 
-<title>Calculadora de costo de energía | AURYX</title>
-<meta name="description" content="Cuánto representa ese consumo en tu factura. Calculadora solar gratis de AURYX." />
+<title>Calculadora de costo de la luz por distribuidora | AURYX</title>
+<meta name="description" content="Calculá tu factura de luz con impuestos según tu consumo y tu distribuidora: Edenor, Edesur, EPEC, EDEMSA y más. Tarifas vigentes, sin subsidio." />
 <meta name="theme-color" content="#05080f" />
-<link rel="canonical" href="https://auryx.com.ar/calculadoras/" />
+<link rel="canonical" href="https://auryx.com.ar/calculadoras/costo/" />
 
 <!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
      pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="AURYX" />
 <meta property="og:locale" content="es_AR" />
-<meta property="og:url" content="https://auryx.com.ar/calculadoras/" />
-<meta property="og:title" content="Calculadora de costo de energía | AURYX" />
-<meta property="og:description" content="Cuánto representa ese consumo en tu factura. Calculadora solar gratis de AURYX." />
+<meta property="og:url" content="https://auryx.com.ar/calculadoras/costo/" />
+<meta property="og:title" content="Calculadora de costo de la luz por distribuidora | AURYX" />
+<meta property="og:description" content="Calculá tu factura de luz con impuestos según tu consumo y tu distribuidora: Edenor, Edesur, EPEC, EDEMSA y más. Tarifas vigentes, sin subsidio." />
 <meta property="og:image" content="https://auryx.com.ar/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Calculadora de costo de energía | AURYX" />
-<meta name="twitter:description" content="Cuánto representa ese consumo en tu factura. Calculadora solar gratis de AURYX." />
+<meta name="twitter:title" content="Calculadora de costo de la luz por distribuidora | AURYX" />
+<meta name="twitter:description" content="Calculá tu factura de luz con impuestos según tu consumo y tu distribuidora: Edenor, Edesur, EPEC, EDEMSA y más. Tarifas vigentes, sin subsidio." />
 <meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
 
 <!-- Íconos (pestaña, acceso directo en el celular) -->
@@ -61,10 +61,82 @@
         {
           "@type": "ListItem",
           "position": 1,
-          "name": "Calculadora de costo de energía",
+          "name": "Calculadoras",
           "item": "https://auryx.com.ar/calculadoras/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Calculadora de costo de la luz",
+          "item": "https://auryx.com.ar/calculadoras/costo/"
         }
       ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://auryx.com.ar/calculadoras/costo/#calculadora",
+      "name": "Calculadora de costo de la luz",
+      "url": "https://auryx.com.ar/calculadoras/costo/",
+      "description": "Calculá tu factura de luz con impuestos según tu consumo y tu distribuidora: Edenor, Edesur, EPEC, EDEMSA y más. Tarifas vigentes, sin subsidio.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requiere JavaScript",
+      "inLanguage": "es-AR",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ARS"
+      },
+      "publisher": {
+        "@id": "https://auryx.com.ar/#organizacion"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "¿De dónde salen las tarifas?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "De los cuadros tarifarios oficiales de cada distribuidora cuando los tenemos cargados (Edenor, Edesur, las de la provincia de Buenos Aires y EDEMSA) y, para el resto, de las facturas que publica el Observatorio de Tarifas y Subsidios del IIEP-UBA (septiembre 2026)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Incluye subsidios?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Calcula la tarifa de un usuario residencial sin subsidio. Si tenés subsidio, tu factura va a ser menor."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Por qué el mismo consumo cuesta tan distinto según la provincia?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Cada distribuidora tiene su propio costo de distribución y cada provincia y municipio cobra sus propios impuestos y tasas, además del IVA. La energía mayorista es parecida en todo el país; la diferencia está en lo demás."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Qué es el precio efectivo del kWh?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Es la factura total dividida por los kWh que consumiste. Incluye el cargo fijo y los impuestos, así que es más alto que el precio de la energía del cuadro tarifario."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Mi provincia no tiene cuadro oficial: qué tan precisa es la estimación?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sirve para tener el orden de magnitud. Se interpola entre las facturas a 150, 265, 600 y 1.000 kWh que publica el IIEP-UBA, con la parte de impuestos medida en su informe. Tu factura puede variar por categoría y tasas municipales."
+          }
+        }
+      ],
+      "@id": "https://auryx.com.ar/calculadoras/costo/#preguntas"
     }
   ]
 }
@@ -72,7 +144,7 @@
 
 <!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
 <!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
-<script src="/src/lib/theme-init.js?v=20261059"></script>
+<script src="/src/lib/theme-init.js?v=20261060"></script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://images.unsplash.com" />
@@ -88,7 +160,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20261059" />
+<link rel="stylesheet" href="/css/styles.css?v=20261060" />
 </head>
 <body>
   <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -96,12 +168,71 @@
   <header id="nav-root" class="site-header"></header>
   <main id="main" tabindex="-1">
     <div id="app-root">
-      <div class="wrap boot" aria-busy="true">
-        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span id="boot-text">Cargando…</span></p>
-        <div class="skeleton" style="height:48px;max-width:420px"></div>
-        <div class="skeleton" style="height:20px;max-width:560px"></div>
-        <div class="skeleton" style="height:320px"></div>
-      </div>
+      <div data-prerender>
+  <div class="wrap calc-page-top">
+    <div class="page-head calc-page-head">
+      <h1 class="page-title" id="calc-page-title">Calculadora de costo de la luz</h1>
+      <p class="page-lead">Cuánto pagás de luz por mes según tu consumo, tu provincia y tu distribuidora, con impuestos.</p>
+    </div>
+  </div>
+  <nav class="subnav" aria-label="Calculadoras">
+    <div class="wrap subnav-row">
+      <a href="/calculadoras/consumo/"><i class="ph ph-gauge" aria-hidden="true"></i>Consumo</a><a href="/calculadoras/costo/" aria-current="page"><i class="ph ph-receipt" aria-hidden="true"></i>Costo de energía</a><a href="/calculadoras/ahorro/"><i class="ph ph-piggy-bank" aria-hidden="true"></i>Ahorro</a><a href="/calculadoras/orientacion/"><i class="ph ph-compass" aria-hidden="true"></i>Orientación y ángulo</a>
+    </div>
+  </nav>
+  <div class="wrap calc-page-bottom">
+    <section id="calc-costo" class="calc" aria-labelledby="calc-page-title">
+    <div class="calc-grid">
+      <div class="calc-inputs">
+    <div class="explainer"><i class="ph ph-graduation-cap" aria-hidden="true"></i><p>La factura no es solo <strong class="mono">consumo × precio del kWh</strong>: suma cargos fijos, el costo de distribución de cada empresa e impuestos (IVA, provinciales y municipales). Por eso el mismo consumo cuesta muy distinto según dónde vivas.</p></div>
+    <div class="field">
+    <label class="field-label" for="cost-kwh">Consumo mensual <span class="unit">(kWh/mes)</span></label>
+    <input disabled id="cost-kwh" class="input num-input" type="number" value="300"
+      name="cost-kwh" autocomplete="off" inputmode="decimal"
+      
+      data-bind="cost" data-field="kwh"
+      aria-describedby="cost-kwh-hint" />
+    <p id="cost-kwh-hint" class="field-hint">Figura en tu factura. Si es bimestral, dividilo por 2.</p>
+  </div>
+    <div class="field">
+    <label class="field-label" for="cost-province">Provincia</label>
+    <select disabled id="cost-province" class="select" name="cost-province" data-bind="cost-sel" data-field="province">
+      <option value="ba" selected>Buenos Aires</option><option value="caba">Ciudad de Buenos Aires</option><option value="catamarca">Catamarca</option><option value="chaco">Chaco</option><option value="chubut">Chubut</option><option value="cordoba">Córdoba</option><option value="corrientes">Corrientes</option><option value="entrerios">Entre Ríos</option><option value="formosa">Formosa</option><option value="jujuy">Jujuy</option><option value="lapampa">La Pampa</option><option value="larioja">La Rioja</option><option value="mendoza">Mendoza</option><option value="misiones">Misiones</option><option value="neuquen">Neuquén</option><option value="rionegro">Río Negro</option><option value="salta">Salta</option><option value="sanjuan">San Juan</option><option value="sanluis">San Luis</option><option value="santacruz">Santa Cruz</option><option value="santafe">Santa Fe</option><option value="sgo">Santiago del Estero</option><option value="tdf">Tierra del Fuego</option><option value="tucuman">Tucumán</option>
+    </select>
+    
+  </div>
+    <div class="field">
+    <label class="field-label" for="cost-dist">Distribuidora</label>
+    <select disabled id="cost-dist" class="select" name="cost-dist" data-bind="cost-sel" data-field="dist" aria-describedby="cost-dist-hint">
+      <option value="edenor" selected>Edenor (norte de CABA y del conurbano)</option><option value="edesur">Edesur (sur de CABA y del conurbano)</option><option value="edelap">EDELAP (La Plata y alrededores)</option><option value="edea">EDEA (Mar del Plata y la Costa Atlántica)</option><option value="eden">EDEN (norte y centro de la provincia)</option><option value="edes">EDES (sur de la provincia, Bahía Blanca)</option>
+    </select>
+    <p id="cost-dist-hint" class="field-hint">Cuadro tarifario oficial de septiembre 2026.</p>
+  </div></div>
+      <div class="calc-result"><div class="result-card" id="cost-result" aria-live="polite">
+    <h3>Tu factura, con el cuadro tarifario oficial</h3>
+    <dl>
+      <div class="result-main"><dt>Por mes, con impuestos</dt><dd id="cost-total">$ 71.044</dd></div>
+      <div class="result-rest"><div><dt>Categoría: 151 a 400 kWh/mes</dt><dd id="cost-row-0">$ 157/kWh</dd></div><div><dt>Cargo fijo</dt><dd id="cost-row-1">$ 3.776</dd></div><div><dt>Energía consumida</dt><dd id="cost-row-2">$ 47.188</dd></div><div><dt>IVA (21 %)</dt><dd id="cost-row-3">$ 10.702</dd></div><div><dt>Impuestos provinciales y municipales (18,4 %)</dt><dd id="cost-row-4">$ 9.377</dd></div><div><dt>Precio efectivo del kWh</dt><dd id="cost-row-5">$ 237/kWh</dd></div><div><dt>En un año</dt><dd id="cost-row-6">$ 852.527</dd></div><div><dt>Contra el promedio del país</dt><dd id="cost-row-7">−34 %</dd></div></div>
+    </dl>
+  </div><div id="calc-warn-costo" class="calc-warnings" aria-live="polite"></div><p class="xsmall dim calc-footnote"><span id="cost-footnote">Usuario residencial sin subsidio. Tarifa: ENReGE, cuadro tarifario de Edenor vigente desde el 1/9/2026. Impuestos provinciales y municipales calibrados con la factura que publica el Observatorio de Tarifas IIEP-UBA; las tasas municipales cambian según tu localidad.</span></p></div>
+    </div>
+  </section>
+    <section class="calc-guide" aria-labelledby="calc-guide-title">
+    <div class="calc-guide-main prose">
+      <h2 id="calc-guide-title">Para qué sirve</h2>
+      <p>Sirve para estimar cuánto vas a pagar de luz con un consumo dado y para entender por qué el mismo consumo cuesta tan distinto en cada provincia. Calcula la factura mensual de un usuario residencial sin subsidio, con cargo fijo, energía e impuestos.</p>
+      <h2>Cómo se usa</h2>
+      <ol class="calc-steps"><li>Escribí tu consumo mensual en kWh. Está en tu factura; si es bimestral, dividilo por 2.</li><li>Elegí tu provincia y tu distribuidora.</li><li>Mirá el total por mes y el desglose: cargo fijo, energía e impuestos, o la estimación si todavía no cargamos el cuadro oficial de esa empresa.</li><li>Usá el precio efectivo del kWh en la calculadora de ahorro para saber cuánto bajaría tu factura con paneles.</li></ol>
+      <h2>Ejemplos</h2>
+      <div class="calc-examples"><div class="calc-example"><h3>CABA, Edenor, 300 kWh/mes</h3><p><strong>$ 64.928 por mes</strong>, un kWh efectivo de $ 216. Con el cuadro tarifario oficial queda en la categoría de 151 a 400 kWh/mes.</p></div><div class="calc-example"><h3>Córdoba, EPEC, 300 kWh/mes</h3><p><strong>$ 125.176 por mes</strong>, un kWh efectivo de $ 417. Es una estimación con los datos del Observatorio de Tarifas IIEP-UBA.</p></div><div class="calc-example"><h3>Mendoza, EDEMSA, 300 kWh/mes</h3><p><strong>$ 145.000 por mes</strong>, un kWh efectivo de $ 483. EDEMSA categoriza por consumo bimestral: 300 kWh por mes son 600 por bimestre.</p></div></div>
+      <p class="xsmall dim">Calculados con esta misma calculadora. Resultados orientativos.</p>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq"><details><summary>¿De dónde salen las tarifas?</summary><p>De los cuadros tarifarios oficiales de cada distribuidora cuando los tenemos cargados (Edenor, Edesur, las de la provincia de Buenos Aires y EDEMSA) y, para el resto, de las facturas que publica el Observatorio de Tarifas y Subsidios del IIEP-UBA (septiembre 2026).</p></details><details><summary>¿Incluye subsidios?</summary><p>No. Calcula la tarifa de un usuario residencial sin subsidio. Si tenés subsidio, tu factura va a ser menor.</p></details><details><summary>¿Por qué el mismo consumo cuesta tan distinto según la provincia?</summary><p>Cada distribuidora tiene su propio costo de distribución y cada provincia y municipio cobra sus propios impuestos y tasas, además del IVA. La energía mayorista es parecida en todo el país; la diferencia está en lo demás.</p></details><details><summary>¿Qué es el precio efectivo del kWh?</summary><p>Es la factura total dividida por los kWh que consumiste. Incluye el cargo fijo y los impuestos, así que es más alto que el precio de la energía del cuadro tarifario.</p></details><details><summary>¿Mi provincia no tiene cuadro oficial: qué tan precisa es la estimación?</summary><p>Sirve para tener el orden de magnitud. Se interpola entre las facturas a 150, 265, 600 y 1.000 kWh que publica el IIEP-UBA, con la parte de impuestos medida en su informe. Tu factura puede variar por categoría y tasas municipales.</p></details></div>
+      <p><a href="/calculadoras/ahorro/" class="link-arrow">Calculá cuánto ahorrarías con paneles solares <i class="ph ph-arrow-right" aria-hidden="true"></i></a></p>
+    </div>
+  </section>
+    <p class="tech-note tech-note-spaced"><i class="ph ph-info" aria-hidden="true"></i><span><strong>Resultados orientativos.</strong> Usan valores promedio y fórmulas simplificadas. Para dimensionar una instalación real, el proyecto lo tiene que revisar un profesional matriculado.</span></p>
+  </div></div>
       <noscript>
         <div class="wrap page">
           <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
@@ -131,45 +262,46 @@
        Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
        página tardaba segundos en armarse; con defer se piden todos juntos. -->
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
-  <script defer src="/src/config.js?v=20261059"></script>
+  <script defer src="/src/config.js?v=20261060"></script>
   <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
-  <script defer src="/src/lib/analytics.js?v=20261059"></script>
+  <script defer src="/src/lib/analytics.js?v=20261060"></script>
 
   <!-- Datos y lógica de negocio -->
-  <script defer src="/src/data/products.js?v=20261059"></script>
-  <script defer src="/src/data/tariffs.js?v=20261059"></script>
+  <script defer src="/src/data/products.js?v=20261060"></script>
+  <script defer src="/src/data/tariffs.js?v=20261060"></script>
   <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
-  <script defer src="/src/data/catalog-summary.js?v=20261059"></script>
+  <script defer src="/src/data/catalog-summary.js?v=20261060"></script>
   <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
-  <script defer src="/src/lib/routes.js?v=20261059"></script>
-  <script defer src="/src/lib/compatibilityEngine.js?v=20261059"></script>
-  <script defer src="/src/utils/format.js?v=20261059"></script>
-  <script defer src="/src/utils/calculatorHelpers.js?v=20261059"></script>
+  <script defer src="/src/lib/routes.js?v=20261060"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261060"></script>
+  <script defer src="/src/utils/format.js?v=20261060"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261060"></script>
 
   <!-- Vistas -->
-  <script defer src="/src/views/nav.js?v=20261059"></script>
-  <script defer src="/src/views/footer.js?v=20261059"></script>
-  <script defer src="/src/views/sizer.js?v=20261059"></script>
-  <script defer src="/src/views/home.js?v=20261059"></script>
-  <script defer src="/src/views/store.js?v=20261059"></script>
-  <script defer src="/src/views/productDetail.js?v=20261059"></script>
-  <script defer src="/src/views/configurator.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/consumption.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/cost.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/savings.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/orientation.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/index.js?v=20261059"></script>
-  <script defer src="/src/views/cart.js?v=20261059"></script>
-  <script defer src="/src/views/infoContact.js?v=20261059"></script>
-  <script defer src="/src/views/legal.js?v=20261059"></script>
-  <script defer src="/src/views/account.js?v=20261059"></script>
-  <script defer src="/src/views/cookies.js?v=20261059"></script>
+  <script defer src="/src/views/nav.js?v=20261060"></script>
+  <script defer src="/src/views/footer.js?v=20261060"></script>
+  <script defer src="/src/views/sizer.js?v=20261060"></script>
+  <script defer src="/src/views/home.js?v=20261060"></script>
+  <script defer src="/src/views/store.js?v=20261060"></script>
+  <script defer src="/src/views/productDetail.js?v=20261060"></script>
+  <script defer src="/src/views/configurator.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261060"></script>
+  <script defer src="/src/views/cart.js?v=20261060"></script>
+  <script defer src="/src/views/infoContact.js?v=20261060"></script>
+  <script defer src="/src/views/legal.js?v=20261060"></script>
+  <script defer src="/src/views/account.js?v=20261060"></script>
+  <script defer src="/src/views/cookies.js?v=20261060"></script>
 
   <!-- Sesión del cliente y cliente de la API -->
-  <script defer src="/src/lib/session.js?v=20261059"></script>
-  <script defer src="/src/lib/api.js?v=20261059"></script>
+  <script defer src="/src/lib/session.js?v=20261060"></script>
+  <script defer src="/src/lib/api.js?v=20261060"></script>
 
   <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
-  <script defer src="/src/app.js?v=20261059"></script>
+  <script defer src="/src/app.js?v=20261060"></script>
 </body>
 </html>

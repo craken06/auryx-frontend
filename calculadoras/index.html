@@ -12,7 +12,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 
 <title>Calculadoras solares | AURYX</title>
-<meta name="description" content="Calculadoras gratis de consumo eléctrico, costo de la energía, ahorro con paneles solares y orientación e inclinación de los paneles." />
+<meta name="description" content="Calculadoras gratis de consumo eléctrico, costo de la luz por distribuidora, ahorro con paneles solares y orientación e inclinación de los paneles." />
 <meta name="theme-color" content="#05080f" />
 <link rel="canonical" href="https://auryx.com.ar/calculadoras/" />
 
@@ -23,14 +23,14 @@
 <meta property="og:locale" content="es_AR" />
 <meta property="og:url" content="https://auryx.com.ar/calculadoras/" />
 <meta property="og:title" content="Calculadoras solares | AURYX" />
-<meta property="og:description" content="Calculadoras gratis de consumo eléctrico, costo de la energía, ahorro con paneles solares y orientación e inclinación de los paneles." />
+<meta property="og:description" content="Calculadoras gratis de consumo eléctrico, costo de la luz por distribuidora, ahorro con paneles solares y orientación e inclinación de los paneles." />
 <meta property="og:image" content="https://auryx.com.ar/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Calculadoras solares | AURYX" />
-<meta name="twitter:description" content="Calculadoras gratis de consumo eléctrico, costo de la energía, ahorro con paneles solares y orientación e inclinación de los paneles." />
+<meta name="twitter:description" content="Calculadoras gratis de consumo eléctrico, costo de la luz por distribuidora, ahorro con paneles solares y orientación e inclinación de los paneles." />
 <meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
 
 <!-- Íconos (pestaña, acceso directo en el celular) -->
@@ -72,7 +72,7 @@
 
 <!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
 <!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
-<script src="/src/lib/theme-init.js?v=20261059"></script>
+<script src="/src/lib/theme-init.js?v=20261060"></script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://images.unsplash.com" />
@@ -88,7 +88,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20261059" />
+<link rel="stylesheet" href="/css/styles.css?v=20261060" />
 </head>
 <body>
   <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -96,12 +96,38 @@
   <header id="nav-root" class="site-header"></header>
   <main id="main" tabindex="-1">
     <div id="app-root">
-      <div class="wrap boot" aria-busy="true">
-        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span id="boot-text">Cargando…</span></p>
-        <div class="skeleton" style="height:48px;max-width:420px"></div>
-        <div class="skeleton" style="height:20px;max-width:560px"></div>
-        <div class="skeleton" style="height:320px"></div>
-      </div>
+      <div data-prerender>
+  <div class="wrap page">
+    <div class="page-head">
+      <h1 class="page-title">Calculadoras solares</h1>
+      <p class="page-lead">De uso libre y sin registro. Cada una explica cómo llega al resultado, así también sirven para aprender.</p>
+    </div>
+    <div class="system-links calc-index">
+      
+      <a href="/calculadoras/consumo/" class="system-link">
+        <span class="system-icon"><i class="ph ph-gauge" aria-hidden="true"></i></span>
+        <span class="system-text"><strong>Calculadora de consumo eléctrico</strong><span>Cuánta energía usan tus equipos por día, mes y año.</span></span>
+        <i class="ph ph-arrow-right go" aria-hidden="true"></i>
+      </a>
+      <a href="/calculadoras/costo/" class="system-link">
+        <span class="system-icon"><i class="ph ph-receipt" aria-hidden="true"></i></span>
+        <span class="system-text"><strong>Calculadora de costo de la luz</strong><span>Cuánto representa ese consumo en tu factura.</span></span>
+        <i class="ph ph-arrow-right go" aria-hidden="true"></i>
+      </a>
+      <a href="/calculadoras/ahorro/" class="system-link">
+        <span class="system-icon"><i class="ph ph-piggy-bank" aria-hidden="true"></i></span>
+        <span class="system-text"><strong>Calculadora de ahorro con paneles solares</strong><span>Cuánto dejás de pagar con lo que genera el sistema.</span></span>
+        <i class="ph ph-arrow-right go" aria-hidden="true"></i>
+      </a>
+      <a href="/calculadoras/orientacion/" class="system-link">
+        <span class="system-icon"><i class="ph ph-compass" aria-hidden="true"></i></span>
+        <span class="system-text"><strong>Calculadora de orientación e inclinación de paneles solares</strong><span>Hacia dónde y con qué inclinación instalar los paneles.</span></span>
+        <i class="ph ph-arrow-right go" aria-hidden="true"></i>
+      </a>
+    </div>
+    <p class="calc-index-more">¿Querés ir directo al sistema? <a href="/disena-tu-sistema/" class="link-arrow">Diseñá tu sistema <i class="ph ph-arrow-right" aria-hidden="true"></i></a></p>
+    <p class="tech-note tech-note-spaced"><i class="ph ph-info" aria-hidden="true"></i><span><strong>Resultados orientativos.</strong> Usan valores promedio y fórmulas simplificadas. Para dimensionar una instalación real, el proyecto lo tiene que revisar un profesional matriculado.</span></p>
+  </div></div>
       <noscript>
         <div class="wrap page">
           <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
@@ -131,45 +157,46 @@
        Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
        página tardaba segundos en armarse; con defer se piden todos juntos. -->
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
-  <script defer src="/src/config.js?v=20261059"></script>
+  <script defer src="/src/config.js?v=20261060"></script>
   <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
-  <script defer src="/src/lib/analytics.js?v=20261059"></script>
+  <script defer src="/src/lib/analytics.js?v=20261060"></script>
 
   <!-- Datos y lógica de negocio -->
-  <script defer src="/src/data/products.js?v=20261059"></script>
-  <script defer src="/src/data/tariffs.js?v=20261059"></script>
+  <script defer src="/src/data/products.js?v=20261060"></script>
+  <script defer src="/src/data/tariffs.js?v=20261060"></script>
   <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
-  <script defer src="/src/data/catalog-summary.js?v=20261059"></script>
+  <script defer src="/src/data/catalog-summary.js?v=20261060"></script>
   <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
-  <script defer src="/src/lib/routes.js?v=20261059"></script>
-  <script defer src="/src/lib/compatibilityEngine.js?v=20261059"></script>
-  <script defer src="/src/utils/format.js?v=20261059"></script>
-  <script defer src="/src/utils/calculatorHelpers.js?v=20261059"></script>
+  <script defer src="/src/lib/routes.js?v=20261060"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261060"></script>
+  <script defer src="/src/utils/format.js?v=20261060"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261060"></script>
 
   <!-- Vistas -->
-  <script defer src="/src/views/nav.js?v=20261059"></script>
-  <script defer src="/src/views/footer.js?v=20261059"></script>
-  <script defer src="/src/views/sizer.js?v=20261059"></script>
-  <script defer src="/src/views/home.js?v=20261059"></script>
-  <script defer src="/src/views/store.js?v=20261059"></script>
-  <script defer src="/src/views/productDetail.js?v=20261059"></script>
-  <script defer src="/src/views/configurator.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/consumption.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/cost.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/savings.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/orientation.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/index.js?v=20261059"></script>
-  <script defer src="/src/views/cart.js?v=20261059"></script>
-  <script defer src="/src/views/infoContact.js?v=20261059"></script>
-  <script defer src="/src/views/legal.js?v=20261059"></script>
-  <script defer src="/src/views/account.js?v=20261059"></script>
-  <script defer src="/src/views/cookies.js?v=20261059"></script>
+  <script defer src="/src/views/nav.js?v=20261060"></script>
+  <script defer src="/src/views/footer.js?v=20261060"></script>
+  <script defer src="/src/views/sizer.js?v=20261060"></script>
+  <script defer src="/src/views/home.js?v=20261060"></script>
+  <script defer src="/src/views/store.js?v=20261060"></script>
+  <script defer src="/src/views/productDetail.js?v=20261060"></script>
+  <script defer src="/src/views/configurator.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261060"></script>
+  <script defer src="/src/views/cart.js?v=20261060"></script>
+  <script defer src="/src/views/infoContact.js?v=20261060"></script>
+  <script defer src="/src/views/legal.js?v=20261060"></script>
+  <script defer src="/src/views/account.js?v=20261060"></script>
+  <script defer src="/src/views/cookies.js?v=20261060"></script>
 
   <!-- Sesión del cliente y cliente de la API -->
-  <script defer src="/src/lib/session.js?v=20261059"></script>
-  <script defer src="/src/lib/api.js?v=20261059"></script>
+  <script defer src="/src/lib/session.js?v=20261060"></script>
+  <script defer src="/src/lib/api.js?v=20261060"></script>
 
   <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
-  <script defer src="/src/app.js?v=20261059"></script>
+  <script defer src="/src/app.js?v=20261060"></script>
 </body>
 </html>

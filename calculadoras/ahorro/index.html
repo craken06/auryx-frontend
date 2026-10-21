@@ -11,26 +11,26 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 
-<title>Calculadora de ahorro | AURYX</title>
-<meta name="description" content="Cuánto dejás de pagar con lo que genera el sistema. Calculadora solar gratis de AURYX." />
+<title>Calculadora de ahorro con paneles solares | AURYX</title>
+<meta name="description" content="Calculá cuánto ahorrás por mes y por año con paneles solares según tu consumo, la energía que generan y el precio del kWh de tu distribuidora." />
 <meta name="theme-color" content="#05080f" />
-<link rel="canonical" href="https://auryx.com.ar/calculadoras/" />
+<link rel="canonical" href="https://auryx.com.ar/calculadoras/ahorro/" />
 
 <!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
      pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="AURYX" />
 <meta property="og:locale" content="es_AR" />
-<meta property="og:url" content="https://auryx.com.ar/calculadoras/" />
-<meta property="og:title" content="Calculadora de ahorro | AURYX" />
-<meta property="og:description" content="Cuánto dejás de pagar con lo que genera el sistema. Calculadora solar gratis de AURYX." />
+<meta property="og:url" content="https://auryx.com.ar/calculadoras/ahorro/" />
+<meta property="og:title" content="Calculadora de ahorro con paneles solares | AURYX" />
+<meta property="og:description" content="Calculá cuánto ahorrás por mes y por año con paneles solares según tu consumo, la energía que generan y el precio del kWh de tu distribuidora." />
 <meta property="og:image" content="https://auryx.com.ar/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Calculadora de ahorro | AURYX" />
-<meta name="twitter:description" content="Cuánto dejás de pagar con lo que genera el sistema. Calculadora solar gratis de AURYX." />
+<meta name="twitter:title" content="Calculadora de ahorro con paneles solares | AURYX" />
+<meta name="twitter:description" content="Calculá cuánto ahorrás por mes y por año con paneles solares según tu consumo, la energía que generan y el precio del kWh de tu distribuidora." />
 <meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
 
 <!-- Íconos (pestaña, acceso directo en el celular) -->
@@ -61,10 +61,82 @@
         {
           "@type": "ListItem",
           "position": 1,
-          "name": "Calculadora de ahorro",
+          "name": "Calculadoras",
           "item": "https://auryx.com.ar/calculadoras/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Calculadora de ahorro con paneles solares",
+          "item": "https://auryx.com.ar/calculadoras/ahorro/"
         }
       ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://auryx.com.ar/calculadoras/ahorro/#calculadora",
+      "name": "Calculadora de ahorro con paneles solares",
+      "url": "https://auryx.com.ar/calculadoras/ahorro/",
+      "description": "Calculá cuánto ahorrás por mes y por año con paneles solares según tu consumo, la energía que generan y el precio del kWh de tu distribuidora.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requiere JavaScript",
+      "inLanguage": "es-AR",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ARS"
+      },
+      "publisher": {
+        "@id": "https://auryx.com.ar/#organizacion"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "¿Por qué el ahorro es tan distinto entre provincias?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Porque el ahorro es energía por precio, y el precio del kWh cambia mucho entre distribuidoras. Con el mismo sistema, donde la luz es más cara se ahorra más plata."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Se cuenta la energía que inyecto a la red?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. La calculadora solo cuenta la energía solar que reemplaza tu consumo. Con generación distribuida el excedente se acredita a un precio mucho menor que el que pagás, y no todas las distribuidoras lo tienen implementado."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿El ahorro real es igual al de la calculadora?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Suele ser algo menor: el cargo fijo lo seguís pagando y, si bajás de categoría, cambia el precio del kWh. Es una estimación para comparar opciones, no una factura."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cuántas horas de sol pico tiene mi zona?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Como referencia, unas 4,4 en el AMBA, 5,0 en Córdoba y 5,8 en Mendoza y San Juan, en promedio anual. El dimensionador usa esos valores por zona."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cuánto cuesta el sistema y en cuánto tiempo se recupera?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Diseñá tu sistema arma el sistema con equipos y precios reales y calcula el ahorro, el recupero y el retorno a 25 años."
+          }
+        }
+      ],
+      "@id": "https://auryx.com.ar/calculadoras/ahorro/#preguntas"
     }
   ]
 }
@@ -72,7 +144,7 @@
 
 <!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
 <!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
-<script src="/src/lib/theme-init.js?v=20261059"></script>
+<script src="/src/lib/theme-init.js?v=20261060"></script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://images.unsplash.com" />
@@ -88,7 +160,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20261059" />
+<link rel="stylesheet" href="/css/styles.css?v=20261060" />
 </head>
 <body>
   <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -96,12 +168,75 @@
   <header id="nav-root" class="site-header"></header>
   <main id="main" tabindex="-1">
     <div id="app-root">
-      <div class="wrap boot" aria-busy="true">
-        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span id="boot-text">Cargando…</span></p>
-        <div class="skeleton" style="height:48px;max-width:420px"></div>
-        <div class="skeleton" style="height:20px;max-width:560px"></div>
-        <div class="skeleton" style="height:320px"></div>
-      </div>
+      <div data-prerender>
+  <div class="wrap calc-page-top">
+    <div class="page-head calc-page-head">
+      <h1 class="page-title" id="calc-page-title">Calculadora de ahorro con paneles solares</h1>
+      <p class="page-lead">Cuánto dejás de pagar de luz con la energía que generan tus paneles.</p>
+    </div>
+  </div>
+  <nav class="subnav" aria-label="Calculadoras">
+    <div class="wrap subnav-row">
+      <a href="/calculadoras/consumo/"><i class="ph ph-gauge" aria-hidden="true"></i>Consumo</a><a href="/calculadoras/costo/"><i class="ph ph-receipt" aria-hidden="true"></i>Costo de energía</a><a href="/calculadoras/ahorro/" aria-current="page"><i class="ph ph-piggy-bank" aria-hidden="true"></i>Ahorro</a><a href="/calculadoras/orientacion/"><i class="ph ph-compass" aria-hidden="true"></i>Orientación y ángulo</a>
+    </div>
+  </nav>
+  <div class="wrap calc-page-bottom">
+    <section id="calc-ahorro" class="calc" aria-labelledby="calc-page-title">
+    <div class="calc-grid">
+      <div class="calc-inputs">
+    <div class="explainer"><i class="ph ph-graduation-cap" aria-hidden="true"></i><p>El ahorro es la <strong class="mono">energía solar que usás (kWh) × precio del kWh</strong>: cada kWh que genera el sistema y consumís es uno que no le comprás a la red. Si generás más de lo que consumís, el excedente no se cuenta como ahorro. El porcentaje compara la producción con tu consumo del mes.</p></div>
+    <div class="field">
+    <label class="field-label" for="sav-current">Consumo mensual actual <span class="unit">(kWh)</span></label>
+    <input disabled id="sav-current" class="input num-input" type="number" value="350"
+      name="sav-current" autocomplete="off" inputmode="decimal"
+      
+      data-bind="savings" data-field="currentKwh"
+       />
+    
+  </div>
+    <div class="field">
+    <label class="field-label" for="sav-solar">Producción solar mensual estimada <span class="unit">(kWh)</span></label>
+    <input disabled id="sav-solar" class="input num-input" type="number" value="220"
+      name="sav-solar" autocomplete="off" inputmode="decimal"
+      
+      data-bind="savings" data-field="solarKwh"
+      aria-describedby="sav-solar-hint" />
+    <p id="sav-solar-hint" class="field-hint">Estimación rápida: potencia del sistema (kW) × 4,5 horas solares pico × 30 días.</p>
+  </div>
+    <div class="field">
+    <label class="field-label" for="sav-price">Precio del kWh <span class="unit">($/kWh)</span></label>
+    <input disabled id="sav-price" class="input num-input" type="number" value="140"
+      name="sav-price" autocomplete="off" inputmode="decimal"
+      
+      data-bind="savings" data-field="energyPrice"
+       />
+    
+  </div></div>
+      <div class="calc-result"><div class="result-card" id="savings-result" aria-live="polite">
+    <h3>Resultado</h3>
+    <dl>
+      <div class="result-main"><dt>Ahorro mensual</dt><dd id="sav-monthly">$ 30.800</dd></div>
+      <div class="result-rest"><div><dt>Ahorro anual</dt><dd id="sav-yearly">$ 369.600</dd></div><div><dt>Consumo cubierto</dt><dd id="sav-pct">63 %</dd></div></div>
+    </dl>
+  </div><div id="calc-warn-ahorro" class="calc-warnings" aria-live="polite"></div></div>
+    </div>
+  </section>
+    <section class="calc-guide" aria-labelledby="calc-guide-title">
+    <div class="calc-guide-main prose">
+      <h2 id="calc-guide-title">Para qué sirve</h2>
+      <p>Sirve para estimar cuánto baja tu factura cuando parte de tu consumo lo cubren los paneles. Cada kWh que generás y usás es uno que no le comprás a la distribuidora. Lo que generás de más no se cuenta como ahorro, porque se paga mucho menos o nada.</p>
+      <h2>Cómo se usa</h2>
+      <ol class="calc-steps"><li>Cargá tu consumo mensual en kWh (está en la factura).</li><li>Cargá la producción solar mensual. Si no la sabés: potencia del sistema en kW × horas de sol pico de tu zona × 30 días.</li><li>Cargá el precio del kWh. El más realista es el precio efectivo que da la calculadora de costo para tu distribuidora.</li><li>Mirá el ahorro por mes, por año y qué parte de tu consumo cubre el sistema.</li></ol>
+      <h2>Ejemplos</h2>
+      <div class="calc-examples"><div class="calc-example"><h3>Córdoba, EPEC</h3><p>Consumo de 300 kWh/mes y un sistema de 2 kWp con 5,0 horas de sol pico (240 kWh/mes) a $ 417 el kWh: <strong>$ 100.141 por mes</strong>, $ 1.201.691 por año, 80 % del consumo cubierto.</p></div><div class="calc-example"><h3>Mendoza, EDEMSA</h3><p>Consumo de 300 kWh/mes y un sistema de 2 kWp con 5,8 horas de sol pico (278 kWh/mes) a $ 483 el kWh: <strong>$ 134.366 por mes</strong>, $ 1.612.396 por año, 93 % del consumo cubierto.</p></div><div class="calc-example"><h3>CABA, Edenor</h3><p>Consumo de 300 kWh/mes y un sistema de 2 kWp con 4,4 horas de sol pico (211 kWh/mes) a $ 216 el kWh: <strong>$ 45.666 por mes</strong>, $ 547.994 por año, 70 % del consumo cubierto.</p></div></div>
+      <p class="xsmall dim">Calculados con esta misma calculadora. Resultados orientativos.</p>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq"><details><summary>¿Por qué el ahorro es tan distinto entre provincias?</summary><p>Porque el ahorro es energía por precio, y el precio del kWh cambia mucho entre distribuidoras. Con el mismo sistema, donde la luz es más cara se ahorra más plata.</p></details><details><summary>¿Se cuenta la energía que inyecto a la red?</summary><p>No. La calculadora solo cuenta la energía solar que reemplaza tu consumo. Con generación distribuida el excedente se acredita a un precio mucho menor que el que pagás, y no todas las distribuidoras lo tienen implementado.</p></details><details><summary>¿El ahorro real es igual al de la calculadora?</summary><p>Suele ser algo menor: el cargo fijo lo seguís pagando y, si bajás de categoría, cambia el precio del kWh. Es una estimación para comparar opciones, no una factura.</p></details><details><summary>¿Cuántas horas de sol pico tiene mi zona?</summary><p>Como referencia, unas 4,4 en el AMBA, 5,0 en Córdoba y 5,8 en Mendoza y San Juan, en promedio anual. El dimensionador usa esos valores por zona.</p></details><details><summary>¿Cuánto cuesta el sistema y en cuánto tiempo se recupera?</summary><p><a href="/disena-tu-sistema/">Diseñá tu sistema</a> arma el sistema con equipos y precios reales y calcula el ahorro, el recupero y el retorno a 25 años.</p></details></div>
+      <p><a href="/disena-tu-sistema/" class="link-arrow">Armá el sistema y mirá en cuánto se recupera <i class="ph ph-arrow-right" aria-hidden="true"></i></a></p>
+    </div>
+  </section>
+    <p class="tech-note tech-note-spaced"><i class="ph ph-info" aria-hidden="true"></i><span><strong>Resultados orientativos.</strong> Usan valores promedio y fórmulas simplificadas. Para dimensionar una instalación real, el proyecto lo tiene que revisar un profesional matriculado.</span></p>
+  </div></div>
       <noscript>
         <div class="wrap page">
           <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
@@ -131,45 +266,46 @@
        Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
        página tardaba segundos en armarse; con defer se piden todos juntos. -->
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
-  <script defer src="/src/config.js?v=20261059"></script>
+  <script defer src="/src/config.js?v=20261060"></script>
   <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
-  <script defer src="/src/lib/analytics.js?v=20261059"></script>
+  <script defer src="/src/lib/analytics.js?v=20261060"></script>
 
   <!-- Datos y lógica de negocio -->
-  <script defer src="/src/data/products.js?v=20261059"></script>
-  <script defer src="/src/data/tariffs.js?v=20261059"></script>
+  <script defer src="/src/data/products.js?v=20261060"></script>
+  <script defer src="/src/data/tariffs.js?v=20261060"></script>
   <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
-  <script defer src="/src/data/catalog-summary.js?v=20261059"></script>
+  <script defer src="/src/data/catalog-summary.js?v=20261060"></script>
   <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
-  <script defer src="/src/lib/routes.js?v=20261059"></script>
-  <script defer src="/src/lib/compatibilityEngine.js?v=20261059"></script>
-  <script defer src="/src/utils/format.js?v=20261059"></script>
-  <script defer src="/src/utils/calculatorHelpers.js?v=20261059"></script>
+  <script defer src="/src/lib/routes.js?v=20261060"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261060"></script>
+  <script defer src="/src/utils/format.js?v=20261060"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261060"></script>
 
   <!-- Vistas -->
-  <script defer src="/src/views/nav.js?v=20261059"></script>
-  <script defer src="/src/views/footer.js?v=20261059"></script>
-  <script defer src="/src/views/sizer.js?v=20261059"></script>
-  <script defer src="/src/views/home.js?v=20261059"></script>
-  <script defer src="/src/views/store.js?v=20261059"></script>
-  <script defer src="/src/views/productDetail.js?v=20261059"></script>
-  <script defer src="/src/views/configurator.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/consumption.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/cost.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/savings.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/orientation.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/index.js?v=20261059"></script>
-  <script defer src="/src/views/cart.js?v=20261059"></script>
-  <script defer src="/src/views/infoContact.js?v=20261059"></script>
-  <script defer src="/src/views/legal.js?v=20261059"></script>
-  <script defer src="/src/views/account.js?v=20261059"></script>
-  <script defer src="/src/views/cookies.js?v=20261059"></script>
+  <script defer src="/src/views/nav.js?v=20261060"></script>
+  <script defer src="/src/views/footer.js?v=20261060"></script>
+  <script defer src="/src/views/sizer.js?v=20261060"></script>
+  <script defer src="/src/views/home.js?v=20261060"></script>
+  <script defer src="/src/views/store.js?v=20261060"></script>
+  <script defer src="/src/views/productDetail.js?v=20261060"></script>
+  <script defer src="/src/views/configurator.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261060"></script>
+  <script defer src="/src/views/cart.js?v=20261060"></script>
+  <script defer src="/src/views/infoContact.js?v=20261060"></script>
+  <script defer src="/src/views/legal.js?v=20261060"></script>
+  <script defer src="/src/views/account.js?v=20261060"></script>
+  <script defer src="/src/views/cookies.js?v=20261060"></script>
 
   <!-- Sesión del cliente y cliente de la API -->
-  <script defer src="/src/lib/session.js?v=20261059"></script>
-  <script defer src="/src/lib/api.js?v=20261059"></script>
+  <script defer src="/src/lib/session.js?v=20261060"></script>
+  <script defer src="/src/lib/api.js?v=20261060"></script>
 
   <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
-  <script defer src="/src/app.js?v=20261059"></script>
+  <script defer src="/src/app.js?v=20261060"></script>
 </body>
 </html>

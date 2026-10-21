@@ -55,5 +55,5 @@ function renderConsumptionCalculator(state) {
       { id: "consumption-yearly", label: "Por año", value: t.yearly },
     ],
   });
-  return calcSectionHTML("consumo", "Consumo energético", "Cuánta energía usan tus equipos por día, mes y año.", inputs, result);
+  return calcSectionHTML("consumo", inputs, result);
 }

@@ -25,5 +25,5 @@ function renderSavingsCalculator(state) {
       { id: "sav-pct", label: "Consumo cubierto", value: t.pct },
     ],
   });
-  return calcSectionHTML("ahorro", "Ahorro energético", "Cuánto dejás de pagar al cubrir consumo con energía solar.", inputs, result);
+  return calcSectionHTML("ahorro", inputs, result);
 }

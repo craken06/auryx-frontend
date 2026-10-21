@@ -994,7 +994,7 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
   border-radius: var(--r-control); color: var(--text-mid); font-size: 0.9375rem; font-weight: 500;
 }
 .subnav a:hover { color: var(--text); background: var(--surface-2); }
-.subnav a[aria-current="true"] { color: var(--text); background: var(--surface-2); font-weight: 650; }
+.subnav a[aria-current] { color: var(--text); background: var(--surface-2); font-weight: 650; }
 .subnav .ph { color: var(--accent-ink); font-size: 18px; }
 
 .calc-page-top { padding-top: 56px; }
@@ -1004,8 +1004,6 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .angle-input { width: 84px; text-align: center; }
 .calc { padding-block: 64px; scroll-margin-top: calc(var(--header-h) + 72px); }
 .calc + .calc { border-top: 1px solid var(--line); }
-.calc-head { display: grid; gap: 8px; margin-bottom: 28px; max-width: 64ch; }
-.calc-head h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 750; font-stretch: 84%; line-height: 1.1; }
 .calc-grid { display: grid; gap: 28px; }
 @media (min-width: 960px) {
   .calc-grid { grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: start; }
@@ -1385,3 +1383,25 @@ fieldset.field legend { padding: 0; margin-bottom: 8px; }
 @media (prefers-reduced-motion: no-preference) { .cookie-banner { animation: rise 0.35s var(--ease) both; } }
 
 .calc-footnote { margin-top: 12px; }
+
+/* Calculadoras: índice y texto debajo de cada una (para qué sirve, pasos, ejemplos, preguntas frecuentes) */
+@media (min-width: 720px) { .calc-index { grid-template-columns: repeat(2, 1fr); } }
+.calc-index-more { margin-top: 28px; color: var(--text-mid); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.calc-guide { padding-top: 56px; border-top: 1px solid var(--line); }
+.prose h3 { color: var(--text); font-size: 1.0625rem; font-weight: 700; }
+.prose a:not(.link-arrow):not(.btn) { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+.calc-steps { display: grid; gap: 10px; padding-left: 1.4em; list-style: decimal; }
+.calc-steps li::marker { color: var(--accent-ink); font-family: var(--font-mono); font-weight: 650; }
+.calc-examples { display: grid; gap: 12px; }
+.calc-example { display: grid; gap: 4px; padding: 16px 18px; border-radius: var(--r-surface); background: var(--surface); border: 1px solid var(--line); font-size: 1rem; }
+.faq { display: grid; border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 16px 0;
+  color: var(--text); font-weight: 650; cursor: pointer; list-style: none;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--font-mono); color: var(--accent-ink); font-size: 1.25rem; line-height: 1; }
+.faq details[open] summary::after { content: "\2212"; }
+.faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.faq details p { padding-bottom: 18px; }

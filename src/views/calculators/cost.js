@@ -112,6 +112,6 @@ function renderCostCalculator(state) {
     ${costSelectHTML({ id: "cost-province", label: "Provincia", field: "province", value: prov.id, options: TARIFF_PROVINCES })}
     ${costSelectHTML({ id: "cost-dist", label: "Distribuidora", field: "dist", value: costDistId(c), options: dists,
       disabled: dists.length === 1, hint: dists.length === 1 ? `La principal de la provincia. ${distHint}` : distHint })}`;
-  return calcSectionHTML("costo", "Costo de energía", "Cuánto pagás de luz por mes según tu consumo y tu distribuidora.", inputs,
+  return calcSectionHTML("costo", inputs,
     costResultHTML(t), `<span id="cost-footnote">${costFootnote(t)}</span>`);
 }

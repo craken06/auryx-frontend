@@ -11,26 +11,26 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 
-<title>Calculadora de orientación y ángulo | AURYX</title>
-<meta name="description" content="Hacia dónde y con qué inclinación instalar los paneles. Calculadora solar gratis de AURYX." />
+<title>Orientación e inclinación óptima de paneles solares | AURYX</title>
+<meta name="description" content="Calculá la inclinación y la orientación óptimas de tus paneles solares según tu latitud, con ejemplos para ciudades de Argentina. Gratis y sin registro." />
 <meta name="theme-color" content="#05080f" />
-<link rel="canonical" href="https://auryx.com.ar/calculadoras/" />
+<link rel="canonical" href="https://auryx.com.ar/calculadoras/orientacion/" />
 
 <!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
      pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="AURYX" />
 <meta property="og:locale" content="es_AR" />
-<meta property="og:url" content="https://auryx.com.ar/calculadoras/" />
-<meta property="og:title" content="Calculadora de orientación y ángulo | AURYX" />
-<meta property="og:description" content="Hacia dónde y con qué inclinación instalar los paneles. Calculadora solar gratis de AURYX." />
+<meta property="og:url" content="https://auryx.com.ar/calculadoras/orientacion/" />
+<meta property="og:title" content="Orientación e inclinación óptima de paneles solares | AURYX" />
+<meta property="og:description" content="Calculá la inclinación y la orientación óptimas de tus paneles solares según tu latitud, con ejemplos para ciudades de Argentina. Gratis y sin registro." />
 <meta property="og:image" content="https://auryx.com.ar/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Calculadora de orientación y ángulo | AURYX" />
-<meta name="twitter:description" content="Hacia dónde y con qué inclinación instalar los paneles. Calculadora solar gratis de AURYX." />
+<meta name="twitter:title" content="Orientación e inclinación óptima de paneles solares | AURYX" />
+<meta name="twitter:description" content="Calculá la inclinación y la orientación óptimas de tus paneles solares según tu latitud, con ejemplos para ciudades de Argentina. Gratis y sin registro." />
 <meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
 
 <!-- Íconos (pestaña, acceso directo en el celular) -->
@@ -61,10 +61,82 @@
         {
           "@type": "ListItem",
           "position": 1,
-          "name": "Calculadora de orientación y ángulo",
+          "name": "Calculadoras",
           "item": "https://auryx.com.ar/calculadoras/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Calculadora de orientación e inclinación de paneles solares",
+          "item": "https://auryx.com.ar/calculadoras/orientacion/"
         }
       ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://auryx.com.ar/calculadoras/orientacion/#calculadora",
+      "name": "Calculadora de orientación e inclinación de paneles solares",
+      "url": "https://auryx.com.ar/calculadoras/orientacion/",
+      "description": "Calculá la inclinación y la orientación óptimas de tus paneles solares según tu latitud, con ejemplos para ciudades de Argentina. Gratis y sin registro.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requiere JavaScript",
+      "inLanguage": "es-AR",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ARS"
+      },
+      "publisher": {
+        "@id": "https://auryx.com.ar/#organizacion"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "¿Qué pasa si mi techo mira al este o al oeste?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Se puede instalar igual, pero genera menos: alrededor de un 15 % menos en el año que mirando al norte (es el valor que usa el dimensionador). Al sur no conviene en Argentina."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Conviene instalar los paneles planos, sin inclinación?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Generan menos en invierno y no se limpian con la lluvia. Aun cerca del ecuador se recomiendan al menos 10°."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿La inclinación cambia en invierno y en verano?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí: en invierno conviene más inclinación y en verano menos. La que da la calculadora es la mejor para el año entero, que es lo que importa en una instalación fija."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cómo sé mi latitud?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tocá «Usar mi ubicación» y el navegador la completa. También la podés ver en cualquier mapa: es el primer número de las coordenadas."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Alcanza con esta regla para hacer el proyecto?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Es un punto de partida. Un proyecto real tiene en cuenta sombras, la estructura del techo y datos de radiación del lugar. Lo revisa un profesional matriculado."
+          }
+        }
+      ],
+      "@id": "https://auryx.com.ar/calculadoras/orientacion/#preguntas"
     }
   ]
 }
@@ -72,7 +144,7 @@
 
 <!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
 <!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
-<script src="/src/lib/theme-init.js?v=20261059"></script>
+<script src="/src/lib/theme-init.js?v=20261060"></script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://images.unsplash.com" />
@@ -88,7 +160,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20261059" />
+<link rel="stylesheet" href="/css/styles.css?v=20261060" />
 </head>
 <body>
   <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -96,12 +168,85 @@
   <header id="nav-root" class="site-header"></header>
   <main id="main" tabindex="-1">
     <div id="app-root">
-      <div class="wrap boot" aria-busy="true">
-        <p class="boot-msg" role="status"><span class="spinner" aria-hidden="true"></span><span id="boot-text">Cargando…</span></p>
-        <div class="skeleton" style="height:48px;max-width:420px"></div>
-        <div class="skeleton" style="height:20px;max-width:560px"></div>
-        <div class="skeleton" style="height:320px"></div>
+      <div data-prerender>
+  <div class="wrap calc-page-top">
+    <div class="page-head calc-page-head">
+      <h1 class="page-title" id="calc-page-title">Calculadora de orientación e inclinación de paneles solares</h1>
+      <p class="page-lead">Hacia dónde y con qué ángulo conviene instalar los paneles según tu latitud.</p>
+    </div>
+  </div>
+  <nav class="subnav" aria-label="Calculadoras">
+    <div class="wrap subnav-row">
+      <a href="/calculadoras/consumo/"><i class="ph ph-gauge" aria-hidden="true"></i>Consumo</a><a href="/calculadoras/costo/"><i class="ph ph-receipt" aria-hidden="true"></i>Costo de energía</a><a href="/calculadoras/ahorro/"><i class="ph ph-piggy-bank" aria-hidden="true"></i>Ahorro</a><a href="/calculadoras/orientacion/" aria-current="page"><i class="ph ph-compass" aria-hidden="true"></i>Orientación y ángulo</a>
+    </div>
+  </nav>
+  <div class="wrap calc-page-bottom">
+    <section id="calc-orientacion" class="calc" aria-labelledby="calc-page-title">
+    <div class="calc-grid">
+      <div class="calc-inputs">
+    
+    <div class="chip-list" role="group" aria-label="Modo de cálculo">
+      <button disabled type="button" class="chip" data-action="orient-mode" data-mode="optimal" aria-pressed="true">Inclinación óptima</button>
+      <button disabled type="button" class="chip" data-action="orient-mode" data-mode="manual" aria-pressed="false">Manual</button>
+    </div>
+    
+    <div class="explainer"><i class="ph ph-graduation-cap" aria-hidden="true"></i><p>Como regla simplificada, el <strong class="mono">ángulo de inclinación óptimo ≈ latitud del lugar</strong> (en valor absoluto) maximiza la energía anual. En el hemisferio sur los paneles miran al <strong>Norte</strong>; en el norte, al <strong>Sur</strong>, porque de ese lado recorre el sol.</p></div>
+    <div class="field">
+    <label class="field-label" for="orient-lat">Tu ubicación: latitud <span class="unit">(grados)</span></label>
+    <input disabled id="orient-lat" class="input" type="text" value="-34,6"
+      name="orient-lat" autocomplete="off" inputmode="decimal"
+      
+      data-bind="orient" data-field="lat"
+      aria-describedby="orient-lat-hint" />
+    <p id="orient-lat-hint" class="field-hint">Negativa en el hemisferio sur, entre -90 y 90. Buenos Aires es aproximadamente -34,6.</p>
+  </div>
+    <div><button disabled type="button" class="btn btn-secondary btn-sm" data-action="orient-geolocate" id="orient-geo-btn"><i class="ph ph-compass" aria-hidden="true"></i> Usar mi ubicación</button>
+      <span id="orient-geo-status" class="xsmall dim" role="status"></span></div>
+    <div class="angle-scenes">
+      <div class="scene"><span class="scene-label">Vista lateral</span>
+  <svg id="lateral-svg" viewBox="0 0 240 170" width="100%" height="100%" role="img" aria-label="Vista lateral del panel inclinado 35 grados">
+    <line x1="15" y1="140" x2="225" y2="140" stroke="var(--line-strong)" stroke-width="2" />
+    <line id="lateral-strut" x1="197" y1="140" x2="117.69396944231073" y2="106.87596080072709" stroke="var(--text-dim)" stroke-width="3" stroke-linecap="round" />
+    <line id="lateral-panel" x1="165" y1="140" x2="78.98903534965586" y2="79.77447418314017" stroke="var(--accent)" stroke-width="13" stroke-linecap="round" />
+    <g id="lateral-ticks"><line x1="145.505541388712" y1="116.58363641696732" x2="136.32831840709525" y2="129.69006912559118" stroke="var(--bg-raised)" stroke-width="2.5" /><line x1="122.2825809331191" y1="100.32274444641516" x2="113.10535795150236" y2="113.42917715503901" stroke="var(--bg-raised)" stroke-width="2.5" /><line x1="99.05962047752618" y1="84.06185247586302" x2="89.88239749590946" y2="97.16828518448688" stroke="var(--bg-raised)" stroke-width="2.5" /></g>
+    <circle cx="165" cy="140" r="4" fill="var(--accent-ink)" />
+    <path id="lateral-arc" d="M 131 140 A 34 34 0 0 1 137.1488304941743 120.49840116406443" fill="none" stroke="var(--text-mid)" stroke-width="1.5" stroke-dasharray="3 3" />
+    <text id="lateral-label" x="113.49928465959574" y="123.76188682676926" fill="var(--text)" font-size="12" font-family="'JetBrains Mono Variable', monospace" text-anchor="middle">35°</text>
+  </svg></div>
+      <div class="scene" role="img" aria-label="Vista isométrica del panel inclinado">
+        <span class="scene-label">Vista isométrica</span>
+        <div class="iso-stage"><div class="iso-world">
+          <div class="iso-ground"></div>
+          <div id="panel-3d-iso" class="iso-panel" style="transform: rotateX(-35deg)"><div class="iso-face"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+        </div></div>
       </div>
+    </div>
+    <p class="xsmall dim">Representación simplificada, no a escala.</p></div>
+      <div class="calc-result"><div class="result-card" id="orientation-result" aria-live="polite">
+    <h3>Recomendación</h3>
+    <dl>
+      <div class="result-main"><dt>Inclinación recomendada</dt><dd id="orient-angle">≈ 35°</dd></div>
+      <div class="result-rest"><div><dt>Orientación (azimut)</dt><dd id="orient-azimuth">Norte (0°)</dd></div></div>
+    </dl>
+  </div><div id="calc-warn-orientacion" class="calc-warnings" aria-live="polite"></div><p class="xsmall dim calc-footnote">Es un punto de partida para autoconsumo anual. No reemplaza un análisis con datos de irradiancia del sitio.</p></div>
+    </div>
+  </section>
+    <section class="calc-guide" aria-labelledby="calc-guide-title">
+    <div class="calc-guide-main prose">
+      <h2 id="calc-guide-title">Para qué sirve</h2>
+      <p>Sirve para saber hacia dónde mirar y cuánto inclinar los paneles para generar la mayor cantidad de energía en el año. En Argentina, como en todo el hemisferio sur, el sol recorre el cielo por el norte: los paneles van orientados al norte.</p>
+      <h2>Cómo se usa</h2>
+      <ol class="calc-steps"><li>Escribí la latitud de tu ubicación (negativa en el hemisferio sur) o tocá «Usar mi ubicación».</li><li>Mirá la inclinación recomendada y la orientación. Como regla, la inclinación óptima es parecida a la latitud.</li><li>En modo manual podés mover el ángulo y ver cómo queda el panel de costado y en perspectiva.</li><li>Si tu techo ya tiene una inclinación, comparala con la recomendada: unos grados de diferencia cambian poco la energía anual.</li></ol>
+      <h2>Ejemplos</h2>
+      <div class="calc-examples"><div class="calc-example"><h3>Salta (latitud -24,8)</h3><p>Inclinación recomendada de <strong>25°</strong>, mirando al norte.</p></div><div class="calc-example"><h3>Buenos Aires (latitud -34,6)</h3><p>Inclinación recomendada de <strong>35°</strong>, mirando al norte.</p></div><div class="calc-example"><h3>Ushuaia (latitud -54,8)</h3><p>Inclinación recomendada de <strong>55°</strong>, mirando al norte.</p></div></div>
+      <p class="xsmall dim">Calculados con esta misma calculadora. Resultados orientativos.</p>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq"><details><summary>¿Qué pasa si mi techo mira al este o al oeste?</summary><p>Se puede instalar igual, pero genera menos: alrededor de un 15 % menos en el año que mirando al norte (es el valor que usa el dimensionador). Al sur no conviene en Argentina.</p></details><details><summary>¿Conviene instalar los paneles planos, sin inclinación?</summary><p>No. Generan menos en invierno y no se limpian con la lluvia. Aun cerca del ecuador se recomiendan al menos 10°.</p></details><details><summary>¿La inclinación cambia en invierno y en verano?</summary><p>Sí: en invierno conviene más inclinación y en verano menos. La que da la calculadora es la mejor para el año entero, que es lo que importa en una instalación fija.</p></details><details><summary>¿Cómo sé mi latitud?</summary><p>Tocá «Usar mi ubicación» y el navegador la completa. También la podés ver en cualquier mapa: es el primer número de las coordenadas.</p></details><details><summary>¿Alcanza con esta regla para hacer el proyecto?</summary><p>Es un punto de partida. Un proyecto real tiene en cuenta sombras, la estructura del techo y datos de radiación del lugar. Lo revisa un profesional matriculado.</p></details></div>
+      <p><a href="/disena-tu-sistema/" class="link-arrow">Diseñá tu sistema con tu consumo y tu zona <i class="ph ph-arrow-right" aria-hidden="true"></i></a></p>
+    </div>
+  </section>
+    <p class="tech-note tech-note-spaced"><i class="ph ph-info" aria-hidden="true"></i><span><strong>Resultados orientativos.</strong> Usan valores promedio y fórmulas simplificadas. Para dimensionar una instalación real, el proyecto lo tiene que revisar un profesional matriculado.</span></p>
+  </div></div>
       <noscript>
         <div class="wrap page">
           <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
@@ -131,45 +276,46 @@
        Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
        página tardaba segundos en armarse; con defer se piden todos juntos. -->
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
-  <script defer src="/src/config.js?v=20261059"></script>
+  <script defer src="/src/config.js?v=20261060"></script>
   <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
-  <script defer src="/src/lib/analytics.js?v=20261059"></script>
+  <script defer src="/src/lib/analytics.js?v=20261060"></script>
 
   <!-- Datos y lógica de negocio -->
-  <script defer src="/src/data/products.js?v=20261059"></script>
-  <script defer src="/src/data/tariffs.js?v=20261059"></script>
+  <script defer src="/src/data/products.js?v=20261060"></script>
+  <script defer src="/src/data/tariffs.js?v=20261060"></script>
   <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
-  <script defer src="/src/data/catalog-summary.js?v=20261059"></script>
+  <script defer src="/src/data/catalog-summary.js?v=20261060"></script>
   <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
-  <script defer src="/src/lib/routes.js?v=20261059"></script>
-  <script defer src="/src/lib/compatibilityEngine.js?v=20261059"></script>
-  <script defer src="/src/utils/format.js?v=20261059"></script>
-  <script defer src="/src/utils/calculatorHelpers.js?v=20261059"></script>
+  <script defer src="/src/lib/routes.js?v=20261060"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261060"></script>
+  <script defer src="/src/utils/format.js?v=20261060"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261060"></script>
 
   <!-- Vistas -->
-  <script defer src="/src/views/nav.js?v=20261059"></script>
-  <script defer src="/src/views/footer.js?v=20261059"></script>
-  <script defer src="/src/views/sizer.js?v=20261059"></script>
-  <script defer src="/src/views/home.js?v=20261059"></script>
-  <script defer src="/src/views/store.js?v=20261059"></script>
-  <script defer src="/src/views/productDetail.js?v=20261059"></script>
-  <script defer src="/src/views/configurator.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/consumption.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/cost.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/savings.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/orientation.js?v=20261059"></script>
-  <script defer src="/src/views/calculators/index.js?v=20261059"></script>
-  <script defer src="/src/views/cart.js?v=20261059"></script>
-  <script defer src="/src/views/infoContact.js?v=20261059"></script>
-  <script defer src="/src/views/legal.js?v=20261059"></script>
-  <script defer src="/src/views/account.js?v=20261059"></script>
-  <script defer src="/src/views/cookies.js?v=20261059"></script>
+  <script defer src="/src/views/nav.js?v=20261060"></script>
+  <script defer src="/src/views/footer.js?v=20261060"></script>
+  <script defer src="/src/views/sizer.js?v=20261060"></script>
+  <script defer src="/src/views/home.js?v=20261060"></script>
+  <script defer src="/src/views/store.js?v=20261060"></script>
+  <script defer src="/src/views/productDetail.js?v=20261060"></script>
+  <script defer src="/src/views/configurator.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261060"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261060"></script>
+  <script defer src="/src/views/cart.js?v=20261060"></script>
+  <script defer src="/src/views/infoContact.js?v=20261060"></script>
+  <script defer src="/src/views/legal.js?v=20261060"></script>
+  <script defer src="/src/views/account.js?v=20261060"></script>
+  <script defer src="/src/views/cookies.js?v=20261060"></script>
 
   <!-- Sesión del cliente y cliente de la API -->
-  <script defer src="/src/lib/session.js?v=20261059"></script>
-  <script defer src="/src/lib/api.js?v=20261059"></script>
+  <script defer src="/src/lib/session.js?v=20261060"></script>
+  <script defer src="/src/lib/api.js?v=20261060"></script>
 
   <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
-  <script defer src="/src/app.js?v=20261059"></script>
+  <script defer src="/src/app.js?v=20261060"></script>
 </body>
 </html>

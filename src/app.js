@@ -123,12 +123,7 @@ const App = {
     sizer: defaultSizer(),
     cfgTool: "sizer", // "sizer" (dimensionador) o "steps" (paso a paso)
     calcSection: null,
-    calc: {
-      consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
-      cost: { kwh: 300, province: "ba", dist: "edenor" },
-      savings: { currentKwh: 350, solarKwh: 220, energyPrice: 140 },
-      orientation: { lat: -34.6, mode: "optimal", previewAngle: 35 },
-    },
+    calc: defaultCalcState(),
     contactDraft: {},
     contactErrors: {},
     contactStatus: null,
@@ -1014,8 +1009,8 @@ function pageTitle(s) {
     }
     case "configurator": return named(s.cfgTool === "steps" ? "Configurador paso a paso" : "Diseñá tu sistema");
     case "calculators": {
-      const c = CALCULATOR_LINKS.find((x) => x.id === s.calcSection);
-      return named(c ? `Calculadora de ${c.name.toLowerCase()}` : "Calculadoras");
+      const c = CALC_CONTENT[s.calcSection];
+      return named(c ? c.title : "Calculadoras solares");
     }
     case "cart": return named("Carrito");
     case "order": return named("Tu pedido");
@@ -1626,7 +1621,7 @@ function applyRoute({ keepScroll = false } = {}) {
 
   // Solo se vuelve arriba (y se mueve el foco) al cambiar de página; cambiar
   // un filtro o el orden de la tienda mantiene la posición.
-  const routeKey = view === "calculators" ? "calculators" : `${s.view}/${param}`;
+  const routeKey = `${s.view}/${param}`;
   const pageChanged = routeKey !== App.lastRouteKey && !keepScroll;
   const isFirst = App.lastRouteKey === null;
   App.lastRouteKey = routeKey;

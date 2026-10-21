@@ -31,8 +31,11 @@ const ctx = vm.createContext({
   window: { matchMedia: () => ({ matches: false }) }, // tienda: filtros cerrados (Google indexa la versión móvil)
   console, Intl, URLSearchParams,
 });
-for (const f of ["src/config.js", "src/data/products.js", "src/lib/routes.js", "src/utils/format.js", "src/lib/api.js",
-  "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js"]) {
+for (const f of ["src/config.js", "src/data/products.js", "src/data/tariffs.js", "src/lib/routes.js", "src/utils/format.js",
+  "src/utils/calculatorHelpers.js", "src/lib/api.js", "src/views/sizer.js",
+  "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js",
+  "src/views/calculators/consumption.js", "src/views/calculators/cost.js", "src/views/calculators/savings.js",
+  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js"]) {
   vm.runInContext(read(f), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
@@ -146,8 +149,7 @@ const STATIC_PAGES = [
   // [ruta, título, descripción, en el sitemap, contenido ya dibujado]
   ["configurator", "Diseñá tu sistema solar", "Calculá en minutos qué sistema solar necesitás: paneles, inversor y baterías según tu consumo y tu zona, con productos reales y precios en pesos.", true],
   ["configurator/paso-a-paso", "Configurador paso a paso", "Armá tu sistema fotovoltaico paso a paso: elegí paneles, inversor y baterías y verificá la compatibilidad eléctrica antes de comprar.", true],
-  ["calculators", "Calculadoras solares", "Calculadoras gratis de consumo eléctrico, costo de la energía, ahorro con paneles solares y orientación e inclinación de los paneles.", true],
-  ...CALCULATOR_LINKS.map((c) => [`calculators/${c.id}`, `Calculadora de ${c.name.toLowerCase()}`, `${c.text} Calculadora solar gratis de AURYX.`, false]),
+  ["calculators", "Calculadoras solares", "Calculadoras gratis de consumo eléctrico, costo de la luz por distribuidora, ahorro con paneles solares y orientación e inclinación de los paneles.", true, () => run("calcIndexHTML()")],
   ["info", "Información", "Cómo comprar en AURYX: envíos, retiro, garantía, medios de pago y qué pasa después de armar tu sistema solar.", true, () => run("renderInfo()")],
   ["contact", "Contacto", "Escribinos por WhatsApp o con el formulario: te ayudamos a elegir los equipos y a dimensionar tu sistema solar.", true],
   ["terms", "Términos y condiciones", "Términos y condiciones de compra en AURYX: precios, envíos, garantía y derecho de arrepentimiento.", true, () => run("renderTerms()")],
@@ -238,14 +240,43 @@ page({
 /* ---------------------------------------------------------------- páginas fijas */
 for (const [route, name, description, indexable, prerender] of STATIC_PAGES) {
   const urlPath = routeToPath(route);
-  // cada calculadora es una sección de /calculadoras/: esa es la página que se indexa
-  const canonicalPath = route.startsWith("calculators/") ? routeToPath("calculators") : urlPath;
-  let html = buildHTML({
-    urlPath: canonicalPath, title: `${name} | AURYX`, description, noindex: !indexable && canonicalPath === urlPath,
-    graph: [ORG, crumbs([[name, canonicalPath]])],
+  page({
+    urlPath, title: `${name} | AURYX`, description, noindex: !indexable,
+    graph: [ORG, crumbs([[name, urlPath]])],
     body: prerender ? prerender() : null,
   });
-  writePage(urlPath, html);
+}
+
+/* ---------------------------------------------------------------- calculadoras */
+/* Cada una con su página: la calculadora con los valores iniciales y el texto de views/calculators/content.js. */
+const CALC_CONTENT = run("CALC_CONTENT");
+const calcUrls = [];
+for (const c of CALCULATOR_LINKS) {
+  const content = CALC_CONTENT[c.id];
+  if (!content) throw new Error(`Falta el texto de la calculadora ${c.id} (views/calculators/content.js)`);
+  const urlPath = routeToPath(`calculators/${c.id}`);
+  ctx.__s = { calcSection: c.id, calc: run("defaultCalcState()") };
+  page({
+    urlPath,
+    title: `${content.title} | AURYX`,
+    description: content.description,
+    graph: [ORG, crumbs([["Calculadoras", routeToPath("calculators")], [content.h1, urlPath]]), {
+      "@type": "WebApplication",
+      "@id": `${SITE}${urlPath}#calculadora`,
+      name: content.h1,
+      url: SITE + urlPath,
+      description: content.description,
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: "Web",
+      browserRequirements: "Requiere JavaScript",
+      inLanguage: "es-AR",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "ARS" },
+      publisher: { "@id": `${SITE}/#organizacion` },
+    }, { ...run(`calcFaqLd(${JSON.stringify(c.id)})`), "@id": `${SITE}${urlPath}#preguntas` }],
+    body: run("renderCalculators(__s)"),
+  });
+  calcUrls.push(urlPath);
 }
 
 /* ---------------------------------------------------------------- 404.html: la app para cualquier otra dirección */
@@ -270,6 +301,7 @@ const urls = [
   ...categories.map((k) => ({ loc: categoryUrl(k), priority: "0.8", changefreq: "daily", lastmod: lastmod(PRODUCTS.filter((p) => p.category === k)) })),
   ...[...PRODUCTS].sort((a, b) => productUrl(a).localeCompare(productUrl(b))).map((p) => ({ loc: productUrl(p), priority: "0.7", changefreq: "weekly", lastmod: lastmod([p]) })),
   ...STATIC_PAGES.filter(([, , , indexable]) => indexable).map(([route]) => ({ loc: routeToPath(route), priority: route.startsWith("configurator") || route === "calculators" ? "0.8" : "0.4", changefreq: "monthly" })),
+  ...calcUrls.map((loc) => ({ loc, priority: "0.7", changefreq: "monthly" })),
 ];
 fs.writeFileSync(path.join(ROOT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Lo genera scripts/build-seo-pages.mjs: no editar a mano. -->
