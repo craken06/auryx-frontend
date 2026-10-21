@@ -1,82 +1,101 @@
 # AURYX: Frontend
 
-Plataforma de sistemas fotovoltaicos: tienda, configurador "Diseñá tu sistema"
-con motor de compatibilidad, y 4 calculadoras técnicas. Sin frameworks ni
-build step: HTML + CSS + JavaScript plano. Tipografía (Archivo + JetBrains
-Mono, vía Fontsource) e íconos (Phosphor) se cargan desde jsDelivr.
+Sitio de https://auryx.com.ar: dimensionador y configurador de sistemas fotovoltaicos con verificación de
+compatibilidad, calculadoras, guías, tienda (hoy oculta) con checkout por Mercado Pago, cuentas con Google y
+panel de administración. Sin frameworks ni bundler: HTML + CSS + JavaScript plano con `<script defer>`
+clásicos. Tipografía (Archivo + JetBrains Mono, vía Fontsource) e íconos (Phosphor) desde jsDelivr.
+
+Publicado con GitHub Pages (dominio en Cloudflare). El backend es `craken06/compragamer-api` (NestJS +
+Prisma + Neon) en Render: `API_BASE_URL` en `src/config.js`.
+
 ## Cómo correrlo
 
-Al usar `<script>` clásicos (no ES modules), podés simplemente **abrir
-`index.html` con doble clic** y funciona.
-
-Si preferís levantarlo con un servidor local (recomendado si más adelante
-agregás `fetch` a un backend, por temas de CORS):
+`index.html` usa rutas absolutas (`/src/…`), así que hay que servir la carpeta desde la raíz:
 
 ```bash
-# Python
-python3 -m http.server 8000
-
-# Node (npx)
-npx serve .
+python -m http.server 8765
 ```
 
-Y abrís `http://localhost:8000`.
+y abrir `http://127.0.0.1:8765`. Ojo: la API acepta solo el origen del sitio (CORS), así que localmente el
+catálogo no carga. Calculadoras, guías (con los números del último build), legales e instaladores se ven
+igual; tienda, ficha, carrito y dimensionador con catálogo real se prueban en el sitio publicado.
+
+## Direcciones y páginas generadas
+
+- La app navega sin recargar con direcciones limpias (`/calculadoras/ahorro/`, `/guias/<slug>/`,
+  `/productos/<slug>/`…). `src/lib/routes.js` traduce ruta interna ↔ dirección; las vistas escriben
+  `href="#ruta"` y `app.js` los reescribe. Los links viejos con `#` redirigen.
+- `scripts/build-seo-pages.mjs` corre las vistas en Node (`vm`) con el catálogo de la API (solo GET) y
+  genera una copia de `index.html` por dirección, con título, descripción, canonical, Open Graph, datos
+  estructurados y el contenido ya dibujado; además `404.html` (la app, para `/pedido/…`), `sitemap.xml`,
+  `version.json` y `src/data/catalog-summary.js`. **No editar a mano** esas carpetas ni esos archivos.
+- GitHub Actions (`.github/workflows/seo-pages.yml`) lo corre en cada push a `main`, todos los días y a mano.
+- Al publicar: subir el `?v=` de todos los scripts y estilos en `index.html`, correr
+  `node scripts/build-seo-pages.mjs` y verificar en vivo `https://auryx.com.ar/version.json`
+  (el CDN de GitHub Pages puede tardar hasta 10 minutos).
+
+| Página | Dirección | Vista |
+|---|---|---|
+| Inicio | `/` | `views/home.js` |
+| Diseñá tu sistema (dimensionador / paso a paso) | `/disena-tu-sistema/`, `/disena-tu-sistema/paso-a-paso/` | `views/sizer.js`, `views/configurator.js` |
+| Calculadoras (índice y una página por calculadora) | `/calculadoras/`, `/calculadoras/{consumo,costo,ahorro,orientacion}/` | `views/calculators/*` |
+| Guías | `/guias/`, `/guias/<slug>/` | `views/guides.js` |
+| Para instaladores (link solo en el pie) | `/para-instaladores/` | `views/installers.js` |
+| Tienda, categorías, ficha, carrito | `/productos/`, `/categorias/<slug>/`, `/productos/<slug>/`, `/carrito/` | `views/store.js`, `views/productDetail.js`, `views/cart.js` |
+| Cuenta y pedidos | `/ingresar/`, `/mi-cuenta/`, `/mis-pedidos/`, `/pedido/<código>/` | `views/account.js` |
+| Información, contacto, legales, arrepentimiento | `/informacion/`, `/contacto/`, `/terminos/`, `/privacidad/`, `/arrepentimiento/` | `views/infoContact.js`, `views/legal.js` |
+| Administración | `/admin/` | `admin/index.html` + `admin/backend.js` |
 
 ## Estructura
 
 ```
-auryx/
-├── index.html                 → shell, tema inicial (claro/oscuro) y orden de carga de scripts
-├── css/styles.css             → sistema de diseño: tokens de color (navy + amarillo), radios, componentes
-└── src/
-    ├── config.js              → API_BASE_URL, USD_ARS_RATE, CONTACT_EMAIL
-    ├── data/products.js       → catálogo de demo, categorías, tipos de sistema, etiquetas de specs
-    ├── lib/
-    │   ├── compatibilityEngine.js → reglas panel↔inversor/regulador y batería↔inversor
-    │   └── api.js                 → carga y adapta productos de la API real
-    ├── utils/
-    │   ├── format.js              → esc(), Intl, precios, íconos, badges, miniaturas
-    │   └── calculatorHelpers.js   → campos, tarjetas de resultado, geometría del ángulo
-    ├── views/                     → una función render por vista (devuelve HTML)
-    └── app.js                     → estado, router por hash, delegación de eventos, arranque
+index.html                     → shell, CSP, orden de carga de scripts (con ?v= de caché)
+css/styles.css                 → tokens de color (navy + amarillo, claro/oscuro), radios, componentes
+admin/                         → panel de administración (llama a la API directo)
+scripts/build-seo-pages.mjs    → páginas estáticas, sitemap y version.json
+src/
+├── config.js                  → API_BASE_URL, WhatsApp, email, Google, GA4/Clarity, datos del vendedor
+├── data/
+│   ├── products.js            → catálogo en memoria (PRODUCTS tienda / SIZER_PRODUCTS dimensionador), categorías, tipos de sistema
+│   ├── tariffs.js             → tarifas residenciales por distribuidora (IIEP-UBA + cuadros oficiales)
+│   └── catalog-summary.js     → productos por categoría al último build (lo genera el script)
+├── lib/
+│   ├── routes.js              → ruta interna ↔ dirección limpia (también lo usa el build)
+│   ├── api.js                 → cliente de la API y adaptación de productos
+│   ├── compatibilityEngine.js → motor de compatibilidad local (respaldo del de la API)
+│   ├── share.js               → "Compartir mi resultado" y "Mandame este sistema por WhatsApp"
+│   ├── analytics.js           → GA4 / Clarity con consentimiento, origen de la visita y "Ref:" de WhatsApp
+│   ├── session.js             → sesión del cliente (Google)
+│   └── theme-init.js          → tema antes de pintar
+├── utils/
+│   ├── format.js              → esc(), Intl, precios, íconos, whatsappLink(), nombres de producto
+│   └── calculatorHelpers.js   → campos, tarjetas de resultado, sección de calculadora
+├── views/                     → una función render por vista (devuelve HTML)
+└── app.js                     → estado, router, delegación de eventos, catálogo, arranque
 ```
 
-### Convenciones
+## Convenciones
 
-- **Eventos**: nada de `onclick` inline. Los botones declaran `data-action="..."`
-  y los campos `data-bind="..."`; `app.js` los resuelve con un listener por tipo.
-- **Escape**: todo texto que viene de la API pasa por `esc()` antes de ir al HTML.
-- **URL = estado**: filtros y orden de la tienda (`#store/panel?marca=X&orden=price-asc`),
-  la calculadora activa (`#calculators/ahorro`) y el tipo preseleccionado del
-  configurador (`#configurator?tipo=hybrid`) se pueden compartir como link.
-- **Tema**: oscuro (marca) por defecto; respeta `prefers-color-scheme` y el
-  botón del header guarda la elección en `localStorage`.
+- **Eventos**: nada de `onclick` inline. Los botones declaran `data-action="..."` y los campos
+  `data-bind="..."`; `app.js` los resuelve con un listener por tipo.
+- **Escape**: todo texto que viene de la API o de la dirección pasa por `esc()` antes de ir al HTML.
+- **URL = estado**: filtros de la tienda (`/categorias/paneles-solares/?marca=X`), modo del dimensionador
+  (`?modo=personalizado`) y los resultados compartidos de calculadoras y dimensionador
+  (`/calculadoras/costo/?consumo=300&provincia=cordoba&distribuidora=epec`). Los parámetros compartidos
+  se validan en `lib/share.js` (lista cerrada, rangos, ids existentes): un valor inválido se descarta.
+- **Catálogo**: se pide solo en las vistas que lo usan (`CATALOG_VIEWS` y las guías con precios). Mientras
+  carga, las páginas generadas dejan a la vista su contenido ya dibujado.
+- **Números en textos**: los ejemplos de las calculadoras y las tablas de las guías se calculan con las
+  mismas funciones del sitio (dimensionador, `tariffs.js`); no se escriben a mano.
+- **Dimensionador**: el cálculo que vale es el de la API (`POST /sizer`); `views/sizer.js` es una copia
+  idéntica que se muestra al instante. Los cambios de cálculo van en los dos lados.
+- **WhatsApp**: `whatsappLink()` agrega `Ref: <origen>-<página>` y cada link lleva `data-context` para el
+  evento `generate_lead`. Las condiciones comerciales (gremio, referidos) no se publican.
+- **Tema**: oscuro (marca) por defecto; respeta `prefers-color-scheme` y el botón del header guarda la elección.
 
-## Cómo está armado (para cuando conectemos el backend)
+## Datos y fuentes
 
-- **`PRODUCTS`** (en `data/products.js`) es el catálogo completo, hoy hardcodeado.
-  Cuando exista el backend, esto se reemplaza por un `fetch('/api/products')`
-  y se guarda el resultado en `App.state` de la misma forma.
-- **`evaluatePanelToConverter` / `evaluateBatteryToConverter`** (en `lib/compatibilityEngine.js`)
-  son el motor de compatibilidad. Hoy corren en el cliente contra `PRODUCTS`;
-  en la arquitectura backend definida antes, esta misma lógica se traslada
-  al servicio de compatibilidad (Node/NestJS) y el cliente pasa a consumir
-  un endpoint en lugar de calcular localmente; la forma de la función
-  (input → `{status, messages}`) puede mantenerse igual.
-- **`App.state.cart`** hoy vive solo en memoria del navegador. Es el punto
-  de enganche natural para persistir el carrito en el backend (o en
-  `localStorage`/`window.storage` si se agrega esa capa antes del backend).
-- No hay build step ni bundler a propósito: mantiene el proyecto legible y
-  fácil de tocar mientras se termina de definir el backend. Si más adelante
-  se migra a Next.js (como se definió en el documento de arquitectura), la
-  estructura de `data/products.js` (specs, categorías) y `lib/compatibilityEngine.js` (reglas) se
-  traslada casi sin cambios al backend/paquete `compatibility-engine`.
-
-## Estado de esta versión (frontend, sin backend)
-
-- El carrito no persiste entre recargas de página (no hay backend ni
-  almacenamiento local todavía).
-- El carrito no procesa pagos: termina en "Solicitar cotización".
-- Los precios en ARS/USD son estimaciones de mercado, no un feed en tiempo real.
-- El motor de compatibilidad es la versión simplificada (sin corrección
-  térmica) acordada para el MVP.
+- Tarifas: Observatorio de Tarifas y Subsidios IIEP-UBA (`TARIFF_DATE` en `src/data/tariffs.js`) y cuadros
+  tarifarios oficiales (`TARIFF_CUADROS`, con resolución y vigencia). El retorno del dimensionador usa
+  `SIZER_TARIFF_LEVELS` en `src/views/sizer.js` (promedio país, con su propia fecha).
+- Precios: los de la base (admin). Las guías fechan los precios con la última actualización del catálogo.
