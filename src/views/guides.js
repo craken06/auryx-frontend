@@ -16,7 +16,17 @@ const guideTable = (head, rows, caption) => `<div class="table-scroll"><table cl
 </table></div>`;
 // los precios del catálogo están en pesos y el dimensionador los pasa a dólares: se redondea a miles (orientativo)
 const guideArs = (usd) => fmtARS(Math.round((usd * USD_ARS_RATE) / 1000) * 1000);
-const guideToday = () => new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+/* Fecha de los precios: la última actualización del catálogo (hora de Argentina). Con la fecha del día, el
+   build diario cambiaría las guías todos los días aunque no cambie ningún precio. */
+function guidePricesTime() {
+  const list = (typeof SIZER_PRODUCTS !== "undefined" ? SIZER_PRODUCTS : []).map((p) => p.updatedAt).filter(Boolean).sort();
+  const d = list.length ? new Date(list[list.length - 1]) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+const GUIDE_TZ = "America/Argentina/Buenos_Aires";
+const guideToday = () => guidePricesTime().toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric", timeZone: GUIDE_TZ });
+/* La misma fecha como AAAA-MM-DD (lastmod del sitemap). */
+const guidePricesIso = () => guidePricesTime().toLocaleDateString("sv-SE", { timeZone: GUIDE_TZ });
 
 /* ---------------------------------------------------------------- cálculos */
 

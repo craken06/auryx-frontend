@@ -306,7 +306,8 @@ for (const g of GUIDES) {
     }],
     body: run(`renderGuides({ guideSlug: ${JSON.stringify(g.slug)} })`),
   });
-  guideUrls.push({ loc: urlPath, lastmod: g.needsCatalog ? new Date().toISOString().slice(0, 10) : g.date });
+  // las que usan precios cambian con el catálogo: su fecha es la de la última actualización de productos
+  guideUrls.push({ loc: urlPath, lastmod: g.needsCatalog ? [g.date, run("guidePricesIso()")].sort().pop() : g.date });
 }
 
 /* ---------------------------------------------------------------- 404.html: la app para cualquier otra dirección */

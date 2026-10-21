@@ -59,6 +59,7 @@ function adaptApiProduct(apiProduct) {
     image: firstImage?.url || null,
     imageAlt: (firstImage && typeof firstImage.altText === "string" && firstImage.altText.trim()) || "",
     inStore: apiProduct.showInStore !== false, // false: fuera de la tienda, solo para el dimensionador
+    updatedAt: apiProduct.updatedAt || null, // las guías fechan los precios con la última actualización
     _fromApi: true,
   };
 }
