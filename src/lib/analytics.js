@@ -133,6 +133,10 @@ const Analytics = (function () {
     [/(^|\.)(youtube\.com|youtu\.be)$/, "youtube"], [/(^|\.)tiktok\.com$/, "tiktok"],
     [/(^|\.)(whatsapp\.com|wa\.me)$/, "whatsapp"], [/(^|\.)(t\.co|twitter\.com|x\.com)$/, "x"],
   ];
+  /* Sitios a los que el visitante va y vuelve dentro de su compra (pagar en Mercado Pago, ingresar con
+     Google): no son el origen de la visita. */
+  const NOT_ORIGINS = [/(^|\.)mercadopago\.com(\.ar)?$/, /(^|\.)mercadolibre\.com(\.ar)?$/, /^accounts\.google\./];
+  const sameSite = (host) => host.replace(/^www\./, "") === location.hostname.replace(/^www\./, "");
 
   /* utm_* de la URL (también después del "#", por links viejos); si no hay, el sitio que mandó la visita. */
   function detectOrigin() {
@@ -148,7 +152,7 @@ const Analytics = (function () {
     if (!source && document.referrer) {
       let host = "";
       try { host = new URL(document.referrer).hostname; } catch (e) { host = ""; }
-      if (host && host !== location.hostname) {
+      if (host && !sameSite(host) && !NOT_ORIGINS.some((re) => re.test(host))) {
         const known = REFERRERS.find(([re]) => re.test(host));
         source = known ? known[1] : host.replace(/^www\./, "");
         medium = known && /google|bing/.test(known[1]) ? "organic" : "referral";
@@ -179,23 +183,30 @@ const Analytics = (function () {
   };
   const PAGE_CODES = {
     home: "INICIO", store: "TIENDA", "product-detail": "PRODUCTO", calculators: "CALC", cart: "CARRITO",
-    order: "PEDIDO", "my-orders": "PEDIDO", contact: "CONTACTO", info: "INFO", revocation: "ARREPENTIMIENTO",
-    installers: "INSTALADORES",
+    order: "PEDIDO", "my-orders": "MIS-PEDIDOS", "my-account": "MIS-DATOS", login: "INGRESAR",
+    contact: "CONTACTO", info: "INFO", terms: "TERMINOS", privacy: "PRIVACIDAD", revocation: "ARREPENTIMIENTO",
+    installers: "INSTALADORES", "not-found": "NO-ENCONTRADA",
+  };
+  /* Guías (views/guides.js): un código corto por slug. */
+  const GUIDE_CODES = {
+    "cuantos-paneles-solares-necesito": "PANELES", "cuanto-cuesta-instalar-paneles-solares": "COSTO",
+    "inversor-on-grid-off-grid-o-hibrido": "INVERSOR", "cuanto-se-ahorra-con-paneles-solares": "AHORRO",
   };
   const code = (v, max) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, max);
 
   /* Código corto para el "Ref:" de WhatsApp: <origen>-<página>, ej. "IG-PRODUCTO", "GOOGLE-CALC-AHORRO";
-     sin origen conocido, solo la página ("CARRITO"). */
+     sin origen conocido, solo la página ("CARRITO"). El origen es el de ESTA visita: el de la primera
+     (attribution().first) queda guardado aparte, pero no se usa acá, porque alguien que llegó una vez
+     por Instagram y hoy entra directo no viene de Instagram. */
   function refCode() {
-    const a = attribution();
-    const src = (a.session || a.first || {}).source;
+    const src = (attribution().session || {}).source;
     const srcCode = src ? SOURCE_CODES[String(src).toLowerCase()] || code(src, 10) : "";
     let page = "";
     if (typeof App !== "undefined" && App.state) {
       const s = App.state;
       if (s.view === "configurator") page = s.cfgTool === "steps" ? "CONFIGURADOR" : "DIMENSIONADOR";
       else if (s.view === "calculators") page = `CALC${s.calcSection ? `-${code(s.calcSection, 12)}` : ""}`;
-      else if (s.view === "guides") page = "GUIA";
+      else if (s.view === "guides") page = s.guideSlug ? `GUIA-${GUIDE_CODES[s.guideSlug] || code(s.guideSlug, 12)}` : "GUIAS";
       else page = PAGE_CODES[s.view] || "";
     }
     return [srcCode, page].filter(Boolean).join("-");

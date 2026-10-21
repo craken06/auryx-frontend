@@ -703,7 +703,7 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .service-points li { display: flex; align-items: center; gap: 10px; }
 .service-points .ph { color: var(--accent-ink); font-size: 18px; flex: none; }
 
-/* tipos de sistema: tres accesos directos al configurador */
+/* accesos con ícono, texto y flecha (índice de calculadoras) */
 .system-links { display: grid; gap: 12px; }
 @media (min-width: 900px) { .system-links { grid-template-columns: repeat(3, 1fr); } }
 .system-link {
@@ -720,7 +720,6 @@ main:focus, [tabindex="-1"]:focus { outline: none; }
 .system-text { display: grid; gap: 4px; }
 .system-text strong { font-size: 1.0625rem; font-weight: 700; }
 .system-text > span { color: var(--text-mid); font-size: 0.875rem; }
-.system-text .system-tag { color: var(--text-dim); font-size: 0.8125rem; }
 .system-link .go { color: var(--text-dim); font-size: 18px; margin-top: 12px; transition: transform 0.18s var(--ease), color 0.18s var(--ease); }
 .system-link:hover .go { transform: translateX(4px); color: var(--accent-ink); }
 .snap-row {

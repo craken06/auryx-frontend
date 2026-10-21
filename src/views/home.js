@@ -79,17 +79,6 @@ function processStepsHTML(extraClass = "") {
 /* HOME                                                                    */
 /* ---------------------------------------------------------------------- */
 function renderHome(state) {
-  const systemLinks = SYSTEM_TYPES.map((s, i) => `
-    <a href="#configurator?tipo=${s.id}" class="system-link" data-reveal style="--i:${i}">
-      <span class="system-icon">${icon(s.icon)}</span>
-      <span class="system-text">
-        <strong>${s.name}</strong>
-        <span>${s.desc}</span>
-        <span class="system-tag">${s.needsBattery ? "Con batería" : "Sin batería"}</span>
-      </span>
-      ${icon("arrow-right", "go")}
-    </a>`).join("");
-
   // Solo las categorías con productos (sin datos de ninguna, se muestran todas)
   const counts = categoryCounts();
   const withProducts = Object.entries(CATEGORY_META).filter(([key]) => counts[key]);
@@ -122,13 +111,6 @@ function renderHome(state) {
     <div class="wrap">
       <h2 id="services-title" class="band-title">Qué hacemos</h2>
       ${homeServicesHTML()}
-    </div>
-  </section>
-
-  <section class="home-band" aria-labelledby="systems-title">
-    <div class="wrap">
-      <h2 id="systems-title" class="band-title">¿Qué sistema necesitás?</h2>
-      <div class="system-links">${systemLinks}</div>
     </div>
   </section>
 
