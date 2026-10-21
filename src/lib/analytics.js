@@ -180,6 +180,7 @@ const Analytics = (function () {
   const PAGE_CODES = {
     home: "INICIO", store: "TIENDA", "product-detail": "PRODUCTO", calculators: "CALC", cart: "CARRITO",
     order: "PEDIDO", "my-orders": "PEDIDO", contact: "CONTACTO", info: "INFO", revocation: "ARREPENTIMIENTO",
+    installers: "INSTALADORES",
   };
   const code = (v, max) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, max);
 

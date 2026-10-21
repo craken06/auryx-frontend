@@ -179,6 +179,7 @@ const App = {
       case "configurator": body = renderConfigurator(s); break;
       case "calculators": body = renderCalculators(s); break;
       case "guides": body = renderGuides(s); break;
+      case "installers": body = renderInstallers(); break;
       case "cart": body = renderCart(s); break;
       case "info": body = renderInfo(); break;
       case "contact": body = renderContact(s); break;
@@ -1028,6 +1029,7 @@ function pageTitle(s) {
       const g = guideBySlug(s.guideSlug);
       return named(g ? g.title : "Guías de energía solar");
     }
+    case "installers": return named("Para instaladores y electricistas");
     case "cart": return named("Carrito");
     case "order": return named("Tu pedido");
     case "revocation": return named("Botón de arrepentimiento");
@@ -1647,7 +1649,7 @@ function applyRoute({ keepScroll = false } = {}) {
     if (entering && !s.login.busy) s.login = defaultLogin();
     s.view = "cart";
     App.prepareCheckout(entering);
-  } else if (["info", "contact", "terms", "privacy"].includes(view)) {
+  } else if (["info", "contact", "terms", "privacy", "installers"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};
   } else if (App.lastRouteKey !== null && document.getElementById(raw)) {

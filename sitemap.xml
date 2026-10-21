@@ -32,6 +32,11 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://auryx.com.ar/para-instaladores/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://auryx.com.ar/contacto/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>

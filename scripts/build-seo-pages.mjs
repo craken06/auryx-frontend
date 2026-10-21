@@ -35,7 +35,7 @@ for (const f of ["src/config.js", "src/data/products.js", "src/data/tariffs.js",
   "src/utils/calculatorHelpers.js", "src/lib/api.js", "src/views/sizer.js",
   "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js",
   "src/views/calculators/consumption.js", "src/views/calculators/cost.js", "src/views/calculators/savings.js",
-  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js", "src/lib/share.js"]) {
+  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js", "src/lib/share.js", "src/views/installers.js"]) {
   vm.runInContext(read(f), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
@@ -151,6 +151,7 @@ const STATIC_PAGES = [
   ["configurator/paso-a-paso", "Configurador paso a paso", "Armá tu sistema fotovoltaico paso a paso: elegí paneles, inversor y baterías y verificá la compatibilidad eléctrica antes de comprar.", true],
   ["calculators", "Calculadoras solares", "Calculadoras gratis de consumo eléctrico, costo de la luz por distribuidora, ahorro con paneles solares y orientación e inclinación de los paneles.", true, () => run("calcIndexHTML()")],
   ["info", "Información", "Cómo comprar en AURYX: envíos, retiro, garantía, medios de pago y qué pasa después de armar tu sistema solar.", true, () => run("renderInfo()")],
+  ["installers", "Para instaladores y electricistas", "Dimensionador y configurador con chequeo de compatibilidad para tu trabajo, precios de gremio y referidos. Date de alta en AURYX por WhatsApp.", true, () => run("renderInstallers()")],
   ["contact", "Contacto", "Escribinos por WhatsApp o con el formulario: te ayudamos a elegir los equipos y a dimensionar tu sistema solar.", true],
   ["terms", "Términos y condiciones", "Términos y condiciones de compra en AURYX: precios, envíos, garantía y derecho de arrepentimiento.", true, () => run("renderTerms()")],
   ["privacy", "Política de privacidad", "Qué datos personales usa AURYX, para qué y cómo ejercer tus derechos de acceso, rectificación y supresión.", true, () => run("renderPrivacy()")],

@@ -16,7 +16,7 @@ const ROUTE_PATHS = {
   store: "productos", configurator: "disena-tu-sistema", calculators: "calculadoras", cart: "carrito",
   info: "informacion", contact: "contacto", terms: "terminos", privacy: "privacidad",
   pedido: "pedido", arrepentimiento: "arrepentimiento", ingresar: "ingresar",
-  "mis-pedidos": "mis-pedidos", "mi-cuenta": "mi-cuenta", guides: "guias",
+  "mis-pedidos": "mis-pedidos", "mi-cuenta": "mi-cuenta", guides: "guias", installers: "para-instaladores",
 };
 const PATH_ROUTES = Object.fromEntries(Object.entries(ROUTE_PATHS).map(([route, path]) => [path, route]));
 const ROUTE_VIEWS = ["home", "product", ...Object.keys(ROUTE_PATHS)];

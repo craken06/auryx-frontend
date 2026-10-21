@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Seguridad. GitHub Pages no deja configurar headers, así que la política va como <meta>.
+     Permite exactamente lo que usa el sitio: la API, Google (ingreso), jsDelivr (fuentes e íconos),
+     imágenes https (fotos de productos cargadas en el admin, Unsplash, Google), GA4 y Clarity.
+     Si agregás un servicio nuevo (otra API, Meta Pixel…), sumá su dominio acá o el navegador lo bloquea.
+     Los estilos en línea se permiten porque las vistas y el botón de Google los usan. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+
+<title>Para instaladores y electricistas | AURYX</title>
+<meta name="description" content="Dimensionador y configurador con chequeo de compatibilidad para tu trabajo, precios de gremio y referidos. Date de alta en AURYX por WhatsApp." />
+<meta name="theme-color" content="#05080f" />
+<link rel="canonical" href="https://auryx.com.ar/para-instaladores/" />
+
+<!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
+     pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AURYX" />
+<meta property="og:locale" content="es_AR" />
+<meta property="og:url" content="https://auryx.com.ar/para-instaladores/" />
+<meta property="og:title" content="Para instaladores y electricistas | AURYX" />
+<meta property="og:description" content="Dimensionador y configurador con chequeo de compatibilidad para tu trabajo, precios de gremio y referidos. Date de alta en AURYX por WhatsApp." />
+<meta property="og:image" content="https://auryx.com.ar/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Para instaladores y electricistas | AURYX" />
+<meta name="twitter:description" content="Dimensionador y configurador con chequeo de compatibilidad para tu trabajo, precios de gremio y referidos. Date de alta en AURYX por WhatsApp." />
+<meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
+
+<!-- Íconos (pestaña, acceso directo en el celular) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<!-- Datos estructurados para buscadores (no se ejecutan: la CSP no los bloquea) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://auryx.com.ar/#organizacion",
+      "name": "AURYX",
+      "url": "https://auryx.com.ar/",
+      "logo": "https://auryx.com.ar/icon-512.png",
+      "sameAs": [
+        "https://www.instagram.com/auryx.oficial/",
+        "https://www.linkedin.com/in/auryx-fv"
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Para instaladores y electricistas",
+          "item": "https://auryx.com.ar/para-instaladores/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
+<!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
+<script src="/src/lib/theme-init.js?v=20261063"></script>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://images.unsplash.com" />
+<!-- La fuente principal (latín) se pide ya, sin esperar a que llegue su CSS -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/files/archivo-latin-wdth-normal.woff2" />
+
+<!-- Tipografía vía Fontsource (font-display: swap). Versión exacta + integrity (SRI): si el CDN
+     sirviera otro archivo, el navegador no lo usa. Al cambiar de versión hay que recalcular el hash. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/wdth.css" integrity="sha384-vjcJagy/QG7TVWEpv/BSGwmn+C7DviTSwDEGbRW7XomYit1xRqvEa1tOvwsdZUqe" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/index.css" integrity="sha384-bNykZ+bGB4FclZiYvLmgUfE8clWCvZlLOJ3v63czgIEgamTe0EhkaLXIbptJkvmW" crossorigin="anonymous" />
+
+<!-- Íconos: Phosphor (regular + fill), versión fijada -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
+
+<link rel="stylesheet" href="/css/styles.css?v=20261063" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header id="nav-root" class="site-header"></header>
+  <main id="main" tabindex="-1">
+    <div id="app-root">
+      <div data-prerender>
+  <div class="wrap page installers">
+    <div class="page-head inst-head">
+      <h1 class="page-title">Para instaladores y electricistas</h1>
+      <p class="page-lead">Herramientas para dimensionar y verificar sistemas solares, precios de gremio y beneficios por referidos.</p>
+      <div class="hero-ctas"><a class="btn btn-primary btn-lg" href="https://wa.me/5491166858516?text=Hola%2C%20soy%20instalador%2Fa%20o%20electricista%20y%20quiero%20darme%20de%20alta%20en%20AURYX." target="_blank" rel="noopener" data-context="instaladores"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i> Darme de alta por WhatsApp</a><a href="/disena-tu-sistema/" class="btn btn-secondary btn-lg">Probar el dimensionador</a></div>
+    </div>
+
+    <section class="inst-section" aria-labelledby="inst-tools-title">
+      <h2 id="inst-tools-title" class="band-title">Herramientas de trabajo</h2>
+      <p class="inst-lead">Lo que usamos para armar cada sistema, a disposición tuya y de tus clientes.</p>
+      <ul class="inst-tools">
+        
+        <li>
+          <span class="system-icon"><i class="ph ph-lightning" aria-hidden="true"></i></span>
+          <div>
+            <h3>Dimensionador</h3>
+            <p>Cargás consumo, zona, techo y objetivo del cliente. Te devuelve paneles, inversor y baterías, los strings por MPPT, el armado del banco y el retorno estimado.</p>
+            <a href="/disena-tu-sistema/" class="link-arrow">Abrir el dimensionador <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+          </div>
+        </li>
+        <li>
+          <span class="system-icon"><i class="ph ph-check-circle" aria-hidden="true"></i></span>
+          <div>
+            <h3>Configurador con chequeo de compatibilidad</h3>
+            <p>Elegís cada equipo y te avisa si no es compatible: tensión de los strings en frío contra la máxima del inversor, corriente por MPPT y tensión de las baterías, antes de comprar.</p>
+            <a href="/disena-tu-sistema/paso-a-paso/" class="link-arrow">Armar paso a paso <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+          </div>
+        </li>
+        <li>
+          <span class="system-icon"><i class="ph ph-share-network" aria-hidden="true"></i></span>
+          <div>
+            <h3>Sistemas para compartir</h3>
+            <p>Cada resultado se comparte con un link: se lo mandás a tu cliente para que lo vea o nos lo mandás por WhatsApp para cotizarlo.</p>
+            <a href="/disena-tu-sistema/" class="link-arrow">Probar con un sistema <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+          </div>
+        </li>
+        <li>
+          <span class="system-icon"><i class="ph ph-calculator" aria-hidden="true"></i></span>
+          <div>
+            <h3>Calculadoras para explicarle al cliente</h3>
+            <p>Consumo, costo de la luz por distribuidora, ahorro y orientación, cada una con la cuenta a la vista.</p>
+            <a href="/calculadoras/" class="link-arrow">Ver las calculadoras <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="inst-section inst-terms" aria-labelledby="inst-terms-title">
+      <div>
+        <h2 id="inst-terms-title" class="band-title">Precios de gremio y referidos</h2>
+        <p>Si instalás o hacés obras eléctricas, tenés condiciones especiales para comprar los equipos. Y si nos recomendás clientes, también sumás beneficios.</p>
+        <p class="inst-note"><i class="ph ph-chat-circle-text" aria-hidden="true"></i><span>Consultá las condiciones por WhatsApp.</span></p>
+      </div>
+    </section>
+
+    <section class="inst-section" aria-labelledby="inst-steps-title">
+      <h2 id="inst-steps-title" class="band-title">Cómo darte de alta</h2>
+      <ol class="process-steps inst-steps">
+        
+        <li>
+          <span class="process-num" aria-hidden="true">1</span>
+          <div><h3>Escribinos por WhatsApp</h3><p>Contanos quién sos, en qué zona trabajás y qué tipo de instalaciones hacés.</p></div>
+        </li>
+        <li>
+          <span class="process-num" aria-hidden="true">2</span>
+          <div><h3>Te pasamos las condiciones</h3><p>Precios de gremio y beneficios por referidos, según tu caso.</p></div>
+        </li>
+        <li>
+          <span class="process-num" aria-hidden="true">3</span>
+          <div><h3>Empezás a trabajar</h3><p>Armás los sistemas con las herramientas y nos pasás los pedidos o los clientes.</p></div>
+        </li>
+      </ol>
+      <div class="hero-ctas hero-ctas-spaced"><a class="btn btn-primary btn-lg" href="https://wa.me/5491166858516?text=Hola%2C%20soy%20instalador%2Fa%20o%20electricista%20y%20quiero%20darme%20de%20alta%20en%20AURYX." target="_blank" rel="noopener" data-context="instaladores"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i> Darme de alta por WhatsApp</a></div>
+    </section>
+
+    <section class="inst-section" aria-labelledby="inst-faq-title">
+      <h2 id="inst-faq-title" class="band-title">Preguntas frecuentes</h2>
+      <div class="faq inst-faq"><details><summary>¿Las herramientas tienen costo?</summary><p>No. El dimensionador, el configurador y las calculadoras son gratis y se usan sin registrarse.</p></details><details><summary>¿Cuáles son los precios de gremio?</summary><p>No los publicamos: te los pasamos según tu caso. Consultá las condiciones por WhatsApp.</p></details><details><summary>¿Cómo funcionan los referidos?</summary><p>Si nos recomendás clientes, sumás beneficios. Consultá las condiciones por WhatsApp.</p></details><details><summary>¿Tengo que ser matriculado?</summary><p>Las instalaciones las tiene que hacer personal matriculado, y el proyecto lo tiene que firmar un profesional. Contanos tu situación cuando nos escribas.</p></details></div>
+    </section>
+  </div></div>
+      <noscript>
+        <div class="wrap page">
+          <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
+          <p>También podés consultarnos por WhatsApp: <a href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta.">+54 9 11 6685-8516</a>.</p>
+        </div>
+      </noscript>
+    </div>
+  </main>
+  <footer id="footer-root" class="site-footer"></footer>
+
+  <div id="toast-root" class="toast-region" role="status" aria-live="polite"></div>
+  <!-- Banner de cookies (views/cookies.js). Vacío si la analítica está deshabilitada o ya se decidió. -->
+  <div id="cookie-root"></div>
+  <!-- Región viva estable para anunciar resultados que se recalculan al tipear (dimensionador) -->
+  <div id="sr-live" class="visually-hidden" aria-live="polite"></div>
+
+  <button id="back-to-top" class="back-to-top" type="button" data-action="scroll-top" aria-label="Volver arriba">
+    <i class="ph ph-arrow-up" aria-hidden="true"></i>
+  </button>
+
+  <!-- El link funciona aun sin JavaScript; app.js le suma el código de origen ("Ref:") al mensaje -->
+  <a id="wa-fab" class="wa-fab" href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta." target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp (se abre en una pestaña nueva)" data-context="boton-flotante">
+    <i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i>
+  </a>
+
+  <!-- Todos con defer: se ejecutan en este orden y antes de DOMContentLoaded (cuando arranca app.js).
+       Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
+       página tardaba segundos en armarse; con defer se piden todos juntos. -->
+  <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
+  <script defer src="/src/config.js?v=20261063"></script>
+  <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
+  <script defer src="/src/lib/analytics.js?v=20261063"></script>
+
+  <!-- Datos y lógica de negocio -->
+  <script defer src="/src/data/products.js?v=20261063"></script>
+  <script defer src="/src/data/tariffs.js?v=20261063"></script>
+  <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
+  <script defer src="/src/data/catalog-summary.js?v=20261063"></script>
+  <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
+  <script defer src="/src/lib/routes.js?v=20261063"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261063"></script>
+  <script defer src="/src/utils/format.js?v=20261063"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261063"></script>
+
+  <!-- Vistas -->
+  <script defer src="/src/views/nav.js?v=20261063"></script>
+  <script defer src="/src/views/footer.js?v=20261063"></script>
+  <script defer src="/src/views/sizer.js?v=20261063"></script>
+  <script defer src="/src/views/home.js?v=20261063"></script>
+  <script defer src="/src/views/store.js?v=20261063"></script>
+  <script defer src="/src/views/productDetail.js?v=20261063"></script>
+  <script defer src="/src/views/configurator.js?v=20261063"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261063"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261063"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261063"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261063"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261063"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261063"></script>
+  <script defer src="/src/views/guides.js?v=20261063"></script>
+  <script defer src="/src/views/installers.js?v=20261063"></script>
+  <!-- Compartir resultado y "Mandame este sistema por WhatsApp" (calculadoras y dimensionador) -->
+  <script defer src="/src/lib/share.js?v=20261063"></script>
+  <script defer src="/src/views/cart.js?v=20261063"></script>
+  <script defer src="/src/views/infoContact.js?v=20261063"></script>
+  <script defer src="/src/views/legal.js?v=20261063"></script>
+  <script defer src="/src/views/account.js?v=20261063"></script>
+  <script defer src="/src/views/cookies.js?v=20261063"></script>
+
+  <!-- Sesión del cliente y cliente de la API -->
+  <script defer src="/src/lib/session.js?v=20261063"></script>
+  <script defer src="/src/lib/api.js?v=20261063"></script>
+
+  <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
+  <script defer src="/src/app.js?v=20261063"></script>
+</body>
+</html>
