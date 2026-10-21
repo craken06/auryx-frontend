@@ -655,15 +655,18 @@ function sizerCustomResult(cu) {
 
 /* Retorno estimado: ahorro en la factura con la tarifa promedio país del nivel de consumo, en dólares
    constantes (sin suba real de tarifas). Inversión = equipos + instalación; en el año de reposición se
-   vuelven a comprar inversor y baterías. */
-function sizerRoi(r, cons, goal) {
+   vuelven a comprar inversor y baterías.
+   saving (opcional, lo usan las guías): { monthly, bill } en USD por mes, el ahorro y la factura calculados
+   con la tarifa de una distribuidora en lugar del promedio país. */
+function sizerRoi(r, cons, goal, saving = null) {
   const level = SIZER_TARIFF_LEVELS.findIndex((l) => cons <= l.max);
   const tariff = SIZER_TARIFF_LEVELS[level];
   const price = tariff.ars / USD_ARS_RATE;
   const self = Math.min(r.gen * SIZER_SELF_USE[goal], cons);
   const injected = goal === "aut" ? 0 : Math.max(0, r.gen - self);
   // el excedente inyectado se acredita en la factura: el ahorro no pasa de lo que se paga de luz
-  const monthly = Math.min(self + injected * SIZER_INJECT_VALUE, cons) * price;
+  const monthly = saving ? saving.monthly : Math.min(self + injected * SIZER_INJECT_VALUE, cons) * price;
+  const bill = saving ? saving.bill : cons * price;
   const invest = r.total * (1 + SIZER_INSTALL);
   // por id: el resultado de la API llega como JSON
   const ids = [r.config.inv.id, r.config.bat && r.config.bat.id];
@@ -675,7 +678,7 @@ function sizerRoi(r, cons, goal) {
     net += monthly * 12 * (1 - SIZER_DEGRADATION) ** (y - 1) - (y === SIZER_REPLACE_YEAR ? replace : 0);
     if (payback === null && net >= 0) payback = y - 1 + -prev / (net - prev);
   }
-  return { level: level + 1, tariff, monthly, billPct: (monthly / (cons * price)) * 100, invest, replace, withBat: !!r.config.bat, nInv: r.config.nInv, payback, net, roi: (net / invest) * 100 };
+  return { level: level + 1, tariff, monthly, billPct: (monthly / bill) * 100, invest, replace, withBat: !!r.config.bat, nInv: r.config.nInv, payback, net, roi: (net / invest) * 100 };
 }
 
 /* ---------------------------------------------------------------------- */

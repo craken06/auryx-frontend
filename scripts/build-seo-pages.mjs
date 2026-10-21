@@ -35,7 +35,7 @@ for (const f of ["src/config.js", "src/data/products.js", "src/data/tariffs.js",
   "src/utils/calculatorHelpers.js", "src/lib/api.js", "src/views/sizer.js",
   "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js",
   "src/views/calculators/consumption.js", "src/views/calculators/cost.js", "src/views/calculators/savings.js",
-  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js"]) {
+  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js"]) {
   vm.runInContext(read(f), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
@@ -160,7 +160,7 @@ const STATIC_PAGES = [
   ["mis-pedidos", "Mis pedidos", "Tus pedidos en AURYX.", false],
   ["mi-cuenta", "Mis datos", "Tus datos en AURYX.", false],
 ];
-const GENERATED_DIRS = ["productos", "categorias", ...new Set(STATIC_PAGES.map(([route]) => routeToPath(route).split("/")[1]))];
+const GENERATED_DIRS = ["productos", "categorias", "guias", ...new Set(STATIC_PAGES.map(([route]) => routeToPath(route).split("/")[1]))];
 for (const dir of GENERATED_DIRS) {
   if (["admin", "src", "css", "scripts", ".github", ""].includes(dir)) throw new Error(`Carpeta protegida: ${dir}`);
   fs.rmSync(path.join(ROOT, dir), { recursive: true, force: true });
@@ -279,6 +279,35 @@ for (const c of CALCULATOR_LINKS) {
   calcUrls.push(urlPath);
 }
 
+/* ---------------------------------------------------------------- guías */
+/* Índice y una página por guía (views/guides.js), con las tablas calculadas con el catálogo de este build. */
+const GUIDES = run("GUIDES");
+const guidesPath = routeToPath("guides");
+page({
+  urlPath: guidesPath,
+  title: "Guías de energía solar | AURYX",
+  description: "Cuántos paneles solares necesitás, cuánto cuesta instalarlos, qué inversor elegir y cuánto se ahorra con las tarifas vigentes. Guías con números calculados.",
+  graph: [ORG, crumbs([["Guías", guidesPath]]), {
+    "@type": "CollectionPage", name: "Guías de energía solar", url: SITE + guidesPath,
+    mainEntity: { "@type": "ItemList", itemListElement: GUIDES.map((g, i) => ({ "@type": "ListItem", position: i + 1, url: SITE + routeToPath(`guides/${g.slug}`), name: g.h1 })) },
+  }],
+  body: run("renderGuides({ guideSlug: null })"),
+});
+const guideUrls = [];
+for (const g of GUIDES) {
+  const urlPath = routeToPath(`guides/${g.slug}`);
+  page({
+    urlPath, ogType: "article",
+    title: `${g.title} | AURYX`,
+    description: g.description,
+    graph: [ORG, crumbs([["Guías", guidesPath], [g.h1, urlPath]]), {
+      ...run(`guideArticleLd(${JSON.stringify(g.slug)})`), "@id": `${SITE}${urlPath}#guia`, mainEntityOfPage: SITE + urlPath,
+    }],
+    body: run(`renderGuides({ guideSlug: ${JSON.stringify(g.slug)} })`),
+  });
+  guideUrls.push({ loc: urlPath, lastmod: g.needsCatalog ? new Date().toISOString().slice(0, 10) : g.date });
+}
+
 /* ---------------------------------------------------------------- 404.html: la app para cualquier otra dirección */
 fs.writeFileSync(path.join(ROOT, "404.html"), buildHTML({
   urlPath: "/", title: "Página no encontrada | AURYX", noindex: true,
@@ -302,6 +331,8 @@ const urls = [
   ...[...PRODUCTS].sort((a, b) => productUrl(a).localeCompare(productUrl(b))).map((p) => ({ loc: productUrl(p), priority: "0.7", changefreq: "weekly", lastmod: lastmod([p]) })),
   ...STATIC_PAGES.filter(([, , , indexable]) => indexable).map(([route]) => ({ loc: routeToPath(route), priority: route.startsWith("configurator") || route === "calculators" ? "0.8" : "0.4", changefreq: "monthly" })),
   ...calcUrls.map((loc) => ({ loc, priority: "0.7", changefreq: "monthly" })),
+  { loc: guidesPath, priority: "0.6", changefreq: "monthly" },
+  ...guideUrls.map((u) => ({ ...u, priority: "0.7", changefreq: "monthly" })),
 ];
 fs.writeFileSync(path.join(ROOT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Lo genera scripts/build-seo-pages.mjs: no editar a mano. -->

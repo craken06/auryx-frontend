@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Seguridad. GitHub Pages no deja configurar headers, así que la política va como <meta>.
+     Permite exactamente lo que usa el sitio: la API, Google (ingreso), jsDelivr (fuentes e íconos),
+     imágenes https (fotos de productos cargadas en el admin, Unsplash, Google), GA4 y Clarity.
+     Si agregás un servicio nuevo (otra API, Meta Pixel…), sumá su dominio acá o el navegador lo bloquea.
+     Los estilos en línea se permiten porque las vistas y el botón de Google los usan. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+
+<title>Inversor on-grid, off-grid o híbrido: cuál te conviene | AURYX</title>
+<meta name="description" content="Diferencias entre inversores on-grid, off-grid e híbridos: cuál funciona en un corte de luz, cuál necesita baterías y cuál conviene según lo que buscás." />
+<meta name="theme-color" content="#05080f" />
+<link rel="canonical" href="https://auryx.com.ar/guias/inversor-on-grid-off-grid-o-hibrido/" />
+
+<!-- Vista previa al compartir (WhatsApp, LinkedIn, Facebook, X). URLs absolutas: si el sitio
+     pasa a un dominio propio, cambiarlas acá, en el canonical, en los datos estructurados y en sitemap.xml. -->
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="AURYX" />
+<meta property="og:locale" content="es_AR" />
+<meta property="og:url" content="https://auryx.com.ar/guias/inversor-on-grid-off-grid-o-hibrido/" />
+<meta property="og:title" content="Inversor on-grid, off-grid o híbrido: cuál te conviene | AURYX" />
+<meta property="og:description" content="Diferencias entre inversores on-grid, off-grid e híbridos: cuál funciona en un corte de luz, cuál necesita baterías y cuál conviene según lo que buscás." />
+<meta property="og:image" content="https://auryx.com.ar/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="AURYX: equipos de energía solar con la compatibilidad verificada" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Inversor on-grid, off-grid o híbrido: cuál te conviene | AURYX" />
+<meta name="twitter:description" content="Diferencias entre inversores on-grid, off-grid e híbridos: cuál funciona en un corte de luz, cuál necesita baterías y cuál conviene según lo que buscás." />
+<meta name="twitter:image" content="https://auryx.com.ar/og-image.png" />
+
+<!-- Íconos (pestaña, acceso directo en el celular) -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<!-- Datos estructurados para buscadores (no se ejecutan: la CSP no los bloquea) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://auryx.com.ar/#organizacion",
+      "name": "AURYX",
+      "url": "https://auryx.com.ar/",
+      "logo": "https://auryx.com.ar/icon-512.png",
+      "sameAs": [
+        "https://www.instagram.com/auryx.oficial/",
+        "https://www.linkedin.com/in/auryx-fv"
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Guías",
+          "item": "https://auryx.com.ar/guias/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Inversor on-grid, off-grid o híbrido: cuál te conviene",
+          "item": "https://auryx.com.ar/guias/inversor-on-grid-off-grid-o-hibrido/"
+        }
+      ]
+    },
+    {
+      "@type": "Article",
+      "headline": "Inversor on-grid, off-grid o híbrido: cuál te conviene",
+      "description": "Diferencias entre inversores on-grid, off-grid e híbridos: cuál funciona en un corte de luz, cuál necesita baterías y cuál conviene según lo que buscás.",
+      "datePublished": "2026-10-21",
+      "dateModified": "2026-10-21",
+      "inLanguage": "es-AR",
+      "author": {
+        "@id": "https://auryx.com.ar/#organizacion"
+      },
+      "publisher": {
+        "@id": "https://auryx.com.ar/#organizacion"
+      },
+      "image": "https://auryx.com.ar/og-image.png",
+      "@id": "https://auryx.com.ar/guias/inversor-on-grid-off-grid-o-hibrido/#guia",
+      "mainEntityOfPage": "https://auryx.com.ar/guias/inversor-on-grid-off-grid-o-hibrido/"
+    }
+  ]
+}
+</script>
+
+<!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
+<!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
+<script src="/src/lib/theme-init.js?v=20261061"></script>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://images.unsplash.com" />
+<!-- La fuente principal (latín) se pide ya, sin esperar a que llegue su CSS -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/files/archivo-latin-wdth-normal.woff2" />
+
+<!-- Tipografía vía Fontsource (font-display: swap). Versión exacta + integrity (SRI): si el CDN
+     sirviera otro archivo, el navegador no lo usa. Al cambiar de versión hay que recalcular el hash. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/archivo@5.3.0/wdth.css" integrity="sha384-vjcJagy/QG7TVWEpv/BSGwmn+C7DviTSwDEGbRW7XomYit1xRqvEa1tOvwsdZUqe" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/index.css" integrity="sha384-bNykZ+bGB4FclZiYvLmgUfE8clWCvZlLOJ3v63czgIEgamTe0EhkaLXIbptJkvmW" crossorigin="anonymous" />
+
+<!-- Íconos: Phosphor (regular + fill), versión fijada -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
+
+<link rel="stylesheet" href="/css/styles.css?v=20261061" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+
+  <header id="nav-root" class="site-header"></header>
+  <main id="main" tabindex="-1">
+    <div id="app-root">
+      <div data-prerender>
+  <article class="wrap page guide">
+    <nav class="crumbs" aria-label="Estás en"><a href="/guias/">Guías</a><i class="ph ph-caret-right" aria-hidden="true"></i><span aria-current="page">Inversor on-grid, off-grid o híbrido: cuál te conviene</span></nav>
+    <header class="page-head guide-head">
+      <h1 class="page-title">Inversor on-grid, off-grid o híbrido: cuál te conviene</h1>
+      <p class="page-lead">El inversor convierte la corriente continua de los paneles en la alterna que usa tu casa. El tipo que elijas define si el sistema sigue andando en un corte, si lleva baterías y cuánto cuesta.</p>
+      <p class="guide-meta xsmall dim"><time datetime="2026-10-21">21 de octubre de 2026</time><span>4 min de lectura</span></p>
+    </header>
+    <div class="prose guide-body">
+      <p>Cuando se arma un sistema solar, el panel es lo más visible, pero la decisión que más cambia el resultado es el inversor. Hay tres tipos y cada uno resuelve un problema distinto.</p>
+
+      <h2>Inversor on-grid: para bajar la factura</h2>
+      <p>Se conecta a la red de la distribuidora y la energía de los paneles se consume primero en tu casa. Si generás más de lo que usás, el excedente va a la red; si generás menos, el resto lo tomás de la red como siempre. No lleva baterías, por eso es el sistema más económico y el que se recupera más rápido.</p>
+      <p>Lo que mucha gente no sabe: <strong>un inversor on-grid se apaga cuando se corta la luz</strong>, aunque haya sol. Es una protección obligatoria (se llama anti-isla) para que los técnicos que trabajan en la línea no reciban tensión de tu instalación. Si lo que te preocupa son los cortes, un on-grid solo no lo resuelve.</p>
+      <p>Para inyectar a la red con generación distribuida hay que hacer el trámite con la distribuidora, que aprueba la conexión y coloca un medidor bidireccional.</p>
+
+      <h2>Inversor híbrido: ahorro más respaldo</h2>
+      <p>Hace lo mismo que el on-grid y además maneja baterías. De día carga las baterías con el sol que sobra; de noche o durante un corte, alimenta la casa desde las baterías. Cuando se corta la luz, se desconecta de la red y sigue alimentando los circuitos que elegiste como críticos: la heladera, la iluminación, el router, una bomba de agua.</p>
+      <p>Cuesta más que un on-grid por el inversor y, sobre todo, por las baterías. Pero si en tu zona los cortes son frecuentes, o trabajás desde tu casa, el respaldo vale tanto como el ahorro. Un dato importante: las baterías y el inversor tienen que ser compatibles en tensión y comunicación, no cualquier batería sirve con cualquier híbrido.</p>
+
+      <h2>Inversor off-grid: cuando no hay red</h2>
+      <p>Funciona aislado, sin conexión a la distribuidora. Toda la energía que usás sale de los paneles y de las baterías, así que el sistema se dimensiona con margen: más paneles para cargar las baterías en días nublados y más baterías para los días sin sol. Es la opción para un campo, una cabaña o cualquier lugar donde traer la red cuesta más que el sistema.</p>
+      <p>Para usos chicos (iluminación, una bomba, equipos de 12 o 24 V) existe una versión más simple: un regulador de carga con baterías, sin inversor, todo en corriente continua.</p>
+
+      <h2>Comparación rápida</h2>
+      <div class="table-scroll"><table class="guide-table">
+  
+  <thead><tr><th scope="col"></th><th scope="col">On-grid</th><th scope="col">Híbrido</th><th scope="col">Off-grid</th></tr></thead>
+  <tbody><tr><th scope="row">Conectado a la red</th><td>Sí</td><td>Sí</td><td>No</td></tr><tr><th scope="row">Funciona durante un corte</th><td>No</td><td>Sí, con la batería</td><td>Sí</td></tr><tr><th scope="row">Baterías</th><td>No lleva</td><td>Sí</td><td>Sí, más capacidad</td></tr><tr><th scope="row">Inyecta a la red</th><td>Sí</td><td>Sí</td><td>No</td></tr><tr><th scope="row">Costo</th><td>El más bajo</td><td>Medio a alto</td><td>Alto</td></tr><tr><th scope="row">Ideal para</th><td>Bajar la factura</td><td>Bajar la factura y tener respaldo</td><td>Lugares sin red</td></tr></tbody>
+</table></div>
+
+      <h2>Cómo elegir</h2>
+      <ul class="legal-list">
+        <li><strong>Si tenés red y querés pagar menos de luz:</strong> on-grid. Es el que se recupera más rápido.</li>
+        <li><strong>Si tenés red pero sufrís cortes:</strong> híbrido. Podés empezar con una batería chica y sumar más después, si el inversor y la batería lo permiten.</li>
+        <li><strong>Si no tenés red o traerla es muy caro:</strong> off-grid.</li>
+      </ul>
+
+      <h2>Monofásico o trifásico</h2>
+      <p>El inversor tiene que coincidir con tu conexión. La mayoría de las casas tienen conexión monofásica (220 V) y usan un inversor monofásico. Si tu casa o tu negocio tiene conexión trifásica (380 V), conviene un inversor trifásico, que reparte la energía entre las tres fases. Lo ves en la factura o en el tablero.</p>
+
+      <h2>Qué mirar en la hoja de datos</h2>
+      <ul class="legal-list">
+        <li><strong>Potencia nominal (kW):</strong> la potencia de corriente alterna que entrega. Se suele instalar algo más de potencia en paneles que en el inversor (relación DC/AC de 1,1 a 1,3) porque los paneles rara vez entregan el 100 %.</li>
+        <li><strong>Tensión máxima de entrada:</strong> la tensión de los paneles en serie no la puede superar nunca, ni en la mañana más fría del año.</li>
+        <li><strong>Rango de MPPT:</strong> la ventana de tensión en la que el inversor aprovecha al máximo los paneles.</li>
+        <li><strong>Corriente por MPPT:</strong> tiene que aceptar la corriente de los paneles, que en los modelos grandes supera los 13 A.</li>
+        <li><strong>En híbridos, la tensión de batería:</strong> baja tensión (48 V) o alta tensión. Define qué baterías podés usar.</li>
+      </ul>
+      <p>Estos cruces son los que verifica el configurador de AURYX: con el <a href="/disena-tu-sistema/paso-a-paso/">paso a paso</a> elegís panel, inversor y batería y te dice si son compatibles antes de comprar.</p>
+
+      <h2>Probalo con tu consumo</h2>
+      <p>En <a href="/disena-tu-sistema/">Diseñá tu sistema</a> elegís qué buscás (bajar la factura, respaldo ante cortes o autonomía total) y el dimensionador elige el tipo de inversor, la cantidad de paneles y, si hacen falta, las baterías. Si todavía no sabés tu consumo, calculalo con la <a href="/calculadoras/consumo/">calculadora de consumo</a>.</p></div>
+    <aside class="guide-more" aria-labelledby="guide-more-title">
+      <h2 id="guide-more-title">Más guías</h2>
+      <ul><li><a href="/guias/cuantos-paneles-solares-necesito/" class="link-arrow">Cuántos paneles solares necesito para mi casa <i class="ph ph-arrow-right" aria-hidden="true"></i></a></li><li><a href="/guias/cuanto-cuesta-instalar-paneles-solares/" class="link-arrow">Cuánto cuesta instalar paneles solares en Argentina <i class="ph ph-arrow-right" aria-hidden="true"></i></a></li><li><a href="/guias/cuanto-se-ahorra-con-paneles-solares/" class="link-arrow">Cuánto se ahorra con paneles solares con las tarifas vigentes <i class="ph ph-arrow-right" aria-hidden="true"></i></a></li></ul>
+    </aside>
+    <p class="tech-note tech-note-spaced"><i class="ph ph-info" aria-hidden="true"></i><span><strong>Aviso técnico.</strong> Los resultados son orientativos. La verificación de compatibilidad usa los datos de la hoja del fabricante y corrige la tensión por la temperatura mínima indicada; las calculadoras son estimaciones con los valores que cargás. Ninguna considera sombras, pérdidas de cableado ni normativa local. No reemplazan un proyecto firmado por un profesional matriculado. El dimensionamiento final lo confirmamos con vos antes de la compra, y la instalación debe hacerla personal matriculado.</span></p>
+  </article></div>
+      <noscript>
+        <div class="wrap page">
+          <p><strong>Para ver el catálogo y comprar necesitás tener JavaScript activado.</strong></p>
+          <p>También podés consultarnos por WhatsApp: <a href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta.">+54 9 11 6685-8516</a>.</p>
+        </div>
+      </noscript>
+    </div>
+  </main>
+  <footer id="footer-root" class="site-footer"></footer>
+
+  <div id="toast-root" class="toast-region" role="status" aria-live="polite"></div>
+  <!-- Banner de cookies (views/cookies.js). Vacío si la analítica está deshabilitada o ya se decidió. -->
+  <div id="cookie-root"></div>
+  <!-- Región viva estable para anunciar resultados que se recalculan al tipear (dimensionador) -->
+  <div id="sr-live" class="visually-hidden" aria-live="polite"></div>
+
+  <button id="back-to-top" class="back-to-top" type="button" data-action="scroll-top" aria-label="Volver arriba">
+    <i class="ph ph-arrow-up" aria-hidden="true"></i>
+  </button>
+
+  <!-- El link funciona aun sin JavaScript; app.js le suma el código de origen ("Ref:") al mensaje -->
+  <a id="wa-fab" class="wa-fab" href="https://wa.me/5491166858516?text=Hola%2C%20quiero%20hacer%20una%20consulta." target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp (se abre en una pestaña nueva)" data-context="boton-flotante">
+    <i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i>
+  </a>
+
+  <!-- Todos con defer: se ejecutan en este orden y antes de DOMContentLoaded (cuando arranca app.js).
+       Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
+       página tardaba segundos en armarse; con defer se piden todos juntos. -->
+  <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
+  <script defer src="/src/config.js?v=20261061"></script>
+  <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
+  <script defer src="/src/lib/analytics.js?v=20261061"></script>
+
+  <!-- Datos y lógica de negocio -->
+  <script defer src="/src/data/products.js?v=20261061"></script>
+  <script defer src="/src/data/tariffs.js?v=20261061"></script>
+  <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
+  <script defer src="/src/data/catalog-summary.js?v=20261061"></script>
+  <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
+  <script defer src="/src/lib/routes.js?v=20261061"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261061"></script>
+  <script defer src="/src/utils/format.js?v=20261061"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261061"></script>
+
+  <!-- Vistas -->
+  <script defer src="/src/views/nav.js?v=20261061"></script>
+  <script defer src="/src/views/footer.js?v=20261061"></script>
+  <script defer src="/src/views/sizer.js?v=20261061"></script>
+  <script defer src="/src/views/home.js?v=20261061"></script>
+  <script defer src="/src/views/store.js?v=20261061"></script>
+  <script defer src="/src/views/productDetail.js?v=20261061"></script>
+  <script defer src="/src/views/configurator.js?v=20261061"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261061"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261061"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261061"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261061"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261061"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261061"></script>
+  <script defer src="/src/views/guides.js?v=20261061"></script>
+  <script defer src="/src/views/cart.js?v=20261061"></script>
+  <script defer src="/src/views/infoContact.js?v=20261061"></script>
+  <script defer src="/src/views/legal.js?v=20261061"></script>
+  <script defer src="/src/views/account.js?v=20261061"></script>
+  <script defer src="/src/views/cookies.js?v=20261061"></script>
+
+  <!-- Sesión del cliente y cliente de la API -->
+  <script defer src="/src/lib/session.js?v=20261061"></script>
+  <script defer src="/src/lib/api.js?v=20261061"></script>
+
+  <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
+  <script defer src="/src/app.js?v=20261061"></script>
+</body>
+</html>

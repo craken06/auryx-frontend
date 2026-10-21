@@ -123,6 +123,7 @@ const App = {
     sizer: defaultSizer(),
     cfgTool: "sizer", // "sizer" (dimensionador) o "steps" (paso a paso)
     calcSection: null,
+    guideSlug: null,
     calc: defaultCalcState(),
     contactDraft: {},
     contactErrors: {},
@@ -167,15 +168,17 @@ const App = {
     if (this.accountMenuOpen) setAccountMenu(document.querySelector('#nav-root [data-action="toggle-account-menu"]')?.closest(".dropdown"), true);
 
     let body = "";
-    const waitingCatalog = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
-    // en una página estática (/productos/…) se deja el contenido ya dibujado mientras llega el catálogo
-    if (waitingCatalog) body = s.catalog !== "error" && onStaticRoute() ? PRERENDER_HTML : catalogStatusHTML(s.catalog);
+    const waitingCatalog = viewNeedsCatalog(s) && s.catalog !== "ready";
+    // en una página estática (/productos/…) se deja el contenido ya dibujado mientras llega el catálogo;
+    // las guías lo dejan también si el catálogo no cargó (es texto con los precios del último build)
+    if (waitingCatalog) body = (s.catalog !== "error" || s.view === "guides") && onStaticRoute() ? PRERENDER_HTML : catalogStatusHTML(s.catalog);
     else switch (s.view) {
       case "home": body = renderHome(s); break;
       case "store": body = renderStore(s); break;
       case "product-detail": body = renderProductDetail(s); break;
       case "configurator": body = renderConfigurator(s); break;
       case "calculators": body = renderCalculators(s); break;
+      case "guides": body = renderGuides(s); break;
       case "cart": body = renderCart(s); break;
       case "info": body = renderInfo(); break;
       case "contact": body = renderContact(s); break;
@@ -955,6 +958,8 @@ App.submitRevocation = async function () {
 /* Páginas que usan el catálogo: lo piden al entrar (la primera vez, o de nuevo si falló). El resto,
    la home incluida, se muestra sin esperar a la API. */
 const CATALOG_VIEWS = ["store", "product-detail", "configurator", "cart"];
+/* Además, las guías con precios del catálogo (views/guides.js, needsCatalog). */
+const viewNeedsCatalog = (s) => CATALOG_VIEWS.includes(s.view) || (s.view === "guides" && guideNeedsCatalog(s.guideSlug));
 
 function catalogStatusHTML(status) {
   if (status === "error") {
@@ -1012,6 +1017,10 @@ function pageTitle(s) {
       const c = CALC_CONTENT[s.calcSection];
       return named(c ? c.title : "Calculadoras solares");
     }
+    case "guides": {
+      const g = guideBySlug(s.guideSlug);
+      return named(g ? g.title : "Guías de energía solar");
+    }
     case "cart": return named("Carrito");
     case "order": return named("Tu pedido");
     case "revocation": return named("Botón de arrepentimiento");
@@ -1055,7 +1064,7 @@ function trackPurchase(order, id) {
    página muestra su contenido real (no mientras espera el catálogo). */
 function updateRouteMeta() {
   const s = App.state;
-  const waiting = CATALOG_VIEWS.includes(s.view) && s.catalog !== "ready";
+  const waiting = viewNeedsCatalog(s) && s.catalog !== "ready";
   if (!(waiting && onStaticRoute())) document.title = pageTitle(s); // la página estática ya trae el título del producto
   const waFab = document.getElementById("wa-fab");
   if (waFab) waFab.href = whatsappLink("Hola, quiero hacer una consulta.");
@@ -1078,7 +1087,7 @@ function updateRouteMeta() {
 App.loadCatalog = async function () {
   const s = this.state;
   if (this.catalogLoading) return this.catalogLoading;
-  const waitingHere = () => CATALOG_VIEWS.includes(s.view);
+  const waitingHere = () => viewNeedsCatalog(s);
   s.catalog = "loading";
   if (waitingHere()) this.render();
   this.catalogLoading = (async () => {
@@ -1574,6 +1583,12 @@ function applyRoute({ keepScroll = false } = {}) {
   } else if (view === "calculators") {
     s.view = "calculators";
     s.calcSection = param || null;
+  } else if (view === "guides") {
+    if (param && !guideBySlug(param)) s.view = "not-found";
+    else {
+      s.view = "guides";
+      s.guideSlug = param || null;
+    }
   } else if (view === "pedido") {
     if (!param) s.view = "not-found";
     else if (isOrderCode(param) && !getSession()) {
@@ -1627,7 +1642,7 @@ function applyRoute({ keepScroll = false } = {}) {
   App.lastRouteKey = routeKey;
   App.routeTrackKey = `${s.view}/${param}`;
 
-  if (CATALOG_VIEWS.includes(s.view) && (s.catalog === "idle" || s.catalog === "error")) App.loadCatalog();
+  if (viewNeedsCatalog(s) && (s.catalog === "idle" || s.catalog === "error")) App.loadCatalog();
   App.render(pageChanged && !isFirst ? { focusSelector: "#main" } : focusSelector ? { focusSelector } : {});
   if (pageChanged) {
     if (s.view !== "home") App.homeRevealed = false;

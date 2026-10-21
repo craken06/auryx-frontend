@@ -194,6 +194,7 @@ const Analytics = (function () {
       const s = App.state;
       if (s.view === "configurator") page = s.cfgTool === "steps" ? "CONFIGURADOR" : "DIMENSIONADOR";
       else if (s.view === "calculators") page = `CALC${s.calcSection ? `-${code(s.calcSection, 12)}` : ""}`;
+      else if (s.view === "guides") page = "GUIA";
       else page = PAGE_CODES[s.view] || "";
     }
     return [srcCode, page].filter(Boolean).join("-");

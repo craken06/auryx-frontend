@@ -71,7 +71,7 @@ function renderFooter() {
     </div>
     <div class="footer-bottom">
       <div class="footer-legal-row">
-        <p class="footer-legal"><a href="#terms">Términos y condiciones</a><a href="#privacy">Política de privacidad</a>${cookies}</p>
+        <p class="footer-legal"><a href="#guides">Guías</a><a href="#terms">Términos y condiciones</a><a href="#privacy">Política de privacidad</a>${cookies}</p>
         <p class="footer-copy" translate="no"><a href="#" class="wordmark" aria-label="AURYX, ir al inicio">AURYX</a><span>© ${new Date().getFullYear()}</span></p>
       </div>
       ${seller ? `<p class="footer-seller">${seller}</p>` : ""}
