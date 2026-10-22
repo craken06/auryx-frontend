@@ -130,6 +130,7 @@ const App = {
     contactStatus: null,
     contactSending: false,
     checkout: defaultCheckout(), // formulario del checkout (ver cart.js)
+    paymentMethods: null, // GET /payments/methods: se pide al entrar al carrito (null = se asume solo Mercado Pago)
     order: null, // { id, data, error, notMine } de la página #pedido/<id>
     myOrders: null, // { data, error, slow } de #mis-pedidos
     account: defaultAccountForm(), // formulario de #mi-cuenta
@@ -601,6 +602,11 @@ const App = {
     const firstError = firstErrorField(c.errors);
     if (firstError) { c.status = null; this.render({ focusSelector: `#checkout-${firstError}` }); return; }
 
+    // el medio elegido tiene que estar habilitado (si solo hay transferencia, se usa esa)
+    const methods = availablePaymentMethods(s.paymentMethods);
+    if (!methods.length) return;
+    if (!methods.includes(c.paymentMethod)) c.paymentMethod = methods[0];
+
     Track.event("begin_checkout", gaItemsParams(s.cart));
     // antes de llamar: si la sesión venció (401), apiRequest lleva a #ingresar y al volver se recupera
     const owner = getSession();
@@ -620,13 +626,15 @@ const App = {
       const payUrl = safePaymentUrl(order.paymentUrl);
       if (payUrl) { window.location.href = payUrl; return; } // sigue en Mercado Pago
       Object.assign(c, { sending: false, slow: false });
+      // transferencia: el pedido ya está hecho (el carrito se vacía); en la página del pedido están los datos
+      if (order.transfer) { s.cart = []; storageSet("auryx-last-order", ""); }
       navigate(`pedido/${order.code}`);
     } catch (err) {
       Object.assign(c, { sending: false, slow: false });
       if (err.status === 401) return; // ya se fue a #ingresar; lo tipeado queda en sessionStorage
       clearCheckoutDraft();
       // validación (400) o demasiados intentos (429): el mensaje de la API tal cual
-      const text = err.status && err.status < 500 ? err.message : `${apiErrorText(err)} Si sigue fallando, pedí la cotización por WhatsApp.`;
+      const text = err.status && err.status < 500 ? err.message : `${apiErrorText(err)} Si sigue fallando, escribinos por WhatsApp.`;
       c.status = { tone: "bad", text };
       if (s.checkout === c && s.view === "cart") this.render({ focusSelector: ".checkout-form .form-status" });
     } finally {
@@ -654,8 +662,8 @@ const App = {
       if (data.status === "pagado") trackPurchase(data, id);
       if (s.view === "order") this.render();
       // pago pendiente: cada 4 s al principio (el aviso de MP suele llegar enseguida) y después
-      // cada 30 s hasta unos 10 minutos (pagos en efectivo o por transferencia)
-      if (data.status === "pendiente_pago" && attempt < 25) setTimeout(() => this.loadOrder(id, attempt + 1), attempt < 6 ? 4000 : 30000);
+      // cada 30 s hasta unos 10 minutos (pagos en efectivo). Una transferencia la confirma una persona: no se consulta sola.
+      if (data.status === "pendiente_pago" && data.paymentMethod !== "transferencia" && attempt < 25) setTimeout(() => this.loadOrder(id, attempt + 1), attempt < 6 ? 4000 : 30000);
     } catch (err) {
       if (!s.order || s.order.id !== id) return;
       if (byCode && err.status === 401) { s.order = null; return; } // apiRequest ya pidió ingresar; al volver se consulta de nuevo
@@ -666,11 +674,54 @@ const App = {
     }
   },
 
-  requestQuote() {
+  /* Medios de pago habilitados (una vez por visita; si falla, queda Mercado Pago como siempre). */
+  async loadPaymentMethods() {
+    if (this.paymentMethodsLoaded) return;
+    this.paymentMethodsLoaded = true;
+    try {
+      this.state.paymentMethods = await apiRequest("/payments/methods", { timeoutMs: 70000 });
+      if (this.state.view === "cart") this.render();
+    } catch (err) {
+      this.paymentMethodsLoaded = false; // se reintenta la próxima vez que se entre al carrito
+    }
+  },
+
+  /* Comprobante de transferencia: la API firma la subida, el archivo va directo a R2 y después se registra. */
+  async uploadReceipt(form) {
     const s = this.state;
-    s.contactDraft = { ...s.contactDraft, message: quoteMessage(s) };
-    s.contactStatus = null;
-    navigate("contact");
+    const o = s.order;
+    const file = form.querySelector('input[type="file"]').files[0];
+    if (!o || !o.data || !o.data.code) return;
+    const code = o.data.code;
+    const setStatus = (status, sending = false) => {
+      if (s.order !== o) return;
+      o.receipt = { sending, status };
+      if (s.view === "order") this.render({ focusSelector: status ? ".receipt-form .form-status" : null });
+    };
+    if (!file) { setStatus({ tone: "bad", text: "Elegí el archivo del comprobante." }); return; }
+    if (file.size > 8 * 1024 * 1024) { setStatus({ tone: "bad", text: "El archivo supera los 8 MB: subí una captura o un PDF más liviano." }); return; }
+    setStatus(null, true);
+    try {
+      const up = await apiRequest(`/orders/${encodeURIComponent(code)}/receipt/upload-url`, {
+        method: "POST", auth: true, timeoutMs: 70000, body: { filename: file.name, size: file.size, contentType: file.type || undefined },
+      });
+      const put = await fetch(up.url, { method: "PUT", headers: up.headers || {}, body: file });
+      if (!put.ok) throw new Error("No se pudo subir el archivo. Probá de nuevo.");
+      o.data = await apiRequest(`/orders/${encodeURIComponent(code)}/receipt`, { method: "POST", auth: true, timeoutMs: 70000, body: { key: up.key } });
+      setStatus({ tone: "ok", text: "¡Listo! Recibimos tu comprobante. Te avisamos por mail cuando confirmemos el pago." });
+    } catch (err) {
+      if (err.status === 401) return;
+      setStatus({ tone: "bad", text: err.status && err.status < 500 ? err.message : apiErrorText(err) });
+    }
+  },
+
+  /* Carrito con productos que ya no se venden online (catálogo de respaldo): se quitan de una vez. */
+  cartRemoveUnpayable() {
+    const before = this.state.cart.length;
+    this.state.cart = this.state.cart.filter((it) => dbIdOf(it.product));
+    const n = before - this.state.cart.length;
+    this.render({ focusSelector: "#main" });
+    if (n) this.toast(`Quitamos ${n} producto${n > 1 ? "s" : ""} que no se puede${n > 1 ? "n" : ""} comprar online.`);
   },
 
   /* ---------------------------------------------------------------- configurador */
@@ -1209,7 +1260,8 @@ const ACTIONS = {
   },
   "cart-step": (d) => App.cartQtyStep(Number(d.idx), Number(d.delta)),
   "cart-remove": (d) => App.cartRemove(Number(d.idx)),
-  "cart-quote": () => App.requestQuote(),
+  "cart-remove-unpayable": () => App.cartRemoveUnpayable(),
+  "copy-text": async (d) => { App.toast(await copyText(d.text || "") ? "Copiado." : "No se pudo copiar: seleccioná el texto y copialo a mano."); },
   "detail-step": (d) => {
     App.state.productDetailQty = clampQty((Number(App.state.productDetailQty) || 1) + Number(d.delta));
     App.render();
@@ -1372,6 +1424,10 @@ const CHANGE_BINDINGS = {
     App.render(); // muestra u oculta la dirección; el foco vuelve al radio
   },
   "checkout-save": (el) => { App.state.checkout.saveDetails = el.checked; App.state.checkout.touched = true; },
+  "checkout-pay": (el) => {
+    App.state.checkout.paymentMethod = el.value === "transferencia" ? "transferencia" : "mercadopago";
+    App.render(); // cambia el botón y la nota; el foco vuelve al radio
+  },
   "sizer": (el) => {
     // en el personalizado, consumo, superficie, etc. cambian el inversor automático y sus baterías:
     // al confirmar el valor se redibuja el formulario completo
@@ -1485,6 +1541,7 @@ document.addEventListener("toggle", (e) => {
 document.addEventListener("submit", (e) => {
   if (e.target.dataset.form === "contact") { e.preventDefault(); App.submitContact(); }
   if (e.target.dataset.form === "checkout") { e.preventDefault(); App.submitCheckout(); }
+  if (e.target.dataset.form === "receipt") { e.preventDefault(); App.uploadReceipt(e.target); }
   if (e.target.dataset.form === "account") { e.preventDefault(); App.saveMyAccount(); }
   if (e.target.dataset.form === "revocation") { e.preventDefault(); App.submitRevocation(); }
   if (e.target.dataset.form === "sizer") e.preventDefault();
@@ -1649,6 +1706,7 @@ function applyRoute({ keepScroll = false } = {}) {
     if (entering && !s.login.busy) s.login = defaultLogin();
     s.view = "cart";
     App.prepareCheckout(entering);
+    if (entering) App.loadPaymentMethods();
   } else if (["info", "contact", "terms", "privacy", "installers"].includes(view)) {
     s.view = view;
     if (view === "contact") s.contactErrors = {};

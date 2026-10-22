@@ -29,15 +29,6 @@ function cartInstallationHTML(systemId, items, currency) {
   </div>`;
 }
 
-/* Texto del pedido: lo usan el botón de WhatsApp y el formulario de contacto. */
-function quoteMessage(state) {
-  const t = cartTotals(state.cart);
-  const lines = state.cart.map((it) => `- ${it.qty} x ${productTitle(it.product)}`);
-  if (t.installation) lines.push(`- ${INSTALLATION_LABEL} (${Math.round(INSTALLATION_RATE * 100)} % de los equipos del sistema)`);
-  const total = state.currency === "USD" ? fmtUSD(t.priceUSD) : fmtARS(t.priceARS);
-  return `Hola, quiero pedir una cotización por:\n${lines.join("\n")}\n\nTotal estimado en la web: ${total} (IVA incluido)`;
-}
-
 function cartLineHTML({ product, qty, idx }, currency) {
   return `
   <div class="cart-line">
@@ -108,10 +99,6 @@ function renderCart(state) {
         </dl>
         <div class="summary-total summary-total-spaced"><span class="muted">Total</span>${priceTagHTML(t, state.currency, "lg")}</div>
         ${checkoutFormHTML(state)}
-        <div class="checkout-alt">
-          <a class="btn btn-secondary btn-block" href="${whatsappLink(quoteMessage(state))}" target="_blank" rel="noopener" data-context="carrito">${icon("whatsapp-logo", "", "fill")} Pedir cotización por WhatsApp</a>
-          <button type="button" class="btn btn-ghost btn-block checkout-alt-form" data-action="cart-quote">Prefiero usar el formulario</button>
-        </div>
         <p class="xsmall dim cart-note">Precios finales con IVA incluido. ${t.installation ? "No incluyen envío: lo coordinamos con vos después del pedido, igual que la visita técnica de la instalación." : "No incluyen envío ni instalación: los coordinamos con vos después del pedido."} Podés arrepentirte de la compra dentro de los ${REVOCATION_TERM} (<a href="#arrepentimiento">Botón de arrepentimiento</a>).</p>
       </aside>
     </div>
@@ -127,8 +114,8 @@ function renderCart(state) {
 /* ---------------------------------------------------------------------------
    Checkout: para comprar hace falta una cuenta. El nombre y el email salen de
    la cuenta; acá se piden teléfono, entrega y, si hace falta, la facturación.
-   El backend recalcula los precios y devuelve el link de pago de Mercado Pago
-   (o guarda el pedido como cotización si el pago online no está habilitado).
+   El backend recalcula los precios y devuelve el link de pago de Mercado Pago o,
+   si se eligió transferencia, los datos bancarios y el plazo. Todo se paga online.
    --------------------------------------------------------------------------- */
 function cartCanPayOnline(cart) {
   return cart.length > 0 && cart.every((it) => dbIdOf(it.product));
@@ -148,7 +135,7 @@ const emptyAddress = () => ({ street: "", floor: "", city: "", province: "", zip
 function defaultCheckout() {
   return {
     phone: "", delivery: "envio", address: emptyAddress(),
-    billingOpen: false, billingDoc: "", billingName: "", saveDetails: true,
+    billingOpen: false, billingDoc: "", billingName: "", saveDetails: true, paymentMethod: "mercadopago",
     errors: {}, sending: false, slow: false, status: null, touched: false,
   };
 }
@@ -272,7 +259,10 @@ function pendingStatusHTML(text, slow) {
 
 function checkoutFormHTML(state) {
   if (!cartCanPayOnline(state.cart)) {
-    return `<p class="small muted">Algunos productos del carrito no se pueden pagar online: pedí la cotización y te pasamos el precio final.</p>`;
+    return `<div class="checkout-login">
+      <p class="small muted">Algunos productos del carrito ya no están a la venta online. Quitalos para poder pagar el resto.</p>
+      <button type="button" class="btn btn-secondary btn-block" data-action="cart-remove-unpayable">${icon("trash")} Quitar los que no se pueden comprar</button>
+    </div>`;
   }
   const session = getSession();
   if (!session) {
@@ -296,8 +286,24 @@ function checkoutFormHTML(state) {
         <input type="radio" id="checkout-delivery-${value}" name="delivery" value="${value}" data-bind="checkout-delivery"${c.delivery === value ? " checked" : ""} />
         <span><strong>${title}</strong><small>${note}</small></span>
       </label>`;
+  const methods = availablePaymentMethods(state.paymentMethods);
+  const payMethod = methods.includes(c.paymentMethod) ? c.paymentMethod : methods[0];
+  const transfer = (state.paymentMethods && state.paymentMethods.transferencia) || {};
+  const payRadio = (value, title, note) => `
+      <label class="choice">
+        <input type="radio" id="checkout-pay-${value}" name="paymentMethod" value="${value}" data-bind="checkout-pay"${payMethod === value ? " checked" : ""} />
+        <span><strong>${title}</strong><small>${note}</small></span>
+      </label>`;
+  const payChoice = methods.length > 1 ? `
+    <fieldset class="field choice-group">
+      <legend class="field-label">Forma de pago</legend>
+      ${payRadio("mercadopago", "Mercado Pago", "tarjeta, débito, dinero en cuenta o efectivo")}
+      ${payRadio("transferencia", `Transferencia bancaria${transfer.discountPct ? ` <span class="badge tone-ok">${Number(transfer.discountPct)} % off</span>` : ""}`, `te mostramos los datos; tenés ${transferDeadlineText(transfer.deadlineHours)} para pagar`)}
+    </fieldset>` : "";
+  const isTransfer = payMethod === "transferencia";
+  const busyText = isTransfer ? "Confirmando el pedido…" : "Preparando el pago…";
   let status = "";
-  if (c.sending) status = pendingStatusHTML("Preparando el pago…", c.slow);
+  if (c.sending) status = pendingStatusHTML(busyText, c.slow);
   else if (c.status) status = `<p class="form-status tone-${c.status.tone}" role="${c.status.tone === "bad" ? "alert" : "status"}">${esc(c.status.text)}</p>`;
 
   return `
@@ -322,12 +328,27 @@ function checkoutFormHTML(state) {
       <input type="checkbox" id="checkout-save" data-bind="checkout-save"${c.saveDetails ? " checked" : ""} />
       <span>Guardar estos datos para la próxima compra</span>
     </label>
+    ${payChoice}
     ${status}
-    <button type="submit" class="btn btn-primary btn-lg btn-block" ${c.sending ? "disabled" : ""}>
-      ${icon("credit-card")} ${c.sending ? "Preparando el pago…" : "Pagar con Mercado Pago"}
+    <button type="submit" class="btn btn-primary btn-lg btn-block" ${c.sending || !methods.length ? "disabled" : ""}>
+      ${icon(isTransfer ? "bank" : "credit-card")} ${c.sending ? busyText : isTransfer ? "Confirmar pedido por transferencia" : "Pagar con Mercado Pago"}
     </button>
-    <p class="xsmall dim">El pago lo procesa Mercado Pago: Auryx no ve ni guarda los datos de tu tarjeta. Al pagar aceptás los <a href="#terms">Términos</a>.</p>
+    ${!methods.length ? `<p class="small muted">El pago online no está disponible en este momento. Probá en un rato.</p>` : ""}
+    <p class="xsmall dim">${isTransfer
+      ? `Al confirmar te mostramos los datos para transferir${transfer.discountPct ? `, con el ${Number(transfer.discountPct)} % de descuento aplicado` : ""}. Al confirmar aceptás los <a href="#terms">Términos</a>.`
+      : `El pago lo procesa Mercado Pago: Auryx no ve ni guarda los datos de tu tarjeta. Al pagar aceptás los <a href="#terms">Términos</a>.`}</p>
   </form>`;
+}
+
+/* Medios habilitados según GET /payments/methods. Mientras no llega, se asume Mercado Pago (lo de siempre). */
+function availablePaymentMethods(pm) {
+  if (!pm) return ["mercadopago"];
+  return [pm.mercadopago ? "mercadopago" : null, pm.transferencia && pm.transferencia.enabled ? "transferencia" : null].filter(Boolean);
+}
+
+function transferDeadlineText(hours) {
+  const h = Number(hours) || 72;
+  return h % 24 === 0 ? `${h / 24} día${h / 24 > 1 ? "s" : ""}` : `${h} h`;
 }
 
 /* Errores del checkout del lado del sitio ({} si está todo bien). */
@@ -349,6 +370,7 @@ function checkoutBody(c, cart) {
     phone: trimStr(c.phone),
     delivery: { method: c.delivery },
     saveDetails: !!c.saveDetails,
+    paymentMethod: c.paymentMethod === "transferencia" ? "transferencia" : "mercadopago",
   };
   if (c.delivery === "envio") body.delivery.address = addressBody(c.address);
   if (c.billingOpen && (trimStr(c.billingDoc) || trimStr(c.billingName))) {
@@ -431,7 +453,56 @@ const ORDER_STATUS_COPY = {
   rechazado: { tone: "bad", icon: "x-circle", title: "El pago no se aprobó", text: "Mercado Pago rechazó el pago. Podés volver al carrito e intentar con otro medio, o escribirnos por WhatsApp." },
   cancelado: { tone: "bad", icon: "x-circle", title: "Pedido cancelado", text: "El pago se canceló o se devolvió. Si fue un error, escribinos." },
   cotizacion: { tone: "ok", icon: "chat-circle-text", title: "Recibimos tu pedido", text: "Lo guardamos como solicitud de cotización: te contactamos para confirmar precio, stock, envío e instalación." },
+  transferencia: { tone: "warn", icon: "bank", title: "Esperando tu transferencia", text: "Transferí el monto exacto a la cuenta de abajo antes del plazo y subí el comprobante. Cuando verifiquemos la acreditación te avisamos por mail." },
+  transferencia_revision: { tone: "warn", icon: "hourglass-medium", title: "Comprobante en revisión", text: "Recibimos tu comprobante. Cuando verifiquemos la acreditación te confirmamos el pago por mail (en general, dentro del día hábil)." },
+  transferencia_vencida: { tone: "bad", icon: "x-circle", title: "El plazo para transferir venció", text: "El pedido se canceló porque no recibimos la transferencia a tiempo. Si ya pagaste, escribinos; si no, podés hacer el pedido de nuevo." },
 };
+
+function orderStatusCopy(d) {
+  if (d.paymentMethod === "transferencia") {
+    if (d.status === "pendiente_pago") return ORDER_STATUS_COPY[d.transfer && d.transfer.receiptUploaded ? "transferencia_revision" : "transferencia"];
+    if (d.status === "cancelado") return ORDER_STATUS_COPY.transferencia_vencida;
+  }
+  if (d.status === "pagado" && d.deliveryMethod === "retiro") return ORDER_STATUS_COPY.pagado_retiro;
+  return ORDER_STATUS_COPY[d.status] || ORDER_STATUS_COPY.pendiente_pago;
+}
+
+function fmtDeadline(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("es-AR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+}
+
+/* Datos para transferir (con botón copiar) y subida del comprobante. state.receipt = { sending, status } */
+function transferPanelHTML(d, receipt) {
+  const t = d.transfer;
+  if (!t || !t.bank) return "";
+  const b = t.bank;
+  const row = (label, value, copy) => value ? `
+      <div><dt>${label}</dt><dd><span class="mono">${esc(value)}</span>${copy ? ` <button type="button" class="link-btn" data-action="copy-text" data-text="${esc(copy)}" aria-label="Copiar ${label}">${icon("copy")} Copiar</button>` : ""}</dd></div>` : "";
+  const r = receipt || {};
+  let status = "";
+  if (r.sending) status = pendingStatusHTML("Subiendo el comprobante…", false);
+  else if (r.status) status = `<p class="form-status tone-${r.status.tone}" role="${r.status.tone === "bad" ? "alert" : "status"}">${esc(r.status.text)}</p>`;
+  return `
+      <section class="panel panel-pad order-transfer" aria-labelledby="order-transfer-title">
+        <h2 id="order-transfer-title" class="summary-title">${icon("bank")} Datos para transferir</h2>
+        <dl class="order-facts order-bank">
+          ${row("Titular", b.holder)}
+          ${row("CUIT", b.cuit)}
+          ${row("Banco", b.bank)}
+          ${row("CBU/CVU", b.cbu, b.cbu)}
+          ${row("Alias", b.alias, b.alias)}
+          ${row("Monto exacto", fmtARS(d.totalArs), String(Number(d.totalArs).toFixed(2)).replace(".", ","))}
+        </dl>
+        ${t.deadline ? `<p class="small">Tenés tiempo hasta el <strong>${esc(fmtDeadline(t.deadline))} h</strong>.</p>` : ""}
+        <form class="form receipt-form" data-form="receipt" novalidate>
+          <label class="field-label" for="receipt-file">${t.receiptUploaded ? "¿Te equivocaste de archivo? Subí otro comprobante" : "Subí el comprobante"} <span class="unit">(PDF, JPG o PNG, hasta 8 MB)</span></label>
+          <input id="receipt-file" class="input" type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" ${r.sending ? "disabled" : ""} />
+          ${status}
+          <button type="submit" class="btn btn-primary" ${r.sending ? "disabled" : ""}>${icon("upload-simple")} Enviar comprobante</button>
+        </form>
+      </section>`;
+}
 
 function orderItemsHTML(d) {
   return `
@@ -442,8 +513,8 @@ function orderItemsHTML(d) {
 }
 
 /* Pedido con código (de un cliente): código grande, pago, entrega con seguimiento, productos y dirección. */
-function renderCodeOrder(d) {
-  const copy = (d.status === "pagado" && d.deliveryMethod === "retiro" ? ORDER_STATUS_COPY.pagado_retiro : ORDER_STATUS_COPY[d.status]) || ORDER_STATUS_COPY.pendiente_pago;
+function renderCodeOrder(d, receipt) {
+  const copy = orderStatusCopy(d);
   const payUrl = d.status === "pendiente_pago" ? safePaymentUrl(d.paymentUrl) : null;
   const a = d.shippingAddress;
   const addressHTML = a ? `<p class="muted">${esc(a.street)}${a.floor ? `, ${esc(a.floor)}` : ""}<br>${esc(a.city)}, ${esc(a.province)} (${esc(a.zip)})</p>` : "";
@@ -459,12 +530,13 @@ function renderCodeOrder(d) {
         <h2 id="order-status-title" class="summary-title">${icon(copy.icon, `tone-text-${copy.tone}`, "fill")} ${esc(copy.title)}</h2>
         <p class="muted" role="status">${esc(copy.text)}</p>
         <dl class="order-facts">
-          <div><dt>Pago</dt><dd>${orderBadgeHTML(PAYMENT_LABELS, d.status)}</dd></div>
+          <div><dt>Pago</dt><dd>${orderBadgeHTML(PAYMENT_LABELS, d.status)}${d.paymentMethod === "transferencia" ? ` <span class="xsmall dim">Transferencia</span>` : ""}</dd></div>
           ${d.status === "pagado" ? `<div><dt>Entrega</dt><dd>${orderBadgeHTML(FULFILLMENT_LABELS, d.fulfillmentStatus)}</dd></div>` : ""}
           ${d.trackingNumber ? `<div><dt>Seguimiento</dt><dd class="mono">${esc(d.trackingNumber)}</dd></div>` : ""}
         </dl>
         ${payUrl ? `<a class="btn btn-primary" href="${esc(payUrl)}">${icon("credit-card")} Pagar con Mercado Pago</a>` : ""}
       </section>
+      ${transferPanelHTML(d, receipt)}
       <section class="panel panel-pad" aria-labelledby="order-items-title">
         <h2 id="order-items-title" class="summary-title">Productos</h2>
         ${orderItemsHTML(d)}
@@ -505,7 +577,7 @@ function renderOrder(state) {
       <h1 class="page-title page-title-sm">Consultando tu pedido…</h1></div></div>`;
   }
   const d = o.data;
-  if (d.code) return renderCodeOrder(d);
+  if (d.code) return renderCodeOrder(d, o.receipt);
 
   // Pedido viejo (sin cuenta), identificado por UUID: se muestra como antes
   const copy = ORDER_STATUS_COPY[d.status] || ORDER_STATUS_COPY.pendiente_pago;

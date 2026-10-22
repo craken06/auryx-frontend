@@ -21,7 +21,7 @@ function renderInfo() {
         <p>Que la tensión del string no supere el máximo del inversor o regulador, que la corriente entre en cada MPPT, que la potencia FV esté dentro de lo admitido y que la batería trabaje en el rango de tensión del equipo. Si algo queda justo, te avisamos en lugar de bloquearlo.</p>
         <p>La tensión se verifica <strong>en frío</strong> (con la temperatura mínima del lugar), que es cuando los paneles dan más tensión, y la corriente contra el límite de cortocircuito de cada entrada. Los cables y protecciones de continua se controlan contra el string. No considera sombras, pérdidas de cableado ni normativa local.</p>
         <h2>Precios y compra</h2>
-        <p>Los precios están en pesos y dólares, son finales e <strong>incluyen IVA</strong>. Podés pagar online con Mercado Pago o, si preferís, pedir una cotización por WhatsApp o por el formulario. Si pagás online, revisamos el pedido antes de despachar: si algo no cierra, te contactamos para ajustarlo o te devolvemos el dinero. En los dos casos coordinamos con vos el envío y la instalación.</p>
+        <p>Los precios están en pesos y dólares, son finales e <strong>incluyen IVA</strong>. Se pagan online con Mercado Pago, desde tu cuenta. Revisamos cada pedido antes de despachar: si algo no cierra, te contactamos para ajustarlo o te devolvemos el dinero. Después coordinamos con vos el envío y la instalación.</p>
         <p>Más detalle en los <a href="#terms">Términos y condiciones</a> y la <a href="#privacy">Política de privacidad</a>.</p>
       </div>
       <div class="fact-list">
@@ -44,8 +44,6 @@ function renderContact(state) {
   const errors = state.contactErrors || {};
   const status = state.contactStatus;
   const fieldError = (k) => errors[k] ? `<p id="contact-${k}-error" class="field-error">${esc(errors[k])}</p>` : "";
-  // El carrito arma el mensaje con quoteMessage(): solo en ese caso se avisa que el detalle ya está
-  const fromCart = typeof draft.message === "string" && draft.message.startsWith("Hola, quiero pedir una cotización");
   const email = contactEmailLinkHTML();
   const invalid = (k) => errors[k] ? `aria-invalid="true" aria-describedby="contact-${k}-error"` : "";
 
@@ -54,8 +52,7 @@ function renderContact(state) {
     <div class="contact-grid">
       <div class="page-head page-head-aside">
         <h1 class="page-title">Contacto</h1>
-        <p class="page-lead">Contanos qué necesitás: una cotización, una consulta técnica o ayuda para elegir componentes.</p>
-        ${fromCart ? `<p class="muted small">El detalle de tu carrito ya está en el mensaje.</p>` : ""}
+        <p class="page-lead">Contanos qué necesitás: una consulta técnica, ayuda para elegir componentes o un sistema a medida.</p>
         <div>
           <a href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" class="btn btn-secondary" target="_blank" rel="noopener" data-context="contacto">${icon("whatsapp-logo", "", "fill")} Escribinos por WhatsApp</a>
           <p class="xsmall dim mt-1">${WHATSAPP_DISPLAY}${email ? ` · ${email}` : ""}</p>

@@ -57,9 +57,9 @@ function homeServicesHTML() {
 /* Qué pasa después de armar el sistema. Lo usan la home, el carrito y la página de información. */
 const PROCESS_STEPS = [
   { icon: "solar-panel", title: "Armás tu sistema", text: "En el configurador o eligiendo productos sueltos. Para armarlo no hace falta registrarte; para pagar online ingresás con Google." },
-  { icon: "chat-circle-text", title: "Pagás o pedís la cotización", text: "Pagás online con Mercado Pago, o con un clic armás el mensaje con tu pedido y lo enviás por WhatsApp." },
+  { icon: "credit-card", title: "Pagás online", text: "Con Mercado Pago, en pocos pasos y desde tu cuenta. Recibís un código para seguir el pedido." },
   { icon: "clipboard-text", title: "Revisamos tu proyecto", text: "Una persona de Auryx revisa la compatibilidad y el dimensionamiento, y te consulta lo que haga falta: consumo, ubicación, techo." },
-  { icon: "receipt", title: "Coordinamos envío e instalación", text: "Con stock, envío e instalación confirmados. Si pediste cotización, recién ahí decidís si avanzás." },
+  { icon: "receipt", title: "Coordinamos envío e instalación", text: "Te contactamos para coordinar el envío o el retiro y, si la pediste, la visita técnica de la instalación." },
 ];
 
 function processStepsHTML(extraClass = "") {
@@ -130,7 +130,7 @@ function renderHome(state) {
         <h2 id="process-title" class="band-title">Cómo sigue después de armarlo</h2>
         <a class="link-arrow" href="${whatsappLink("Hola, tengo una consulta sobre un sistema solar.")}" target="_blank" rel="noopener" data-context="home">Hablar con un asesor ${icon("arrow-right")}</a>
       </div>
-      <p class="band-lead">Pagá online con Mercado Pago o pedí una cotización sin compromiso. Los precios publicados incluyen IVA.</p>
+      <p class="band-lead">Pagás online con Mercado Pago. Los precios publicados incluyen IVA.</p>
       ${processStepsHTML("process-steps-tight")}
       <p class="home-revocation small"><a href="#arrepentimiento">${icon("arrow-u-up-left")}Botón de arrepentimiento</a><span class="dim">Tenés ${REVOCATION_TERM} para arrepentirte de una compra.</span></p>
     </div>

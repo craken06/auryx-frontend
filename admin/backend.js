@@ -158,6 +158,8 @@ const ROUTES = [
 
   ['GET', '/api/orders', (c) => apiFetch(c.t, `/admin/orders${pick(c.q, ['filter', 'q'])}`)],
   ['PATCH', '/api/orders/:id/fulfillment', (c) => apiFetch(c.t, `/admin/orders/${enc(c.p.id)}/fulfillment`, json('PATCH', c.b))],
+  ['PATCH', '/api/orders/:id/payment', (c) => apiFetch(c.t, `/admin/orders/${enc(c.p.id)}/payment`, json('PATCH', c.b))],
+  ['GET', '/api/orders/:id/receipt', (c) => apiFetch(c.t, `/admin/orders/${enc(c.p.id)}/receipt`)],
 
   ['GET', '/api/customers', (c) => apiFetch(c.t, `/admin/customers${pick(c.q, ['q'])}`)],
   ['GET', '/api/customers/:id', (c) => apiFetch(c.t, `/admin/customers/${enc(c.p.id)}`)],

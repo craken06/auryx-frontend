@@ -216,6 +216,8 @@
   .ful select, .ful input { min-height: 34px; padding-block: 5px; }
   .ful button.small { justify-self: start; margin: 0 !important; }
   .ful .err { color: var(--bad); font-size: 0.75rem; }
+  .pago .err { color: var(--bad); font-size: 0.75rem; }
+  .pago button.small { justify-self: start; margin: 0 !important; }
   .ficha-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
   .ficha-head h2 { font-size: 1.375rem !important; }
   #cliente_ficha > table { border: 1px solid var(--line); border-radius: var(--r-control); border-collapse: separate; border-spacing: 0; overflow: hidden; }
@@ -380,6 +382,7 @@
       <select id="pedidos_filtro">
         <option value="para_preparar" selected>Para preparar</option>
         <option value="pendientes_pago">Pendientes de pago</option>
+        <option value="transferencias">Transferencias por confirmar</option>
         <option value="entregados">Entregados</option>
         <option value="todos">Todos</option>
       </select>
@@ -743,6 +746,32 @@ function celdaEntrega(o) {
     <div class="err hidden" data-ful="err"></div></div>`;
 }
 
+/* Pago por transferencia: vencimiento, comprobante y acciones. Los de MP pendientes solo se pueden cancelar. */
+function celdaPago(o) {
+  const pendiente = o.status === 'pendiente_pago';
+  if (o.paymentMethod !== 'transferencia') {
+    return pendiente ? `<div class="pago" data-id="${esc(o.id)}"><button type="button" class="small secondary" data-pago="cancelar">Cancelar pedido</button></div>` : '';
+  }
+  const vence = o.transferDeadline ? new Date(o.transferDeadline) : null;
+  const vencido = vence && vence < new Date();
+  const partes = [`<br><span class="tag">Transferencia</span>`];
+  if (pendiente && vence) partes.push(`<br><span class="muted"${vencido ? ' style="color:var(--bad)"' : ''}>${vencido ? 'Venció' : 'Vence'} ${fecha(o.transferDeadline)}</span>`);
+  if (o.paidAt) partes.push(`<br><span class="muted">Pagado ${fecha(o.paidAt)}</span>`);
+  const botones = [];
+  if (o.receiptKey) botones.push(`<button type="button" class="small secondary" data-pago="ver">Ver comprobante</button>`);
+  if (pendiente || o.status === 'cancelado') botones.push(`<button type="button" class="small" data-pago="confirmar">Confirmar pago</button>`);
+  if (pendiente && o.receiptKey) botones.push(`<button type="button" class="small secondary" data-pago="rechazar_comprobante">Rechazar comprobante</button>`);
+  if (pendiente) botones.push(`<button type="button" class="small secondary" data-pago="cancelar">Cancelar</button>`);
+  if (pendiente && !o.receiptKey) partes.push('<br><span class="muted">Sin comprobante todavía</span>');
+  return partes.join('') + (botones.length ? `<div class="pago" data-id="${esc(o.id)}" style="display:grid;gap:6px;margin-top:8px">${botones.join('')}<div class="err hidden" data-pago="err"></div></div>` : '');
+}
+
+const PAGO_CONFIRM = {
+  confirmar: '¿Confirmar el pago? Revisá antes que la transferencia esté acreditada en el banco. Se le avisa al cliente por mail.',
+  rechazar_comprobante: '¿Rechazar el comprobante? Se le pide al cliente que suba otro (tiene al menos 24 h más).',
+  cancelar: '¿Cancelar el pedido? No se puede deshacer.',
+};
+
 let pedidosSeq = 0;
 async function cargarPedidos() {
   const seq = ++pedidosSeq;
@@ -752,7 +781,8 @@ async function cargarPedidos() {
   if (seq !== pedidosSeq) return; // llegó una respuesta más nueva
   document.querySelector('#tabla_pedidos tbody').innerHTML = rows.length ? rows.map((o) => `
     <tr><td><strong>${esc(o.code || '-')}</strong><br><span class="muted">${fecha(o.createdAt)}</span>
-      <br><span class="tag ${ESTADOS[o.status] ?? ''}">${esc(o.status.replace('_', ' '))}</span>${o.mpPaymentId ? `<br><span class="muted">MP #${esc(o.mpPaymentId)}</span>` : ''}</td>
+      <br><span class="tag ${ESTADOS[o.status] ?? ''}">${esc(o.status.replace('_', ' '))}</span>${o.mpPaymentId ? `<br><span class="muted">MP #${esc(o.mpPaymentId)}</span>` : ''}
+      ${celdaPago(o)}</td>
     <td>${o.customer ? `<button type="button" class="link" data-cliente="${esc(o.customer.id)}">${esc(o.customer.name)}</button>` : esc(o.customerName) + ' <span class="tag">sin cuenta</span>'}
       <br><span class="muted">${esc(o.customerEmail)}</span>${o.customerPhone ? `<br><span class="muted" style="white-space:nowrap">${esc(o.customerPhone)}</span>` : ''}${o.notes ? `<br><span class="muted">${esc(o.notes)}</span>` : ''}
       ${o.billingDoc ? `<br><span class="muted">Factura: ${esc(o.billingName || '')} <span style="white-space:nowrap">${esc(o.billingDoc)}</span></span>` : ''}</td>
@@ -775,6 +805,28 @@ tbodyPedidos.addEventListener('change', (e) => {
 tbodyPedidos.addEventListener('click', async (e) => {
   const cli = e.target.closest('[data-cliente]');
   if (cli) { abrirCliente(cli.dataset.cliente); return; }
+  const accion = e.target.dataset.pago;
+  if (accion && accion !== 'err') {
+    const box = e.target.closest('.pago');
+    const err = box.querySelector('[data-pago="err"]');
+    if (err) err.classList.add('hidden');
+    try {
+      if (accion === 'ver') {
+        const { url } = await api(`/api/orders/${encodeURIComponent(box.dataset.id)}/receipt`);
+        window.open(url, '_blank', 'noopener');
+        return;
+      }
+      if (!confirm(PAGO_CONFIRM[accion])) return;
+      e.target.disabled = true;
+      const o = await api(`/api/orders/${encodeURIComponent(box.dataset.id)}/payment`, { method: 'PATCH', body: JSON.stringify({ action: accion }) });
+      flash('pedidos_msg', `Pedido ${o.code || ''} actualizado`);
+      await cargarPedidos();
+    } catch (ex) {
+      if (err) { err.textContent = ex.message; err.classList.remove('hidden'); } else flash('pedidos_msg', ex.message, false);
+      e.target.disabled = false;
+    }
+    return;
+  }
   if (e.target.dataset.ful !== 'save') return;
   const box = e.target.closest('.ful');
   const err = box.querySelector('[data-ful="err"]');

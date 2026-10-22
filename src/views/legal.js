@@ -44,7 +44,7 @@ function renderTerms() {
   const seller = sellerSentence();
   return legalPage(
     "Términos y condiciones",
-    "Reglas de uso del sitio, de las compras online y de las cotizaciones.",
+    "Reglas de uso del sitio y de las compras online.",
     [
       { h: "1. Quiénes somos", p: [
         seller
@@ -53,15 +53,15 @@ function renderTerms() {
         `Podés contactarnos ${legalContactText()}.`,
       ] },
       { h: "2. Qué hace este sitio", p: [
-        "El sitio permite explorar un catálogo, verificar la compatibilidad eléctrica entre componentes, usar calculadoras y comprar: podés pagar el carrito online con Mercado Pago o pedir una cotización.",
-        "Pedir una cotización no te obliga a comprar, y de nuestro lado no implica una oferta firme hasta que te enviemos la cotización final.",
+        "El sitio permite explorar un catálogo, verificar la compatibilidad eléctrica entre componentes, usar calculadoras y comprar online con los medios de pago que el sitio ofrezca al confirmar el pedido: Mercado Pago y, cuando esté habilitada, transferencia bancaria.",
       ] },
       { h: "3. Precios", p: [
         "Los precios publicados son finales: incluyen IVA y todos los impuestos. Se muestran en pesos argentinos y en dólares estadounidenses; los productos cargados en dólares se convierten a pesos con la cotización de referencia del día, que figura al pie del sitio.",
         "El precio que pagás es el que figura en el carrito al confirmar el pedido. El envío y la instalación no están incluidos: se presupuestan aparte y no se cobran sin que los aceptes.",
       ] },
       { h: "4. Compras online y pagos", p: [
-        "Para comprar online necesitás ingresar con tu cuenta de Google. El pago lo procesa Mercado Pago, con los medios que ofrezca en ese momento: AURYX no ve ni guarda los datos de tu tarjeta.",
+        "Para comprar online necesitás ingresar con tu cuenta de Google. Los pagos con Mercado Pago los procesa Mercado Pago, con los medios que ofrezca en ese momento: AURYX no ve ni guarda los datos de tu tarjeta.",
+        "Si pagás por transferencia bancaria (cuando el sitio lo ofrezca), te mostramos los datos de la cuenta y el plazo para transferir. El pedido se confirma cuando verificamos la acreditación; si no se paga dentro del plazo, se cancela solo y sin costo.",
         "Al confirmar recibís un código de pedido (por ejemplo, AX-7K2M9P) para consultar su estado en <a href=\"#mis-pedidos\">Mis pedidos</a>. Si el pago queda pendiente o es rechazado, el pedido no se procesa.",
         "Antes de despachar revisamos el pedido. Si encontramos un problema de stock o de compatibilidad te contactamos y, si no aceptás una alternativa, te devolvemos el importe completo.",
       ] },
@@ -117,11 +117,11 @@ function renderPrivacy() {
         "Solo los que necesitamos para cada cosa que hacés en el sitio:",
       ], ul: [
         "<strong>Tu cuenta.</strong> Si ingresás con Google, recibimos tu nombre, tu email y tu foto de perfil. Los usamos para identificarte y mostrarte tus pedidos. Nunca recibimos tu contraseña de Google.",
-        "<strong>Tus pedidos.</strong> Productos, montos, teléfono, dirección de entrega, datos de facturación (DNI o CUIT y nombre o razón social, si los cargás), estado del pago que nos informa Mercado Pago y estado de la entrega. Los usamos para gestionar la compra, el envío, la facturación y la garantía.",
+        "<strong>Tus pedidos.</strong> Productos, montos, teléfono, dirección de entrega, datos de facturación (DNI o CUIT y nombre o razón social, si los cargás), estado del pago que nos informa Mercado Pago, el comprobante si pagás por transferencia y estado de la entrega. Los usamos para gestionar la compra, el envío, la facturación y la garantía.",
         "<strong>Tus mensajes.</strong> Si nos escribís por el formulario de contacto o el Botón de arrepentimiento: nombre, email, teléfono y lo que nos cuentes. Los usamos para responderte.",
         "<strong>Analítica, solo si la aceptás.</strong> Páginas que visitás, tipo de dispositivo y navegador, ubicación aproximada según tu dirección IP y cómo interactuás con el sitio (clics y desplazamiento). La usamos para entender qué funciona y mejorar el sitio.",
       ], after: [
-        "Darnos tus datos es voluntario. Sin los de la cuenta y el pedido no podemos procesar una compra online, pero podés ver el sitio, usar las calculadoras y pedir una cotización por WhatsApp sin registrarte.",
+        "Darnos tus datos es voluntario. Sin los de la cuenta y el pedido no podemos procesar una compra online, pero podés ver el sitio, usar las calculadoras y escribirnos por WhatsApp sin registrarte.",
         "No vendemos tus datos ni los usamos para publicidad de terceros. Podés ver y cambiar tu teléfono, tu dirección y tus datos de facturación en <a href=\"#mi-cuenta\">Mis datos</a>.",
       ] },
       { h: "3. Pagos", p: [

@@ -1124,7 +1124,6 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 .cart-aside .rows { display: grid; gap: 10px; margin-bottom: 16px; font-size: 0.9375rem; }
 .cart-aside .rows div { display: flex; justify-content: space-between; gap: 12px; }
 .cart-aside .rows dt { color: var(--text-mid); }
-.checkout-alt-form { margin-top: 6px; }
 .cart-note { margin-top: 12px; }
 .order-legacy { max-width: 720px; }
 
@@ -1329,7 +1328,6 @@ button.step:hover { border-color: var(--line-strong); color: var(--text); }
 /* ---------- Checkout, advertencias de calculadoras y honeypot del formulario ---------- */
 .checkout-form { display: grid; gap: 12px; margin-bottom: 16px; }
 .checkout-title { font-size: 1rem; margin: 0; }
-.checkout-alt { border-top: 1px solid var(--line); padding-top: 14px; }
 .calc-warnings:empty { display: none; }
 .calc-warnings { margin-top: 12px; }
 .calc-warn-list { display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--r-surface); background: var(--warn-bg); color: var(--text); font-size: 0.875rem; list-style: none; margin: 0; }
@@ -1381,6 +1379,14 @@ fieldset.field legend { padding: 0; margin-bottom: 8px; }
 .order-facts { display: flex; flex-wrap: wrap; gap: 10px 24px; }
 .order-facts div { display: grid; gap: 4px; }
 .order-facts dt { font-size: 0.75rem; color: var(--text-dim); }
+/* Transferencia: datos bancarios en columna (se copian de a uno) y subida del comprobante */
+@media (min-width: 960px) { .order-grid .order-transfer { grid-column: 1 / -1; } }
+.order-transfer { display: grid; gap: 14px; }
+.order-transfer .summary-title { display: flex; align-items: center; gap: 8px; margin: 0; }
+.order-bank { flex-direction: column; gap: 10px; }
+.order-bank dd { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; overflow-wrap: anywhere; }
+.receipt-form { display: grid; gap: 10px; justify-items: start; max-width: 480px; }
+.receipt-form .input { width: 100%; }
 .order-subtitle { font-size: 0.9375rem; font-weight: 650; margin-top: 16px; }
 .order-list { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
 .order-card { padding: 16px 18px; display: grid; gap: 10px; }
