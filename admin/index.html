@@ -261,6 +261,9 @@
     <button role="tab" data-tab="clientes" aria-selected="false"><i class="ph ph-users" aria-hidden="true"></i>Clientes</button>
     <button role="tab" data-tab="mensajes" aria-selected="false"><i class="ph ph-chat-circle-text" aria-hidden="true"></i>Mensajes</button>
     <button role="tab" data-tab="reglas" aria-selected="false"><i class="ph ph-plugs-connected" aria-hidden="true"></i>Reglas de compatibilidad</button>
+    <button role="tab" data-tab="cursos" aria-selected="false"><i class="ph ph-graduation-cap" aria-hidden="true"></i>Cursos</button>
+    <button role="tab" data-tab="entregas" aria-selected="false"><i class="ph ph-clipboard-text" aria-hidden="true"></i>Entregas</button>
+    <button role="tab" data-tab="certificados" aria-selected="false"><i class="ph ph-certificate" aria-hidden="true"></i>Certificados</button>
   </nav>
   <div class="side-foot">
     <button type="button" class="secondary small icon-only" data-theme-toggle aria-label="Cambiar tema"><i class="ph ph-moon" aria-hidden="true"></i></button>
@@ -443,11 +446,57 @@
   <div id="reglas_msg" class="msg" role="status"></div>
 </div>
 </section>
+<!-- ============================== CURSOS (admin/cursos.js) -->
+<section data-panel="cursos" class="hidden"><div id="cursos_root"></div></section>
+
+<section data-panel="entregas" class="hidden">
+<div class="card">
+  <div class="row" style="align-items:flex-end">
+    <div style="flex:0 1 240px">
+      <label for="entregas_filtro" style="margin-top:0">Mostrar</label>
+      <select id="entregas_filtro">
+        <option value="entregada" selected>Para corregir</option>
+        <option value="a_rehacer">A rehacer</option>
+        <option value="aprobada">Aprobadas</option>
+        <option value="">Todas</option>
+      </select>
+    </div>
+  </div>
+  <div id="entregas_msg" class="msg" role="status"></div>
+  <div class="table-wrap">
+  <table id="tabla_entregas">
+    <thead><tr><th>Fecha</th><th>Alumno</th><th>Tarea</th><th>Entrega</th><th>Corrección</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<section data-panel="certificados" class="hidden">
+<div class="card">
+  <div class="row" style="align-items:flex-end">
+    <div style="flex:0 1 280px">
+      <label for="certs_q" style="margin-top:0">Buscar por código o nombre</label>
+      <input id="certs_q" type="search" placeholder="CERT-… o nombre" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+  <div id="certs_msg" class="msg" role="status"></div>
+  <div class="table-wrap">
+  <table id="tabla_certs">
+    <thead><tr><th>Código</th><th>Alumno</th><th>Curso</th><th>Emitido</th><th>Estado</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+</div>
+</section>
 </main>
 </div>
 
 <script src="../src/config.js?v=20261023"></script>
-<script src="backend.js?v=20261024"></script>
+<script src="backend.js?v=20261025"></script>
+<!-- Subida de videos a Bunny Stream (protocolo TUS). Solo la usa la pestaña Cursos. -->
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.0/dist/tus.min.js" integrity="sha384-UlHjK3F7TCQCEUpnoa1ohMbP2oaWB3Aypv4gMo511vaZ86uUZ0Zv7UzZ0J1zRUT1" crossorigin="anonymous"></script>
+<script src="cursos.js?v=20261025"></script>
 <script>
 let categorias = [];
 let editingImages = [];
@@ -500,7 +549,10 @@ function flash(id, text, ok = true) {
 }
 
 // --- Pestañas ---
-const LOADERS = { productos: cargarProductos, faltantes: cargarFaltantes, pedidos: cargarPedidos, clientes: cargarClientes, mensajes: cargarMensajes, reglas: cargarReglas };
+const LOADERS = {
+  productos: cargarProductos, faltantes: cargarFaltantes, pedidos: cargarPedidos, clientes: cargarClientes, mensajes: cargarMensajes, reglas: cargarReglas,
+  cursos: cargarCursos, entregas: cargarEntregas, certificados: cargarCertificados, // admin/cursos.js
+};
 document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 function showTab(tab, sinCarga = false) {
   document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));

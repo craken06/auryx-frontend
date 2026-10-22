@@ -17,9 +17,11 @@ const ROUTE_PATHS = {
   info: "informacion", contact: "contacto", terms: "terminos", privacy: "privacidad",
   pedido: "pedido", arrepentimiento: "arrepentimiento", ingresar: "ingresar",
   "mis-pedidos": "mis-pedidos", "mi-cuenta": "mi-cuenta", guides: "guias", installers: "para-instaladores",
+  courses: "cursos", "mis-cursos": "mis-cursos", certificate: "certificados",
 };
 const PATH_ROUTES = Object.fromEntries(Object.entries(ROUTE_PATHS).map(([route, path]) => [path, route]));
-const ROUTE_VIEWS = ["home", "product", ...Object.keys(ROUTE_PATHS)];
+// "learn/<slug>" es el aula de un curso: /cursos/<slug>/aula/ (tres tramos)
+const ROUTE_VIEWS = ["home", "product", "learn", ...Object.keys(ROUTE_PATHS)];
 
 /* "Battery-Box Premium LVS 4.0" → "battery-box-premium-lvs-4-0" */
 function slugify(text) {
@@ -72,6 +74,7 @@ function routeToPath(route) {
     return `/productos/${p ? productSlug(p) : param}/${q}`;
   }
   if (view === "store" && param) return `/categorias/${categorySlug(param)}/${q}`;
+  if (view === "learn") return `/cursos/${param}/aula/${q}`;
   const base = ROUTE_PATHS[view] || view; // desconocida: la app muestra "no encontrada"
   return `/${base}/${param ? `${param}/` : ""}${q}`;
 }
@@ -83,6 +86,7 @@ function pathToRoute(pathname, search) {
   const [first, second] = parts;
   let route;
   if (!first) route = "";
+  else if (first === "cursos" && parts.length === 3 && parts[2] === "aula") route = `learn/${second}`;
   else if (parts.length > 2) route = "no-encontrada";
   else if (first === "productos") route = second ? `product/${second}` : "store";
   else if (first === "categorias") route = second ? `store/${categoryFromSlug(second) || second}` : "store";

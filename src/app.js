@@ -131,6 +131,12 @@ const App = {
     contactSending: false,
     checkout: defaultCheckout(), // formulario del checkout (ver cart.js)
     paymentMethods: null, // GET /payments/methods: se pide al entrar al carrito (null = se asume solo Mercado Pago)
+    // cursos (ver views/courses.js)
+    coursesList: null, // { data, error } de /cursos/
+    course: null, // { slug, data, error, enrolling, status, preview } de /cursos/<slug>/
+    learn: null, // { slug, room, lessonId, lesson, quiz, submission, cert } del aula
+    myCourses: null, // { data, error } de /mis-cursos/ (también decide "Ir al aula" en la ficha)
+    certificate: null, // { code, data, error } de /certificados/<código>/
     order: null, // { id, data, error, notMine } de la página #pedido/<id>
     myOrders: null, // { data, error, slow } de #mis-pedidos
     account: defaultAccountForm(), // formulario de #mi-cuenta
@@ -181,6 +187,11 @@ const App = {
       case "calculators": body = renderCalculators(s); break;
       case "guides": body = renderGuides(s); break;
       case "installers": body = renderInstallers(); break;
+      case "courses": body = renderCourses(s); break;
+      case "course-detail": body = renderCourseDetail(s); break;
+      case "learn": body = renderLearn(s); break;
+      case "my-courses": body = renderMyCourses(s); break;
+      case "certificate": body = renderCertificate(s); break;
       case "cart": body = renderCart(s); break;
       case "info": body = renderInfo(); break;
       case "contact": body = renderContact(s); break;
@@ -1081,6 +1092,11 @@ function pageTitle(s) {
       return named(g ? g.title : "Guías de energía solar");
     }
     case "installers": return named("Para instaladores y electricistas");
+    case "courses": return named("Cursos de energía solar");
+    case "course-detail": return named(s.course && s.course.data ? `${s.course.data.title} | Cursos` : "Curso");
+    case "learn": return named(s.learn && s.learn.room ? `${s.learn.room.course.title} | Aula` : "Aula");
+    case "my-courses": return named("Mis cursos");
+    case "certificate": return named("Verificación de certificado");
     case "cart": return named("Carrito");
     case "order": return named("Tu pedido");
     case "revocation": return named("Botón de arrepentimiento");
@@ -1261,6 +1277,12 @@ const ACTIONS = {
   "cart-step": (d) => App.cartQtyStep(Number(d.idx), Number(d.delta)),
   "cart-remove": (d) => App.cartRemove(Number(d.idx)),
   "cart-remove-unpayable": () => App.cartRemoveUnpayable(),
+  "courses-retry": () => Courses.loadList(true),
+  "course-enroll": () => Courses.enroll(),
+  "course-preview": (d) => Courses.preview(Number(d.id)),
+  "course-preview-close": () => { if (App.state.course) App.state.course.preview = null; App.render(); },
+  "lesson-complete": () => Courses.complete(),
+  "course-resource": (d) => Courses.resource(Number(d.id)),
   "copy-text": async (d) => { App.toast(await copyText(d.text || "") ? "Copiado." : "No se pudo copiar: seleccioná el texto y copialo a mano."); },
   "detail-step": (d) => {
     App.state.productDetailQty = clampQty((Number(App.state.productDetailQty) || 1) + Number(d.delta));
@@ -1387,6 +1409,7 @@ const INPUT_BINDINGS = {
   "checkout": (el) => setFormField(App.state.checkout, el),
   "account": (el) => setFormField(App.state.account, el),
   "revocation": (el) => { App.state.revocation[el.dataset.field] = el.value; },
+  "submission-text": (el) => { if (App.state.learn && App.state.learn.submission) App.state.learn.submission.text = el.value; },
   "sizer": (el) => {
     if (el.tagName === "SELECT") return; // los selects se resuelven en "change"
     App.calcTrackUse("dimensionador");
@@ -1424,6 +1447,7 @@ const CHANGE_BINDINGS = {
     App.render(); // muestra u oculta la dirección; el foco vuelve al radio
   },
   "checkout-save": (el) => { App.state.checkout.saveDetails = el.checked; App.state.checkout.touched = true; },
+  "quiz-answer": (el) => Courses.setAnswer(el),
   "checkout-pay": (el) => {
     App.state.checkout.paymentMethod = el.value === "transferencia" ? "transferencia" : "mercadopago";
     App.render(); // cambia el botón y la nota; el foco vuelve al radio
@@ -1542,6 +1566,10 @@ document.addEventListener("submit", (e) => {
   if (e.target.dataset.form === "contact") { e.preventDefault(); App.submitContact(); }
   if (e.target.dataset.form === "checkout") { e.preventDefault(); App.submitCheckout(); }
   if (e.target.dataset.form === "receipt") { e.preventDefault(); App.uploadReceipt(e.target); }
+  if (e.target.dataset.form === "quiz") { e.preventDefault(); Courses.submitQuiz(); }
+  if (e.target.dataset.form === "submission") { e.preventDefault(); Courses.submitAssignment(e.target); }
+  if (e.target.dataset.form === "course-cert") { e.preventDefault(); Courses.issueCertificate(e.target); }
+  if (e.target.dataset.form === "cert-verify") { e.preventDefault(); Courses.verifyFromForm(e.target); }
   if (e.target.dataset.form === "account") { e.preventDefault(); App.saveMyAccount(); }
   if (e.target.dataset.form === "revocation") { e.preventDefault(); App.submitRevocation(); }
   if (e.target.dataset.form === "sizer") e.preventDefault();
@@ -1700,6 +1728,33 @@ function applyRoute({ keepScroll = false } = {}) {
         fillFromCustomer(s.account, getSession().customer);
         App.refreshMe("account");
       }
+    }
+  } else if (view === "courses") {
+    if (param) {
+      s.view = "course-detail";
+      Courses.loadCourse(param);
+    } else {
+      s.view = "courses";
+      Courses.loadList();
+    }
+  } else if (view === "learn") {
+    if (!param) s.view = "not-found";
+    else if (!getSession()) routeToLogin(raw); // el aula es de una cuenta
+    else {
+      s.view = "learn";
+      Courses.loadRoom(param, params.get("leccion"));
+    }
+  } else if (view === "mis-cursos") {
+    if (!getSession()) routeToLogin(raw);
+    else if (s.view !== "my-courses") {
+      s.view = "my-courses";
+      Courses.loadMine();
+    }
+  } else if (view === "certificate") {
+    if (!param) s.view = "not-found";
+    else {
+      s.view = "certificate";
+      Courses.loadCertificate(param);
     }
   } else if (view === "cart") {
     const entering = s.view !== "cart";

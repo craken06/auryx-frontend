@@ -103,6 +103,7 @@ function renderLogin(state) {
         </div>
         <div class="auth-actions">
           <a href="#mis-pedidos" class="btn btn-primary">${icon("package")}Mis pedidos</a>
+          <a href="#mis-cursos" class="btn btn-secondary">${icon("graduation-cap")}Mis cursos</a>
           <a href="#mi-cuenta" class="btn btn-secondary">${icon("user-circle")}Mis datos</a>
         </div>
         <a href="#store" class="auth-link">Seguir viendo productos ${icon("arrow-right")}</a>`);

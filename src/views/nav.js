@@ -13,10 +13,12 @@ const NAV_LINKS = [
   { id: "calculators", href: "#calculators", label: "Calculadoras" },
   { id: "guides", href: "#guides", label: "Guías" },
   { id: "installers", href: "#installers", label: "Instaladores" },
+  { id: "courses", href: "#courses", label: "Cursos" },
 ]; // Información y Contacto están en el pie (views/footer.js)
 
 function navCurrent(linkId, view) {
   if (linkId === "store" && view === "product-detail") return true;
+  if (linkId === "courses" && ["course-detail", "learn", "certificate"].includes(view)) return true;
   return linkId === view;
 }
 
@@ -68,6 +70,7 @@ function renderNav(state) {
         </button>
         <div id="account-menu" class="dropdown-panel align-right account-panel">
           <a href="#mis-pedidos" class="menu-item">${icon("package")}Mis pedidos</a>
+          <a href="#mis-cursos" class="menu-item">${icon("graduation-cap")}Mis cursos</a>
           <a href="#mi-cuenta" class="menu-item">${icon("user-circle")}Mis datos</a>
           <div class="menu-sep" role="presentation"></div>
           <button type="button" class="menu-item" data-action="logout">${icon("sign-out")}Cerrar sesión</button>
@@ -76,6 +79,7 @@ function renderNav(state) {
     : `<a href="#ingresar" class="btn btn-secondary btn-sm login-btn" data-action="login-start" aria-label="Ingresar">${icon("user")}<span class="login-label">Ingresar</span></a>`;
   const mobileAccount = customer
     ? `<a href="#mis-pedidos"${view === "my-orders" ? ' aria-current="page"' : ""}>Mis pedidos</a>
+      <a href="#mis-cursos"${view === "my-courses" ? ' aria-current="page"' : ""}>Mis cursos</a>
       <a href="#mi-cuenta"${view === "my-account" ? ' aria-current="page"' : ""}>Mis datos</a>
       <button type="button" data-action="logout">Cerrar sesión</button>`
     : `<a href="#ingresar" data-action="login-start"${view === "login" ? ' aria-current="page"' : ""}>Ingresar</a>`;

@@ -35,7 +35,8 @@ for (const f of ["src/config.js", "src/data/products.js", "src/data/tariffs.js",
   "src/utils/calculatorHelpers.js", "src/lib/api.js", "src/views/sizer.js",
   "src/views/store.js", "src/views/productDetail.js", "src/views/footer.js", "src/views/home.js", "src/views/infoContact.js", "src/views/legal.js",
   "src/views/calculators/consumption.js", "src/views/calculators/cost.js", "src/views/calculators/savings.js",
-  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js", "src/lib/share.js", "src/views/installers.js"]) {
+  "src/views/calculators/orientation.js", "src/views/calculators/content.js", "src/views/calculators/index.js", "src/views/guides.js", "src/lib/share.js", "src/views/installers.js",
+  "src/views/cart.js", "src/views/courses.js"]) {
   vm.runInContext(read(f), ctx, { filename: f });
 }
 const run = (code) => vm.runInContext(code, ctx);
@@ -160,6 +161,7 @@ const STATIC_PAGES = [
   ["ingresar", "Ingresar", "Ingresá a tu cuenta de AURYX.", false],
   ["mis-pedidos", "Mis pedidos", "Tus pedidos en AURYX.", false],
   ["mi-cuenta", "Mis datos", "Tus datos en AURYX.", false],
+  ["mis-cursos", "Mis cursos", "Tus cursos en AURYX.", false],
 ];
 const GENERATED_DIRS = ["productos", "categorias", "guias", ...new Set(STATIC_PAGES.map(([route]) => routeToPath(route).split("/")[1]))];
 for (const dir of GENERATED_DIRS) {
@@ -310,6 +312,62 @@ for (const g of GUIDES) {
   guideUrls.push({ loc: urlPath, lastmod: g.needsCatalog ? [g.date, run("guidePricesIso()")].sort().pop() : g.date });
 }
 
+/* ---------------------------------------------------------------- cursos */
+/* /cursos/ y una página por curso publicado (views/courses.js). Si la API todavía no tiene cursos
+   (por ejemplo, antes de la migración) no se toca la carpeta: el resto del build sigue igual.
+   El aula (/cursos/<slug>/aula/) y los certificados no tienen página propia: los muestra 404.html (la app). */
+const coursesPath = routeToPath("courses");
+const courseUrls = [];
+let courseList = null;
+try {
+  courseList = await getJSON("/courses");
+  if (!Array.isArray(courseList)) throw new Error("respuesta inválida");
+} catch (err) {
+  console.warn(`Cursos: no se pudieron leer (${err.message}); /cursos/ queda como estaba.`);
+  courseList = null;
+}
+if (courseList) {
+  fs.rmSync(path.join(ROOT, coursesPath), { recursive: true, force: true });
+  page({
+    urlPath: coursesPath,
+    title: "Cursos de energía solar | AURYX",
+    description: "Cursos grabados de energía solar: instalaciones on-grid, off-grid e híbridas, dimensionamiento y baterías. A tu ritmo, con prácticas y certificado verificable.",
+    graph: [ORG, crumbs([["Cursos", coursesPath]]), {
+      "@type": "CollectionPage", name: "Cursos de energía solar", url: SITE + coursesPath,
+      mainEntity: { "@type": "ItemList", itemListElement: courseList.map((c, i) => ({ "@type": "ListItem", position: i + 1, url: SITE + routeToPath(`courses/${c.slug}`), name: c.title })) },
+    }],
+    body: (ctx.__s = { coursesList: { data: courseList }, myCourses: null }, run("renderCourses(__s)")),
+  });
+  for (const summary of courseList) {
+    const c = await getJSON(`/courses/${encodeURIComponent(summary.slug)}`);
+    const urlPath = routeToPath(`courses/${c.slug}`);
+    const hours = Number(c.durationHours) || Math.round(((c.totalMin || 0) / 60) * 10) / 10;
+    const description = clip((c.subtitle || c.description || c.title).replace(/\s+/g, " ").trim(), 160);
+    ctx.__s = { course: { slug: c.slug, data: c, preview: null }, myCourses: null };
+    page({
+      urlPath, ogType: "website",
+      title: `${c.title} | Cursos | AURYX`,
+      description, image: c.coverUrl || null,
+      graph: [ORG, crumbs([["Cursos", coursesPath], [c.title, urlPath]]), {
+        "@type": "Course",
+        "@id": `${SITE}${urlPath}#curso`,
+        name: c.title,
+        description,
+        url: SITE + urlPath,
+        inLanguage: "es-AR",
+        ...(c.coverUrl ? { image: c.coverUrl } : {}),
+        provider: { "@id": `${SITE}/#organizacion` },
+        educationalLevel: c.level,
+        ...(c.outcomes && c.outcomes.length ? { teaches: c.outcomes } : {}),
+        offers: { "@type": "Offer", category: Number(c.priceArs) > 0 ? "Paid" : "Free", price: String(Number(c.priceArs) || 0), priceCurrency: "ARS", url: SITE + urlPath },
+        hasCourseInstance: { "@type": "CourseInstance", courseMode: "Online", ...(hours ? { courseWorkload: `PT${Math.round(hours * 60)}M` } : {}) },
+      }],
+      body: run("renderCourseDetail(__s)"),
+    });
+    courseUrls.push({ loc: urlPath, lastmod: String(c.updatedAt || "").slice(0, 10) || undefined });
+  }
+}
+
 /* ---------------------------------------------------------------- 404.html: la app para cualquier otra dirección */
 fs.writeFileSync(path.join(ROOT, "404.html"), buildHTML({
   urlPath: "/", title: "Página no encontrada | AURYX", noindex: true,
@@ -335,6 +393,8 @@ const urls = [
   ...calcUrls.map((loc) => ({ loc, priority: "0.7", changefreq: "monthly" })),
   { loc: guidesPath, priority: "0.6", changefreq: "monthly" },
   ...guideUrls.map((u) => ({ ...u, priority: "0.7", changefreq: "monthly" })),
+  ...(courseList || fs.existsSync(path.join(ROOT, coursesPath, "index.html")) ? [{ loc: coursesPath, priority: "0.7", changefreq: "weekly" }] : []),
+  ...courseUrls.map((u) => ({ ...u, priority: "0.7", changefreq: "weekly" })),
 ];
 fs.writeFileSync(path.join(ROOT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Lo genera scripts/build-seo-pages.mjs: no editar a mano. -->

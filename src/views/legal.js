@@ -54,6 +54,7 @@ function renderTerms() {
       ] },
       { h: "2. Qué hace este sitio", p: [
         "El sitio permite explorar un catálogo, verificar la compatibilidad eléctrica entre componentes, usar calculadoras y comprar online con los medios de pago que el sitio ofrezca al confirmar el pedido: Mercado Pago y, cuando esté habilitada, transferencia bancaria.",
+        "También ofrece <a href=\"#courses\">cursos</a> grabados. El acceso a un curso es personal e intransferible, queda asociado a tu cuenta y no vence mientras el curso esté publicado. El certificado se emite al completar todas las lecciones obligatorias y cualquiera puede verificarlo con su código. La compra de un curso también se puede revocar con el <a href=\"#arrepentimiento\">Botón de arrepentimiento</a>.",
       ] },
       { h: "3. Precios", p: [
         "Los precios publicados son finales: incluyen IVA y todos los impuestos. Se muestran en pesos argentinos y en dólares estadounidenses; los productos cargados en dólares se convierten a pesos con la cotización de referencia del día, que figura al pie del sitio.",
