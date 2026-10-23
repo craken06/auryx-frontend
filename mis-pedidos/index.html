@@ -8,7 +8,7 @@
      imágenes https (fotos de productos cargadas en el admin, Unsplash, Google), GA4 y Clarity.
      Si agregás un servicio nuevo (otra API, Meta Pixel…), sumá su dominio acá o el navegador lo bloquea.
      Los estilos en línea se permiten porque las vistas y el botón de Google los usan. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://*.googletagmanager.com https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://compragamer-api.onrender.com https://*.r2.cloudflarestorage.com https://accounts.google.com/gsi/ https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://accounts.google.com/gsi/ https://iframe.mediadelivery.net https://www.youtube-nocookie.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 
 <title>Mis pedidos | AURYX</title>
@@ -73,7 +73,7 @@
 
 <!-- ?v=AAAAMMDD: subirlo en cada publicación para que el navegador no use archivos viejos de la caché -->
 <!-- Tema: se resuelve antes de pintar para evitar el parpadeo claro/oscuro (archivo y no en línea, por la CSP) -->
-<script src="/src/lib/theme-init.js?v=20261066"></script>
+<script src="/src/lib/theme-init.js?v=20261067"></script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preconnect" href="https://images.unsplash.com" />
@@ -89,7 +89,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" integrity="sha384-6p9AefaqUhEVheRlj1mpAkbngHXy9mbYMrIdcIt4Jlc9lOLIablJq3bBsLOjGwZ7" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" integrity="sha384-pPVoXE8ft+zxKtxIDDI7SfTK6y95NHm4qa+hKEg/hs8VkjW5IP+9/dGOPCbDpUPl" crossorigin="anonymous" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20261066" />
+<link rel="stylesheet" href="/css/styles.css?v=20261067" />
 </head>
 <body>
   <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -132,50 +132,51 @@
        Sin defer, con la CSP en <meta> Chrome los descarga de a uno (cada uno espera al anterior) y la
        página tardaba segundos en armarse; con defer se piden todos juntos. -->
   <!-- Configuración de entorno: primero que todo, define API_BASE_URL, WHATSAPP_NUMBER, GA4_ID… -->
-  <script defer src="/src/config.js?v=20261066"></script>
+  <script defer src="/src/config.js?v=20261067"></script>
   <!-- Analítica con consentimiento y origen de la visita (usa config.js; lo usan format.js y app.js) -->
-  <script defer src="/src/lib/analytics.js?v=20261066"></script>
+  <script defer src="/src/lib/analytics.js?v=20261067"></script>
 
   <!-- Datos y lógica de negocio -->
-  <script defer src="/src/data/products.js?v=20261066"></script>
-  <script defer src="/src/data/tariffs.js?v=20261066"></script>
+  <script defer src="/src/data/products.js?v=20261067"></script>
+  <script defer src="/src/data/tariffs.js?v=20261067"></script>
   <!-- Productos por categoría al último build (home y pie, sin esperar al catálogo) -->
-  <script defer src="/src/data/catalog-summary.js?v=20261066"></script>
+  <script defer src="/src/data/catalog-summary.js?v=20261067"></script>
   <!-- Direcciones limpias (/productos/…, /calculadoras/…): traducción ruta ↔ dirección -->
-  <script defer src="/src/lib/routes.js?v=20261066"></script>
-  <script defer src="/src/lib/compatibilityEngine.js?v=20261066"></script>
-  <script defer src="/src/utils/format.js?v=20261066"></script>
-  <script defer src="/src/utils/calculatorHelpers.js?v=20261066"></script>
+  <script defer src="/src/lib/routes.js?v=20261067"></script>
+  <script defer src="/src/lib/compatibilityEngine.js?v=20261067"></script>
+  <script defer src="/src/utils/format.js?v=20261067"></script>
+  <script defer src="/src/utils/calculatorHelpers.js?v=20261067"></script>
 
   <!-- Vistas -->
-  <script defer src="/src/views/nav.js?v=20261066"></script>
-  <script defer src="/src/views/footer.js?v=20261066"></script>
-  <script defer src="/src/views/sizer.js?v=20261066"></script>
-  <script defer src="/src/views/home.js?v=20261066"></script>
-  <script defer src="/src/views/store.js?v=20261066"></script>
-  <script defer src="/src/views/productDetail.js?v=20261066"></script>
-  <script defer src="/src/views/configurator.js?v=20261066"></script>
-  <script defer src="/src/views/calculators/consumption.js?v=20261066"></script>
-  <script defer src="/src/views/calculators/cost.js?v=20261066"></script>
-  <script defer src="/src/views/calculators/savings.js?v=20261066"></script>
-  <script defer src="/src/views/calculators/orientation.js?v=20261066"></script>
-  <script defer src="/src/views/calculators/content.js?v=20261066"></script>
-  <script defer src="/src/views/calculators/index.js?v=20261066"></script>
-  <script defer src="/src/views/guides.js?v=20261066"></script>
-  <script defer src="/src/views/installers.js?v=20261066"></script>
+  <script defer src="/src/views/nav.js?v=20261067"></script>
+  <script defer src="/src/views/footer.js?v=20261067"></script>
+  <script defer src="/src/views/sizer.js?v=20261067"></script>
+  <script defer src="/src/views/home.js?v=20261067"></script>
+  <script defer src="/src/views/store.js?v=20261067"></script>
+  <script defer src="/src/views/productDetail.js?v=20261067"></script>
+  <script defer src="/src/views/configurator.js?v=20261067"></script>
+  <script defer src="/src/views/calculators/consumption.js?v=20261067"></script>
+  <script defer src="/src/views/calculators/cost.js?v=20261067"></script>
+  <script defer src="/src/views/calculators/savings.js?v=20261067"></script>
+  <script defer src="/src/views/calculators/orientation.js?v=20261067"></script>
+  <script defer src="/src/views/calculators/content.js?v=20261067"></script>
+  <script defer src="/src/views/calculators/index.js?v=20261067"></script>
+  <script defer src="/src/views/guides.js?v=20261067"></script>
+  <script defer src="/src/views/installers.js?v=20261067"></script>
   <!-- Compartir resultado y "Mandame este sistema por WhatsApp" (calculadoras y dimensionador) -->
-  <script defer src="/src/lib/share.js?v=20261066"></script>
-  <script defer src="/src/views/cart.js?v=20261066"></script>
-  <script defer src="/src/views/infoContact.js?v=20261066"></script>
-  <script defer src="/src/views/legal.js?v=20261066"></script>
-  <script defer src="/src/views/account.js?v=20261066"></script>
-  <script defer src="/src/views/cookies.js?v=20261066"></script>
+  <script defer src="/src/lib/share.js?v=20261067"></script>
+  <script defer src="/src/views/cart.js?v=20261067"></script>
+  <script defer src="/src/views/courses.js?v=20261067"></script>
+  <script defer src="/src/views/infoContact.js?v=20261067"></script>
+  <script defer src="/src/views/legal.js?v=20261067"></script>
+  <script defer src="/src/views/account.js?v=20261067"></script>
+  <script defer src="/src/views/cookies.js?v=20261067"></script>
 
   <!-- Sesión del cliente y cliente de la API -->
-  <script defer src="/src/lib/session.js?v=20261066"></script>
-  <script defer src="/src/lib/api.js?v=20261066"></script>
+  <script defer src="/src/lib/session.js?v=20261067"></script>
+  <script defer src="/src/lib/api.js?v=20261067"></script>
 
   <!-- App: estado, router, eventos y arranque (va último: depende de todo lo anterior) -->
-  <script defer src="/src/app.js?v=20261066"></script>
+  <script defer src="/src/app.js?v=20261067"></script>
 </body>
 </html>
