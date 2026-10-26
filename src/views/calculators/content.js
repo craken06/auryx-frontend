@@ -51,7 +51,7 @@ const CALC_CONTENT = {
       "Escribí tu consumo mensual en kWh. Está en tu factura; si es bimestral, dividilo por 2.",
       "Elegí tu provincia y tu distribuidora.",
       "Mirá el total por mes y el desglose: cargo fijo, energía e impuestos, o la estimación si todavía no cargamos el cuadro oficial de esa empresa.",
-      "Usá el precio efectivo del kWh en la calculadora de ahorro para saber cuánto bajaría tu factura con paneles.",
+      "Pasá a la calculadora de ahorro para ver cuánto bajaría esa factura con paneles, con la misma tarifa.",
     ],
     examples() {
       const caba = costTotals({ kwh: 300, province: "caba", dist: "edenor" });
@@ -78,22 +78,21 @@ const CALC_CONTENT = {
     title: "Calculadora de ahorro con paneles solares",
     h1: "Calculadora de ahorro con paneles solares",
     lead: "Cuánto dejás de pagar de luz con la energía que generan tus paneles.",
-    description: "Calculá cuánto ahorrás por mes y por año con paneles solares según tu consumo, la energía que generan y el precio del kWh de tu distribuidora.",
-    intro: `Sirve para estimar cuánto baja tu factura cuando parte de tu consumo lo cubren los paneles. Cada kWh que generás y usás es uno que no le comprás a la distribuidora. Lo que generás de más no se cuenta como ahorro, porque se paga mucho menos o nada.`,
+    description: "Calculá cuánto ahorrás por mes y por año con paneles solares según tu consumo, la energía que generan y la tarifa de tu distribuidora, con impuestos.",
+    intro: `Sirve para estimar cuánto baja tu factura cuando parte de tu consumo lo cubren los paneles. Calcula tu factura de hoy y la factura con paneles con la tarifa de tu distribuidora (cargo fijo, categoría e impuestos, como la calculadora de costo), y la diferencia es el ahorro. Lo que generás de más no se cuenta, porque se paga mucho menos o nada.`,
     steps: [
       "Cargá tu consumo mensual en kWh (está en la factura).",
       "Cargá la producción solar mensual. Si no la sabés: potencia del sistema en kW × horas de sol pico de tu zona × 30 días.",
-      "Cargá el precio del kWh. El más realista es el precio efectivo que da la calculadora de costo para tu distribuidora.",
-      "Mirá el ahorro por mes, por año y qué parte de tu consumo cubre el sistema.",
+      "Elegí tu provincia y tu distribuidora.",
+      "Mirá el ahorro por mes y por año, tu factura antes y después, y qué parte de tu consumo cubre el sistema.",
     ],
     examples() {
       const loc = (v) => sizerLocation(v);
       const ex = (label, province, dist, hsp) => {
         const kwh = 300;
-        const price = costTotals({ kwh, province, dist }).perKwh;
         const solar = calcSolarKwh(2, Number(hsp));
-        const t = savingsTotals({ currentKwh: kwh, solarKwh: solar, energyPrice: price });
-        return { city: label, text: `Consumo de 300 kWh/mes y un sistema de 2 kWp con ${fmtNum(Number(hsp), 1)} horas de sol pico (${solar} kWh/mes) a ${fmtARS(price)} el kWh: <strong>${t.monthly} por mes</strong>, ${t.yearly} por año, ${t.pct} del consumo cubierto.` };
+        const t = savingsTotals({ currentKwh: kwh, solarKwh: solar, province, dist });
+        return { city: label, text: `Consumo de 300 kWh/mes y un sistema de 2 kWp con ${fmtNum(Number(hsp), 1)} horas de sol pico (${solar} kWh/mes): la factura pasa de ${t.billBefore} a ${t.billAfter}, <strong>${t.monthly} por mes</strong> de ahorro, ${t.yearly} por año, ${t.pct} del consumo cubierto.` };
       };
       return [
         ex("Córdoba, EPEC", "cordoba", "epec", loc("5.0").value),
@@ -102,9 +101,9 @@ const CALC_CONTENT = {
       ];
     },
     faqs: [
-      { q: "¿Por qué el ahorro es tan distinto entre provincias?", a: "Porque el ahorro es energía por precio, y el precio del kWh cambia mucho entre distribuidoras. Con el mismo sistema, donde la luz es más cara se ahorra más plata." },
+      { q: "¿Por qué el ahorro es tan distinto entre provincias?", a: "Porque la tarifa cambia mucho entre distribuidoras: el precio de la energía, el cargo fijo y los impuestos provinciales y municipales. Con el mismo sistema, donde la luz es más cara se ahorra más plata." },
       { q: "¿Se cuenta la energía que inyecto a la red?", a: "No. La calculadora solo cuenta la energía solar que reemplaza tu consumo. Con generación distribuida el excedente se acredita a un precio mucho menor que el que pagás, y no todas las distribuidoras lo tienen implementado." },
-      { q: "¿El ahorro real es igual al de la calculadora?", a: "Suele ser algo menor: el cargo fijo lo seguís pagando y, si bajás de categoría, cambia el precio del kWh. Es una estimación para comparar opciones, no una factura." },
+      { q: "¿Por qué cada kWh solar no ahorra exactamente el precio efectivo de mi factura?", a: "Porque el cargo fijo lo seguís pagando aunque consumas menos (eso baja el ahorro) y, si bajás de categoría, el kWh pasa a costar menos; en las categorías altas el kWh es más caro, así que salir de ellas ahorra más por cada kWh. La calculadora ya lo tiene en cuenta: compara tu factura completa, con impuestos, antes y después de los paneles. Es una estimación para comparar opciones, no una factura." },
       { q: "¿Cuántas horas de sol pico tiene mi zona?", a: "Como referencia, unas 4,4 en el AMBA, 5,0 en Córdoba y 5,8 en Mendoza y San Juan, en promedio anual. El dimensionador usa esos valores por zona." },
       { q: "¿Cuánto cuesta el sistema y en cuánto tiempo se recupera?", a: `<a href="#configurator">Diseñá tu sistema</a> arma el sistema con equipos y precios reales y calcula el ahorro, el recupero y el retorno a 25 años.` },
     ],
@@ -121,7 +120,7 @@ const CALC_CONTENT = {
       "Escribí la latitud de tu ubicación (negativa en el hemisferio sur) o tocá «Usar mi ubicación».",
       "Mirá la inclinación recomendada y la orientación. Como regla, la inclinación óptima es parecida a la latitud.",
       "En modo manual podés mover el ángulo y ver cómo queda el panel de costado y en perspectiva.",
-      "Si tu techo ya tiene una inclinación, comparala con la recomendada: unos grados de diferencia cambian poco la energía anual.",
+      "Si tu techo ya tiene una inclinación, cargala en modo manual: te muestra el desvío respecto de la óptima y la pérdida aproximada de energía (unos 10° cambian poco, ≈ 1,5 %; 30° son ≈ 10 %).",
     ],
     examples() {
       const ex = (city, lat) => {

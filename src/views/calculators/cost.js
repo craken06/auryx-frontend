@@ -90,10 +90,10 @@ function costFootnote(t) {
 
 const costPct = (n) => (Math.round(n) === 0 ? "Igual" : `${n > 0 ? "+" : "−"}${fmtNum(Math.abs(n))} %`);
 
-function costSelectHTML({ id, label, field, options, value, hint = "", disabled = false }) {
+function costSelectHTML({ id, label, field, options, value, hint = "", disabled = false, bind = "cost-sel" }) {
   return `<div class="field">
     <label class="field-label" for="${id}">${label}</label>
-    <select id="${id}" class="select" name="${id}" data-bind="cost-sel" data-field="${field}"${disabled ? " disabled" : ""}${hint ? ` aria-describedby="${id}-hint"` : ""}>
+    <select id="${id}" class="select" name="${id}" data-bind="${bind}" data-field="${field}"${disabled ? " disabled" : ""}${hint ? ` aria-describedby="${id}-hint"` : ""}>
       ${options.map((o) => `<option value="${esc(o.id)}"${o.id === value ? " selected" : ""}>${esc(o.name)}</option>`).join("")}
     </select>
     ${hint ? `<p id="${id}-hint" class="field-hint">${hint}</p>` : ""}

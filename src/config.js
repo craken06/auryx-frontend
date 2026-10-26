@@ -40,7 +40,7 @@ const GOOGLE_CLIENT_ID = "22309348641-70prap97ugr2a30af2fjrtphruia4q4g.apps.goog
 // esos perfiles son de esta empresa). Vacío = no se muestra. Si cambian, cambiá también "sameAs"
 // en index.html (las demás páginas lo toman de acá al regenerarse).
 const INSTAGRAM_URL = "https://www.instagram.com/auryx.oficial/";
-/* Instalación y asesoría: porcentaje del precio de los equipos del sistema. El mismo valor que
+/* Instalación (la asesoría es gratis): porcentaje del precio de los equipos del sistema. El mismo valor que
    src/orders/installation.ts de la API, que es la que calcula lo que se cobra. */
 const INSTALLATION_RATE = 0.25;
 const LINKEDIN_URL = "https://www.linkedin.com/in/auryx-fv";

@@ -103,19 +103,24 @@ const SHARE_TOOLS = {
   ahorro: {
     label: "calculadora de ahorro",
     parse(params, st) {
-      if (!shareHas(params, ["consumo", "solar", "precio"])) return false;
+      // "precio" venía en los links viejos (antes se cargaba a mano): el link se reconoce, el precio se ignora
+      if (!shareHas(params, ["consumo", "solar", "provincia", "distribuidora", "precio"])) return false;
       const sv = st.calc.savings;
-      [["consumo", "currentKwh"], ["solar", "solarKwh"], ["precio", "energyPrice"]].forEach(([key, field]) => {
+      [["consumo", "currentKwh"], ["solar", "solarKwh"]].forEach(([key, field]) => {
         const v = shareRange(params, key, 0, 10000);
         if (v !== null) sv[field] = v;
       });
+      const prov = sharePick(params.get("provincia"), TARIFF_PROVINCES.map((p) => p.id));
+      if (prov) sv.province = prov;
+      const dists = costProvince(sv.province).dists;
+      sv.dist = sharePick(params.get("distribuidora"), dists) || (dists.includes(sv.dist) && !params.has("distribuidora") ? sv.dist : dists[0]);
       return true;
     },
-    build: (s) => shareQuery({ consumo: s.calc.savings.currentKwh, solar: s.calc.savings.solarKwh, precio: s.calc.savings.energyPrice }),
+    build: (s) => shareQuery({ consumo: s.calc.savings.currentKwh, solar: s.calc.savings.solarKwh, provincia: costProvince(s.calc.savings.province).id, distribuidora: costDistId(s.calc.savings) }),
     summary(s) {
       const sv = s.calc.savings;
       const t = savingsTotals(sv);
-      return `Hola, usé la calculadora de ahorro de Auryx.\n\n- Consumo: ${fmtNum(sv.currentKwh)} kWh por mes\n- Producción solar: ${fmtNum(sv.solarKwh)} kWh por mes\n- Precio del kWh: ${fmtARS(sv.energyPrice)}\n- Ahorro: ${t.monthly} por mes (${t.yearly} por año), ${t.pct} del consumo cubierto\n\n${SHARE_ASK}`;
+      return `Hola, usé la calculadora de ahorro de Auryx.\n\n- Consumo: ${fmtNum(sv.currentKwh)} kWh por mes\n- Producción solar: ${fmtNum(sv.solarKwh)} kWh por mes\n- ${costProvince(sv.province).name}, ${t.before.dist.name}\n- Factura: ${t.billBefore} hoy, ${t.billAfter} con paneles\n- Ahorro: ${t.monthly} por mes (${t.yearly} por año), ${t.pct} del consumo cubierto\n\n${SHARE_ASK}`;
     },
   },
 
@@ -139,7 +144,9 @@ const SHARE_TOOLS = {
     summary(s) {
       const o = s.calc.orientation;
       const t = orientationTotals(o);
-      const angle = o.mode === "manual" ? `${o.previewAngle}° (elegida a mano; la recomendada es ${t.angle}°)` : `${t.angle}°`;
+      const angle = o.mode === "manual"
+        ? `${o.previewAngle}° (elegida a mano; la recomendada es ${t.angle}°; pérdida estimada: ${orientationDeviation(o.previewAngle, t.angle).loss.toLowerCase()})`
+        : `${t.angle}°`;
       return `Hola, usé la calculadora de orientación de Auryx.\n\n- Latitud: ${fmtNum(o.lat, 2)}\n- Inclinación: ${angle}\n- Orientación: ${t.azimuth}\n\n${SHARE_ASK}`;
     },
   },

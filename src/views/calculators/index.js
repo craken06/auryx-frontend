@@ -14,7 +14,7 @@ function defaultCalcState() {
   return {
     consumption: [{ name: "Heladera", power: 150, qty: 1, hours: 8 }],
     cost: { kwh: 300, province: "ba", dist: "edenor" },
-    savings: { currentKwh: 350, solarKwh: 220, energyPrice: 140 },
+    savings: { currentKwh: 350, solarKwh: 220, province: "ba", dist: "edenor" },
     orientation: { lat: -34.6, mode: "optimal", previewAngle: 35 },
   };
 }

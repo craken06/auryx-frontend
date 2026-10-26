@@ -27,8 +27,8 @@ const HOME_SERVICES = [
   { id: "sale", icon: "solar-panel", title: "Venta de equipos",
     text: "Paneles, inversores, baterías, protecciones y estructuras de marcas reconocidas, con IVA incluido.",
     href: "#store", link: "Ver productos" },
-  { id: "advice", icon: "chat-circle-text", title: "Asesoría",
-    text: `Una persona de <span translate="no">AURYX</span> revisa tu consumo, tu techo y los equipos antes de que compres.`,
+  { id: "advice", icon: "chat-circle-text", title: "Asesoría gratis",
+    text: `No tiene ningún costo ni te compromete a comprar: una persona de <span translate="no">AURYX</span> revisa tu consumo, tu techo y los equipos antes de que compres.`,
     wa: "Hola, quiero que me asesoren con un sistema solar.", link: "Hablar con un asesor" },
   { id: "install", icon: "wrench", title: "Instalación",
     text: "La sumás al armar tu sistema y la coordinamos nosotros, con personal matriculado.",
@@ -94,10 +94,10 @@ function renderHome(state) {
       <div class="hero-copy">
         <p class="eyebrow" style="--i:0">Energía solar para casas y PyMEs</p>
         <h1 id="hero-title" class="hero-title" style="--i:1">Tu sistema solar, <em>de punta a punta.</em></h1>
-        <p class="hero-sub" style="--i:2">Vendemos los equipos, dimensionamos el sistema, te asesoramos y coordinamos la instalación.</p>
+        <p class="hero-sub" style="--i:2">Vendemos los equipos, dimensionamos el sistema, te asesoramos gratis y coordinamos la instalación.</p>
         <div class="hero-ctas" style="--i:3">
           <a href="#configurator" class="btn btn-primary btn-lg">Diseñar mi sistema ${icon("arrow-right")}</a>
-          <a href="${whatsappLink("Hola, quiero que me asesoren con un sistema solar.")}" class="btn btn-secondary btn-lg" target="_blank" rel="noopener" data-context="home-hero">${icon("whatsapp-logo", "", "fill")} Hablar con un asesor</a>
+          <a href="${whatsappLink("Hola, quiero que me asesoren con un sistema solar.")}" class="btn btn-secondary btn-lg" target="_blank" rel="noopener" data-context="home-hero">${icon("whatsapp-logo", "", "fill")} Asesoría gratis</a>
         </div>
       </div>
       <div class="hero-media">

@@ -77,13 +77,13 @@ const productTitleHTML = (p) => esc(productTitle(p)).replace(/(\d) (?=(?:kWh|kWp
 /* Modelo técnico del fabricante (el nombre de antes, guardado en specs.modelo al renombrar). */
 const productModel = (p) => (p && p.specs && p.specs.modelo) || "";
 
-/* Instalación y asesoría sobre ciertas líneas ({ product, qty }): solo para mostrarla; lo que se
+/* Instalación sobre ciertas líneas ({ product, qty }): solo para mostrarla; lo que se
    cobra lo calcula la API con los precios de la base. */
 function installationPrice(lines) {
   const pct = (k) => Math.round(lines.reduce((s, l) => s + l.product[k] * l.qty, 0) * INSTALLATION_RATE * 100) / 100;
   return { priceARS: pct("priceARS"), priceUSD: pct("priceUSD") };
 }
-const INSTALLATION_LABEL = "Instalación y asesoría";
+const INSTALLATION_LABEL = "Instalación";
 
 function techNoteHTML(extraClass = "") {
   return `<p class="tech-note${extraClass ? " " + extraClass : ""}">${icon("info")}<span><strong>Aviso técnico.</strong> ${TECH_DISCLAIMER}</span></p>`;

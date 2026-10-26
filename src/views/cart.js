@@ -1,7 +1,7 @@
 /* AURYX: carrito, checkout (Mercado Pago) y estado del pedido. Depende de: utils/format.js, lib/api.js, lib/session.js; usa avatarHTML, googleSlotHTML y loginStatusHTML de views/account.js en tiempo de ejecución. */
 
 function cartTotals(cart) {
-  // instalación y asesoría: un porcentaje de los equipos de los sistemas que la pidieron
+  // instalación: un porcentaje de los equipos de los sistemas que la pidieron
   const installed = cart.filter((it) => it.installation);
   const installation = installed.length ? installationPrice(installed) : null;
   return {
@@ -16,7 +16,7 @@ function cartTotals(cart) {
 function cartInstallationHTML(systemId, items, currency) {
   const pct = Math.round(INSTALLATION_RATE * 100);
   if (!items.some((it) => it.installation)) {
-    return `<button type="button" class="cart-install-add" data-action="cart-installation" data-system="${esc(systemId)}" data-on="1">${icon("wrench")} Pedir instalación y asesoría para este sistema <span class="cfg-install-pct">+${pct} %</span></button>`;
+    return `<button type="button" class="cart-install-add" data-action="cart-installation" data-system="${esc(systemId)}" data-on="1">${icon("wrench")} Pedir instalación para este sistema <span class="cfg-install-pct">+${pct} %</span></button>`;
   }
   return `
   <div class="cart-line cart-line-service">
@@ -24,7 +24,7 @@ function cartInstallationHTML(systemId, items, currency) {
     <div class="info"><p class="name">${INSTALLATION_LABEL}</p><p class="xsmall dim">${pct} % de los equipos del sistema. Coordinamos la visita técnica después de la compra.</p></div>
     <div class="controls">
       ${priceTagHTML(installationPrice(items.filter((it) => it.installation)), currency)}
-      <button type="button" class="icon-btn icon-btn-danger" data-action="cart-installation" data-system="${esc(systemId)}" data-on="0" aria-label="Quitar la instalación y asesoría">${icon("trash")}</button>
+      <button type="button" class="icon-btn icon-btn-danger" data-action="cart-installation" data-system="${esc(systemId)}" data-on="0" aria-label="Quitar la instalación">${icon("trash")}</button>
     </div>
   </div>`;
 }

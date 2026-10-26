@@ -168,7 +168,7 @@ function cfgTotals(cfg) {
   const totalPower = panel ? panel.specs.pmax * cfg.panelQty : 0;
   const totalPriceARS = lines.reduce((s, l) => s + l.product.priceARS * l.qty, 0);
   const totalPriceUSD = lines.reduce((s, l) => s + l.product.priceUSD * l.qty, 0);
-  // instalación y asesoría (opcional, se pide al final): un porcentaje de los equipos
+  // instalación (opcional, se pide al final): un porcentaje de los equipos
   const installation = cfg.installation && lines.length ? installationPrice(lines) : null;
   const grandPriceARS = totalPriceARS + (installation ? installation.priceARS : 0);
   const grandPriceUSD = totalPriceUSD + (installation ? installation.priceUSD : 0);
@@ -520,9 +520,9 @@ function renderConfigurator(state) {
         <div class="summary-total"><span class="muted">Total</span>${priceTagHTML({ priceARS: totals.grandPriceARS, priceUSD: totals.grandPriceUSD }, cur, "lg")}</div>
         <div class="cfg-install">
           ${inst
-            ? `<button type="button" class="btn btn-secondary" data-action="cfg-installation" data-fid="cfg-installation" aria-pressed="true">${icon("x")} Quitar instalación y asesoría</button>`
-            : `<button type="button" class="btn btn-secondary" data-action="cfg-installation" data-fid="cfg-installation" aria-pressed="false">${icon("wrench")} Pedir instalación y asesoría <span class="cfg-install-pct">+${pct} %</span></button>`}
-          <p class="xsmall dim">Instalación por nuestro equipo y asesoría para el proyecto. Coordinamos la visita técnica después de la compra.</p>
+            ? `<button type="button" class="btn btn-secondary" data-action="cfg-installation" data-fid="cfg-installation" aria-pressed="true">${icon("x")} Quitar instalación</button>`
+            : `<button type="button" class="btn btn-secondary" data-action="cfg-installation" data-fid="cfg-installation" aria-pressed="false">${icon("wrench")} Pedir instalación <span class="cfg-install-pct">+${pct} %</span></button>`}
+          <p class="xsmall dim">Instalación por nuestro equipo, con personal matriculado. La asesoría es gratis. Coordinamos la visita técnica después de la compra.</p>
         </div>
       </div>
       ${techNoteHTML()}

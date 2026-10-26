@@ -17,7 +17,7 @@ function defaultConfigurator() {
   return {
     step: 0, systemTypeId: null, panelId: null, panelQty: 2, wiring: "series",
     systemVoltage: 24, converterId: null, batteryId: null, batteryQty: 1, extras: {},
-    installation: false, // "Pedir instalación y asesoría" del último paso
+    installation: false, // "Pedir instalación" del último paso
     tMinC: null, // null = la temperatura de diseño por defecto del backend
   };
 }
@@ -766,7 +766,7 @@ const App = {
     if (ev && ev.minQty > c.batteryQty) c.batteryQty = ev.minQty;
     this.render();
   },
-  /* Instalación y asesoría de un sistema del carrito: la marca va en cada línea del sistema. */
+  /* Instalación de un sistema del carrito: la marca va en cada línea del sistema. */
   cartSetInstallation(systemId, on) {
     this.state.cart.forEach((it) => { if (it.systemId === systemId) { if (on) it.installation = true; else delete it.installation; } });
     this.render();
@@ -787,7 +787,7 @@ const App = {
       const req = {
         consumo: ["/calculators/consumption", { items: c.consumption }],
         costo: ["/calculators/cost", { kwh: c.cost.kwh, pricePerKwh: costTotals(c.cost).perKwh }],
-        ahorro: ["/calculators/savings", c.savings],
+        ahorro: ["/calculators/savings", { currentKwh: c.savings.currentKwh, solarKwh: c.savings.solarKwh, energyPrice: savingsTotals(c.savings).before.perKwh }],
         orientacion: c.orientation.mode === "optimal" ? ["/calculators/orientation", { lat: c.orientation.lat }] : null,
       }[section];
       const box = document.getElementById(`calc-warn-${section}`);
@@ -833,12 +833,19 @@ const App = {
     const t = savingsTotals(this.state.calc.savings);
     this.setText("sav-monthly", t.monthly);
     this.setText("sav-yearly", t.yearly);
+    this.setText("sav-before", t.billBefore);
+    this.setText("sav-after", t.billAfter);
+    this.setText("sav-perkwh", t.perKwh);
     this.setText("sav-pct", t.pct);
+    this.setText("sav-footnote", savingsFootnote(t));
     this.calcFetchWarnings();
   },
   calcOrientationRecompute() {
     this.calcTrackUse("orientacion");
-    const t = orientationTotals(this.state.calc.orientation);
+    const o = this.state.calc.orientation;
+    // en modo manual la latitud cambia la óptima de referencia y la pérdida, no el ángulo elegido
+    if (o.mode === "manual") { this.calcOrientationAngleEdit(o.previewAngle); this.calcFetchWarnings(); return; }
+    const t = orientationTotals(o);
     this.setText("orient-azimuth", t.azimuth);
     this.setText("orient-angle", `≈ ${t.angle}°`);
     this.calcOrientationDraw(t.angle);
@@ -855,6 +862,12 @@ const App = {
     if (numInput && document.activeElement !== numInput && Number(numInput.value) !== n) numInput.value = n;
     if (slider && Number(slider.value) !== n) slider.value = n;
     this.setText("orient-angle", `≈ ${n}°`);
+    const recommended = orientationTotals(this.state.calc.orientation).angle;
+    const dev = orientationDeviation(n, recommended);
+    this.setText("orient-optimal", `≈ ${recommended}°`);
+    this.setText("orient-diff", dev.diff);
+    this.setText("orient-loss", dev.loss);
+    this.setText("orient-yield", dev.yield);
     this.calcOrientationDraw(n);
   },
   /* Redibuja las dos vistas del panel con el ángulo dado (sin re-render). */
@@ -1427,6 +1440,13 @@ const CHANGE_BINDINGS = {
     if (el.dataset.field === "province") c.dist = costProvince(el.value).dists[0];
     App.render();
     App.calcCostRecompute();
+  },
+  "savings-sel": (el) => {
+    const sv = App.state.calc.savings;
+    sv[el.dataset.field] = el.value;
+    if (el.dataset.field === "province") sv.dist = costProvince(el.value).dists[0];
+    App.render();
+    App.calcSavingsRecompute();
   },
   "store-sort": (el) => App.setStoreSort(el.value),
   "cfg-wiring": (el) => { App.state.configurator.wiring = el.value; App.render(); },
